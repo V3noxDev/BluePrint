@@ -1,0 +1,1 @@
+- { Signature: "sync", Description: "Sincroniza versões Bedrock com a API oficial", Path: "sync.php", Interval: "0 */6 * * *" }
