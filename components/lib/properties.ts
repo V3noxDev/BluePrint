@@ -53,10 +53,18 @@ const unescapeToken = (input: string): string => {
 };
 
 const escapeKey = (input: string): string =>
-    input.replace(/\\/g, '\\\\').replace(/ /g, '\\ ').replace(/([=:])/g, '\\$1');
+    input
+        .replace(/\\/g, '\\\\')
+        .replace(/ /g, '\\ ')
+        .replace(/([=:])/g, '\\$1');
 
 const escapeValue = (input: string): string =>
-    input.replace(/\\/g, '\\\\').replace(/\t/g, '\\t').replace(/\n/g, '\\n').replace(/\r/g, '\\r').replace(/\f/g, '\\f');
+    input
+        .replace(/\\/g, '\\\\')
+        .replace(/\t/g, '\\t')
+        .replace(/\n/g, '\\n')
+        .replace(/\r/g, '\\r')
+        .replace(/\f/g, '\\f');
 
 const parsePropertyLine = (line: string, lineIndex: number): ParsedProperty | null => {
     const firstContent = line.search(/\S/);

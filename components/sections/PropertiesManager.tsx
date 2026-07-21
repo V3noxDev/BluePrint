@@ -47,8 +47,7 @@ const FLASH_KEY = 'serverproperties:editor';
 
 const Hero = styled.div`
     ${tw`relative overflow-hidden rounded-xl shadow-xl mb-6 p-6 md:p-8`};
-    background:
-        radial-gradient(circle at 85% 20%, rgba(34, 197, 94, 0.22), transparent 32%),
+    background: radial-gradient(circle at 85% 20%, rgba(34, 197, 94, 0.22), transparent 32%),
         linear-gradient(135deg, #111827 0%, #172033 55%, #10251b 100%);
     border: 1px solid rgba(74, 222, 128, 0.18);
 `;
@@ -354,13 +353,16 @@ const PropertiesManager = () => {
                                 <span css={tw`text-xs uppercase tracking-widest font-bold text-green-300`}>
                                     Minecraft Java
                                 </span>
-                                <span css={tw`px-2 py-1 rounded-full bg-green-500 bg-opacity-20 text-green-200 text-xs`}>
+                                <span
+                                    css={tw`px-2 py-1 rounded-full bg-green-500 bg-opacity-20 text-green-200 text-xs`}
+                                >
                                     /server.properties
                                 </span>
                             </div>
                             <h1 css={tw`text-2xl md:text-3xl text-white font-bold`}>Central de configurações</h1>
                             <p css={tw`mt-2 text-neutral-300 max-w-2xl text-sm md:text-base`}>
-                                Ajuste seu servidor com segurança. Comentários e propriedades personalizadas são preservados.
+                                Ajuste seu servidor com segurança. Comentários e propriedades personalizadas são
+                                preservados.
                             </p>
                         </div>
                     </div>
@@ -374,7 +376,13 @@ const PropertiesManager = () => {
                             <div css={tw`text-xs text-neutral-400`}>preservadas</div>
                         </div>
                         <div css={tw`bg-black bg-opacity-20 rounded-lg px-3 py-2 text-center`}>
-                            <div css={changedCount ? tw`text-lg font-bold text-yellow-300` : tw`text-lg font-bold text-white`}>
+                            <div
+                                css={
+                                    changedCount
+                                        ? tw`text-lg font-bold text-yellow-300`
+                                        : tw`text-lg font-bold text-white`
+                                }
+                            >
                                 {changedCount}
                             </div>
                             <div css={tw`text-xs text-neutral-400`}>alteradas</div>
@@ -399,12 +407,16 @@ const PropertiesManager = () => {
 
             <Panel css={tw`mb-6`}>
                 <div css={tw`px-5 py-4 border-b border-neutral-600 flex items-center gap-3`}>
-                    <div css={tw`w-9 h-9 rounded-lg bg-purple-500 bg-opacity-20 text-purple-300 flex items-center justify-center`}>
+                    <div
+                        css={tw`w-9 h-9 rounded-lg bg-purple-500 bg-opacity-20 text-purple-300 flex items-center justify-center`}
+                    >
                         <FontAwesomeIcon icon={faMagic} />
                     </div>
                     <div>
                         <h2 css={tw`font-semibold text-neutral-100`}>Configuração rápida</h2>
-                        <p css={tw`text-xs text-neutral-400 mt-1`}>Aplique um perfil e revise as mudanças antes de salvar.</p>
+                        <p css={tw`text-xs text-neutral-400 mt-1`}>
+                            Aplique um perfil e revise as mudanças antes de salvar.
+                        </p>
                     </div>
                 </div>
                 <div css={tw`grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3 p-4`}>
@@ -484,9 +496,15 @@ const PropertiesManager = () => {
 
                 <main css={tw`lg:col-span-3`}>
                     <Panel>
-                        <div css={tw`flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-neutral-600`}>
+                        <div
+                            css={tw`flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-neutral-600`}
+                        >
                             <div css={tw`flex p-2`}>
-                                <ModeButton type={'button'} active={mode === 'visual'} onClick={() => setMode('visual')}>
+                                <ModeButton
+                                    type={'button'}
+                                    active={mode === 'visual'}
+                                    onClick={() => setMode('visual')}
+                                >
                                     <FontAwesomeIcon icon={faSlidersH} css={tw`mr-2`} />
                                     Editor visual
                                 </ModeButton>
@@ -548,7 +566,7 @@ const PropertiesManager = () => {
                                                         <code css={tw`block text-xs text-primary-300 mt-1`}>
                                                             {definition.key}
                                                         </code>
-                                                        <p css={tw`text-xs text-neutral-400 mt-2 leading-relaxed min-h-8`}>
+                                                        <p css={tw`text-xs text-neutral-400 mt-2 leading-relaxed`}>
                                                             {definition.description}
                                                         </p>
                                                     </div>
@@ -587,10 +605,15 @@ const PropertiesManager = () => {
                                                                 value={value}
                                                                 disabled={!canWrite}
                                                                 onChange={(event) =>
-                                                                    updateProperty(definition.key, event.currentTarget.value)
+                                                                    updateProperty(
+                                                                        definition.key,
+                                                                        event.currentTarget.value
+                                                                    )
                                                                 }
                                                             >
-                                                                {!definition.options?.some((option) => option.value === value) && (
+                                                                {!definition.options?.some(
+                                                                    (option) => option.value === value
+                                                                ) && (
                                                                     <option value={value}>{value} (valor atual)</option>
                                                                 )}
                                                                 {definition.options?.map((option) => (
@@ -615,14 +638,22 @@ const PropertiesManager = () => {
                                                                 disabled={!canWrite}
                                                                 hasError={!!error}
                                                                 onChange={(event) =>
-                                                                    updateProperty(definition.key, event.currentTarget.value)
+                                                                    updateProperty(
+                                                                        definition.key,
+                                                                        event.currentTarget.value
+                                                                    )
                                                                 }
                                                             />
                                                         )}
                                                         {error && <p css={tw`text-xs text-red-300 mt-2`}>{error}</p>}
                                                         {definition.warning && (
-                                                            <p css={tw`text-xs text-yellow-300 mt-2 flex items-start gap-2`}>
-                                                                <FontAwesomeIcon icon={faExclamationTriangle} css={tw`mt-1`} />
+                                                            <p
+                                                                css={tw`text-xs text-yellow-300 mt-2 flex items-start gap-2`}
+                                                            >
+                                                                <FontAwesomeIcon
+                                                                    icon={faExclamationTriangle}
+                                                                    css={tw`mt-1`}
+                                                                />
                                                                 <span>{definition.warning}</span>
                                                             </p>
                                                         )}
@@ -647,8 +678,8 @@ const PropertiesManager = () => {
                                         <div>
                                             <p css={tw`font-semibold text-neutral-100 text-sm`}>Edição avançada</p>
                                             <p css={tw`text-xs text-neutral-400 mt-1 leading-relaxed`}>
-                                                Edite o arquivo completo. Linhas inválidas podem impedir a inicialização do
-                                                Minecraft; mantenha o formato chave=valor.
+                                                Edite o arquivo completo. Linhas inválidas podem impedir a inicialização
+                                                do Minecraft; mantenha o formato chave=valor.
                                             </p>
                                         </div>
                                     </div>
@@ -708,12 +739,7 @@ const PropertiesManager = () => {
                                     type={'button'}
                                     color={'green'}
                                     isLoading={saving}
-                                    disabled={
-                                        !canWrite ||
-                                        !isDirty ||
-                                        saving ||
-                                        hasBlockingErrors
-                                    }
+                                    disabled={!canWrite || !isDirty || saving || hasBlockingErrors}
                                     onClick={save}
                                 >
                                     <FontAwesomeIcon icon={faSave} css={tw`mr-2`} />
