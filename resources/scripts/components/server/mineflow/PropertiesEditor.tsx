@@ -2,13 +2,13 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
     faCode,
-    faFloppyDisk,
-    faGaugeHigh,
+    faSave,
+    faTachometerAlt,
     faGlobe,
     faPlus,
-    faRotate,
+    faSyncAlt,
     faServer,
-    faShieldHalved,
+    faShieldAlt,
     faTrash,
 } from '@fortawesome/free-solid-svg-icons';
 import Input from '@/components/elements/Input';
@@ -18,6 +18,7 @@ import Spinner from '@/components/elements/Spinner';
 import Can from '@/components/elements/Can';
 import { Button } from '@/components/elements/button';
 import { UiAlert } from '@blueprint/ui';
+import { usePermissions } from '@/plugins/usePermissions';
 import { httpErrorToHuman } from '@/api/http';
 import { Panel, SettingCard, SettingGrid } from './styles';
 import { getServerProperties, updateServerProperties } from './api';
@@ -175,8 +176,14 @@ export default ({ uuid, onSuccess, onError }: Props) => {
     const [search, setSearch] = useState('');
     const [newKey, setNewKey] = useState('');
     const [newValue, setNewValue] = useState('');
+    const [canRead, canWrite] = usePermissions(['file.read-content', 'file.create']);
 
     const load = useCallback((): void => {
+        if (!canRead) {
+            setLoading(false);
+            return;
+        }
+
         setLoading(true);
         getServerProperties(uuid)
             .then((response) => {
@@ -186,7 +193,7 @@ export default ({ uuid, onSuccess, onError }: Props) => {
             })
             .catch((error) => onError(httpErrorToHuman(error)))
             .then(() => setLoading(false));
-    }, [uuid, onError]);
+    }, [uuid, onError, canRead]);
 
     useEffect(load, [load]);
 
@@ -218,6 +225,8 @@ export default ({ uuid, onSuccess, onError }: Props) => {
     };
 
     const addProperty = (): void => {
+        if (!canWrite || saving) return;
+
         const key = newKey.trim();
         if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/.test(key)) {
             onError('Use uma chave válida: letras, números, ponto, hífen e sublinhado.');
@@ -230,6 +239,26 @@ export default ({ uuid, onSuccess, onError }: Props) => {
     };
 
     const save = (): void => {
+        if (!canWrite || saving) return;
+
+        const invalidNumber = settings.find((setting) => {
+            if (setting.type !== 'number' || !(setting.key in draft)) return false;
+            const value = Number(draft[setting.key]);
+
+            return (
+                !Number.isInteger(value) ||
+                (setting.min !== undefined && value < setting.min) ||
+                (setting.max !== undefined && value > setting.max)
+            );
+        });
+
+        if (invalidNumber) {
+            onError(
+                `${invalidNumber.label} deve ser um número inteiro entre ${invalidNumber.min} e ${invalidNumber.max}.`
+            );
+            return;
+        }
+
         const updates = Object.entries(draft).reduce<Record<string, string>>((result, [key, value]) => {
             if (original[key] !== value) result[key] = value;
             return result;
@@ -254,7 +283,12 @@ export default ({ uuid, onSuccess, onError }: Props) => {
 
         if (setting.type === 'boolean') {
             return (
-                <Select id={id} value={value} onChange={(event) => change(setting.key, event.currentTarget.value)}>
+                <Select
+                    id={id}
+                    value={value}
+                    disabled={!canWrite || saving}
+                    onChange={(event) => change(setting.key, event.currentTarget.value)}
+                >
                     <option value={'true'}>Ativado</option>
                     <option value={'false'}>Desativado</option>
                 </Select>
@@ -263,7 +297,12 @@ export default ({ uuid, onSuccess, onError }: Props) => {
 
         if (setting.type === 'select') {
             return (
-                <Select id={id} value={value} onChange={(event) => change(setting.key, event.currentTarget.value)}>
+                <Select
+                    id={id}
+                    value={value}
+                    disabled={!canWrite || saving}
+                    onChange={(event) => change(setting.key, event.currentTarget.value)}
+                >
                     {setting.options?.map((option) => (
                         <option key={option.value} value={option.value}>
                             {option.label}
@@ -280,6 +319,7 @@ export default ({ uuid, onSuccess, onError }: Props) => {
                 min={setting.min}
                 max={setting.max}
                 value={value}
+                disabled={!canWrite || saving}
                 onChange={(event) => change(setting.key, event.currentTarget.value)}
             />
         );
@@ -291,7 +331,7 @@ export default ({ uuid, onSuccess, onError }: Props) => {
             renderOnError={
                 <Panel>
                     <div className={'py-10 text-center'}>
-                        <FontAwesomeIcon icon={faShieldHalved} className={'mb-4 text-4xl text-amber-400'} />
+                        <FontAwesomeIcon icon={faShieldAlt} className={'mb-4 text-4xl text-amber-400'} />
                         <h2 className={'text-lg font-bold text-neutral-100'}>Permissão necessária</h2>
                         <p className={'mt-2 text-sm text-neutral-400'}>
                             Você precisa da permissão <code>file.read-content</code> para abrir o server.properties.
@@ -315,11 +355,11 @@ export default ({ uuid, onSuccess, onError }: Props) => {
                             disabled={loading || saving}
                             aria-label={'Recarregar propriedades'}
                         >
-                            <FontAwesomeIcon icon={faRotate} spin={loading} />
+                            <FontAwesomeIcon icon={faSyncAlt} spin={loading} />
                         </Button.Text>
                         <Can action={'file.create'}>
                             <Button disabled={!dirty || saving || loading} onClick={save}>
-                                <FontAwesomeIcon icon={faFloppyDisk} className={'mr-2'} />
+                                <FontAwesomeIcon icon={faSave} className={'mr-2'} />
                                 {saving ? 'Salvando...' : 'Salvar alterações'}
                             </Button>
                         </Can>
@@ -333,6 +373,13 @@ export default ({ uuid, onSuccess, onError }: Props) => {
                             : 'O arquivo ainda não existe. Ao salvar, o MineFlow criará um server.properties novo.'}
                     </UiAlert>
                 </div>
+                {!canWrite && (
+                    <div className={'mt-3'}>
+                        <UiAlert type={'warning'}>
+                            Modo somente leitura: a permissão file.create é necessária para salvar alterações.
+                        </UiAlert>
+                    </div>
+                )}
 
                 {loading ? (
                     <div className={'py-20'}>
@@ -341,7 +388,7 @@ export default ({ uuid, onSuccess, onError }: Props) => {
                 ) : (
                     <>
                         <div className={'mb-4 mt-7 flex items-center gap-3'}>
-                            <FontAwesomeIcon icon={faGaugeHigh} className={'text-indigo-300'} />
+                            <FontAwesomeIcon icon={faTachometerAlt} className={'text-indigo-300'} />
                             <div>
                                 <h3 className={'font-bold text-neutral-100'}>Configurações principais</h3>
                                 <p className={'text-xs text-neutral-400'}>Opções mais usadas, organizadas e explicadas.</p>
@@ -377,6 +424,7 @@ export default ({ uuid, onSuccess, onError }: Props) => {
                                     <Input
                                         id={'mineflow-new-key'}
                                         value={newKey}
+                                        disabled={!canWrite || saving}
                                         onChange={(event) => setNewKey(event.currentTarget.value)}
                                         placeholder={'ex.: resource-pack'}
                                         className={'mt-1'}
@@ -387,13 +435,14 @@ export default ({ uuid, onSuccess, onError }: Props) => {
                                     <Input
                                         id={'mineflow-new-value'}
                                         value={newValue}
+                                        disabled={!canWrite || saving}
                                         onChange={(event) => setNewValue(event.currentTarget.value)}
                                         placeholder={'Valor da propriedade'}
                                         className={'mt-1'}
                                     />
                                 </div>
                                 <div className={'flex items-end'}>
-                                    <Button onClick={addProperty} disabled={!newKey.trim()}>
+                                    <Button onClick={addProperty} disabled={!canWrite || saving || !newKey.trim()}>
                                         <FontAwesomeIcon icon={faPlus} className={'mr-2'} />
                                         Adicionar
                                     </Button>
@@ -402,12 +451,16 @@ export default ({ uuid, onSuccess, onError }: Props) => {
                         </div>
 
                         <div className={'mt-4'}>
+                            <Label htmlFor={'mineflow-advanced-search'} className={'sr-only'}>
+                                Filtrar propriedades avançadas
+                            </Label>
                             <div className={'relative'}>
                                 <FontAwesomeIcon
                                     icon={faGlobe}
                                     className={'absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500'}
                                 />
                                 <Input
+                                    id={'mineflow-advanced-search'}
                                     value={search}
                                     onChange={(event) => setSearch(event.currentTarget.value)}
                                     placeholder={'Filtrar propriedades avançadas...'}
@@ -430,10 +483,16 @@ export default ({ uuid, onSuccess, onError }: Props) => {
                                         }`}
                                     >
                                         <code className={'truncate text-sm font-semibold text-indigo-200'}>{key}</code>
-                                        <Input value={value} onChange={(event) => change(key, event.currentTarget.value)} />
+                                        <Input
+                                            value={value}
+                                            disabled={!canWrite || saving}
+                                            aria-label={`Valor de ${key}`}
+                                            onChange={(event) => change(key, event.currentTarget.value)}
+                                        />
                                         <Button.Danger
                                             variant={Button.Variants.Secondary}
                                             size={Button.Sizes.Small}
+                                            disabled={!canWrite || saving}
                                             onClick={() => remove(key)}
                                             aria-label={`Remover ${key}`}
                                         >
@@ -451,7 +510,7 @@ export default ({ uuid, onSuccess, onError }: Props) => {
                             </p>
                             <Can action={'file.create'}>
                                 <Button disabled={!dirty || saving} onClick={save}>
-                                    <FontAwesomeIcon icon={faFloppyDisk} className={'mr-2'} />
+                                    <FontAwesomeIcon icon={faSave} className={'mr-2'} />
                                     {saving ? 'Salvando...' : 'Salvar alterações'}
                                 </Button>
                             </Can>

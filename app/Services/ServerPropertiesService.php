@@ -7,6 +7,25 @@ use Illuminate\Validation\ValidationException;
 final class ServerPropertiesService
 {
     private const KEY_PATTERN = '/^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/';
+    private const BOOLEAN_KEYS = [
+        'allow-flight',
+        'enable-command-block',
+        'enforce-whitelist',
+        'hardcore',
+        'online-mode',
+        'pvp',
+        'white-list',
+    ];
+    private const ENUM_KEYS = [
+        'difficulty' => ['peaceful', 'easy', 'normal', 'hard'],
+        'gamemode' => ['survival', 'creative', 'adventure', 'spectator'],
+    ];
+    private const INTEGER_RANGES = [
+        'max-players' => [1, 100000],
+        'simulation-distance' => [2, 32],
+        'spawn-protection' => [0, 10000],
+        'view-distance' => [2, 32],
+    ];
 
     public function parse(string $content): array
     {
@@ -94,6 +113,27 @@ final class ServerPropertiesService
                 throw ValidationException::withMessages([
                     "properties.$key" => 'O valor deve ser texto de uma linha com no máximo 2048 caracteres.',
                 ]);
+            }
+
+            if (in_array($key, self::BOOLEAN_KEYS, true) && !in_array($value, ['true', 'false'], true)) {
+                throw ValidationException::withMessages([
+                    "properties.$key" => 'O valor deve ser true ou false.',
+                ]);
+            }
+
+            if (isset(self::ENUM_KEYS[$key]) && !in_array($value, self::ENUM_KEYS[$key], true)) {
+                throw ValidationException::withMessages([
+                    "properties.$key" => 'O valor selecionado não é permitido.',
+                ]);
+            }
+
+            if (isset(self::INTEGER_RANGES[$key])) {
+                [$minimum, $maximum] = self::INTEGER_RANGES[$key];
+                if (!preg_match('/^-?\d+$/', $value) || (int) $value < $minimum || (int) $value > $maximum) {
+                    throw ValidationException::withMessages([
+                        "properties.$key" => sprintf('Use um número inteiro entre %d e %d.', $minimum, $maximum),
+                    ]);
+                }
             }
 
             $validated[$key] = $value;

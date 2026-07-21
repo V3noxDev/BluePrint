@@ -63,6 +63,7 @@ export default ({ uuid, onInstalled, onError }: Props) => {
     const [loadingVersions, setLoadingVersions] = useState(false);
     const [installing, setInstalling] = useState<string | null>(null);
     const requestSequence = useRef(0);
+    const versionSequence = useRef(0);
 
     const loaders = kind === 'plugin' ? pluginLoaders : modLoaders;
     const pageCount = Math.max(1, Math.ceil(total / 20));
@@ -104,16 +105,25 @@ export default ({ uuid, onInstalled, onError }: Props) => {
     }, [uuid, query, kind, gameVersion, loader, index, page, onError]);
 
     useEffect(() => {
+        const sequence = ++versionSequence.current;
+        setVersions([]);
+
         if (!selected) {
-            setVersions([]);
+            setLoadingVersions(false);
             return;
         }
 
         setLoadingVersions(true);
         getProjectVersions(uuid, selected.project_id, gameVersion, loader)
-            .then(setVersions)
-            .catch((error) => onError(httpErrorToHuman(error)))
-            .then(() => setLoadingVersions(false));
+            .then((response) => {
+                if (sequence === versionSequence.current) setVersions(response);
+            })
+            .catch((error) => {
+                if (sequence === versionSequence.current) onError(httpErrorToHuman(error));
+            })
+            .then(() => {
+                if (sequence === versionSequence.current) setLoadingVersions(false);
+            });
     }, [uuid, selected, gameVersion, loader, onError]);
 
     const versionOptions = useMemo(
@@ -147,6 +157,7 @@ export default ({ uuid, onInstalled, onError }: Props) => {
                     <div className={'inline-flex rounded-lg border border-neutral-600 bg-neutral-800 p-1'}>
                         <button
                             type={'button'}
+                            aria-pressed={kind === 'plugin'}
                             onClick={() => setKind('plugin')}
                             className={`rounded-md px-4 py-2 text-sm font-semibold transition ${
                                 kind === 'plugin' ? 'bg-indigo-600 text-white shadow' : 'text-neutral-400 hover:text-white'
@@ -157,6 +168,7 @@ export default ({ uuid, onInstalled, onError }: Props) => {
                         </button>
                         <button
                             type={'button'}
+                            aria-pressed={kind === 'mod'}
                             onClick={() => setKind('mod')}
                             className={`rounded-md px-4 py-2 text-sm font-semibold transition ${
                                 kind === 'mod' ? 'bg-violet-600 text-white shadow' : 'text-neutral-400 hover:text-white'
@@ -288,6 +300,7 @@ export default ({ uuid, onInstalled, onError }: Props) => {
                                 <Button.Text
                                     size={Button.Sizes.Small}
                                     disabled={page === 0}
+                                    aria-label={'Página anterior'}
                                     onClick={() => setPage((current) => Math.max(0, current - 1))}
                                 >
                                     <FontAwesomeIcon icon={faChevronLeft} />
@@ -298,6 +311,7 @@ export default ({ uuid, onInstalled, onError }: Props) => {
                                 <Button.Text
                                     size={Button.Sizes.Small}
                                     disabled={page + 1 >= pageCount}
+                                    aria-label={'Próxima página'}
                                     onClick={() => setPage((current) => current + 1)}
                                 >
                                     <FontAwesomeIcon icon={faChevronRight} />

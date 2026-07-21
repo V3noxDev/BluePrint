@@ -2,15 +2,19 @@
 
 namespace {appcontext}\Http\Requests;
 
+use Pterodactyl\Models\Server;
 use Pterodactyl\Models\Permission;
-use Pterodactyl\Contracts\Http\ClientPermissionsRequest;
 use Pterodactyl\Http\Requests\Api\Client\ClientApiRequest;
 
-final class UpdatePropertiesRequest extends ClientApiRequest implements ClientPermissionsRequest
+final class UpdatePropertiesRequest extends ClientApiRequest
 {
-    public function permission(): string
+    public function authorize(): bool
     {
-        return Permission::ACTION_FILE_CREATE;
+        $server = $this->route()->parameter('server');
+
+        return $server instanceof Server
+            && $this->user()->can(Permission::ACTION_FILE_READ_CONTENT, $server)
+            && $this->user()->can(Permission::ACTION_FILE_CREATE, $server);
     }
 
     public function rules(): array

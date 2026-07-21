@@ -13,6 +13,17 @@ final class ModrinthService
     private const USER_AGENT = 'V3noxDev/MineFlow/1.0.0 (Pterodactyl Blueprint)';
     private const MAX_FILE_SIZE = 67_108_864;
     private const ALLOWED_DOWNLOAD_HOSTS = ['cdn.modrinth.com'];
+    private const PLUGIN_LOADERS = [
+        'bukkit',
+        'bungeecord',
+        'folia',
+        'paper',
+        'purpur',
+        'spigot',
+        'velocity',
+        'waterfall',
+    ];
+    private const MOD_LOADERS = ['fabric', 'forge', 'neoforge', 'quilt'];
 
     public function search(array $filters): array
     {
@@ -59,13 +70,20 @@ final class ModrinthService
         return array_map(fn (array $version): array => $this->transformVersion($version), $versions);
     }
 
-    public function downloadableFile(string $project, string $version): array
+    public function downloadableFile(string $project, string $version, string $kind): array
     {
         $metadata = $this->request('/version/' . rawurlencode($version));
 
         if (($metadata['project_id'] ?? null) !== $project) {
             throw ValidationException::withMessages([
                 'version_id' => 'A versão selecionada não pertence a este projeto.',
+            ]);
+        }
+
+        $compatibleLoaders = $kind === 'plugin' ? self::PLUGIN_LOADERS : self::MOD_LOADERS;
+        if (array_intersect($metadata['loaders'] ?? [], $compatibleLoaders) === []) {
+            throw ValidationException::withMessages([
+                'kind' => 'A versão selecionada não é compatível com o tipo de addon escolhido.',
             ]);
         }
 
@@ -96,13 +114,20 @@ final class ModrinthService
             ]);
         }
 
+        $sha512 = strtolower((string) ($file['hashes']['sha512'] ?? ''));
+        if (!preg_match('/^[a-f0-9]{128}$/', $sha512)) {
+            throw ValidationException::withMessages([
+                'version_id' => 'O arquivo não possui um hash SHA-512 válido no Modrinth.',
+            ]);
+        }
+
         $filename = $this->sanitizeFilename((string) ($file['filename'] ?? 'addon.jar'));
 
         return [
             'url' => $url,
             'filename' => $filename,
             'size' => $size,
-            'sha512' => strtolower((string) ($file['hashes']['sha512'] ?? '')),
+            'sha512' => $sha512,
             'version_name' => (string) ($metadata['name'] ?? $metadata['version_number'] ?? $version),
             'project_id' => $project,
             'version_id' => $version,
@@ -115,18 +140,19 @@ final class ModrinthService
             ->accept('application/octet-stream')
             ->connectTimeout(10)
             ->timeout(120)
+            ->withOptions(['allow_redirects' => false])
             ->get($file['url']);
 
         $this->ensureSuccessful($response);
         $contents = $response->body();
 
-        if (strlen($contents) > self::MAX_FILE_SIZE) {
+        if (strlen($contents) !== $file['size'] || strlen($contents) > self::MAX_FILE_SIZE) {
             throw ValidationException::withMessages([
-                'version_id' => 'O arquivo baixado excede o limite de 64 MiB.',
+                'version_id' => 'O tamanho baixado não corresponde aos metadados do Modrinth.',
             ]);
         }
 
-        if ($file['sha512'] !== '' && !hash_equals($file['sha512'], hash('sha512', $contents))) {
+        if (!hash_equals($file['sha512'], hash('sha512', $contents))) {
             throw new RuntimeException('A verificação de integridade SHA-512 do arquivo falhou.');
         }
 

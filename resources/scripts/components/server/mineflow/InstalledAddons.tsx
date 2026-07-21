@@ -1,10 +1,10 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
     faBoxOpen,
     faCube,
     faPuzzlePiece,
-    faRotate,
+    faSyncAlt,
     faTrash,
 } from '@fortawesome/free-solid-svg-icons';
 import Spinner from '@/components/elements/Spinner';
@@ -36,23 +36,34 @@ export default ({ uuid, refreshToken, onSuccess, onError }: Props) => {
     const [loading, setLoading] = useState(true);
     const [removing, setRemoving] = useState(false);
     const [selected, setSelected] = useState<InstalledAddon | null>(null);
+    const requestSequence = useRef(0);
+    const removingRef = useRef(false);
 
     const load = useCallback(() => {
+        const sequence = ++requestSequence.current;
         setLoading(true);
+        setAddons([]);
+        setDirectory(kind === 'plugin' ? '/plugins' : '/mods');
         getInstalledAddons(uuid, kind)
             .then((response) => {
+                if (sequence !== requestSequence.current) return;
                 setAddons(response.addons);
                 setDirectory(response.directory);
             })
-            .catch((error) => onError(httpErrorToHuman(error)))
-            .then(() => setLoading(false));
+            .catch((error) => {
+                if (sequence === requestSequence.current) onError(httpErrorToHuman(error));
+            })
+            .then(() => {
+                if (sequence === requestSequence.current) setLoading(false);
+            });
     }, [uuid, kind, onError]);
 
     useEffect(load, [load, refreshToken]);
 
     const remove = (): void => {
-        if (!selected) return;
+        if (!selected || removingRef.current) return;
 
+        removingRef.current = true;
         setRemoving(true);
         removeAddon(uuid, kind, selected.name)
             .then(() => {
@@ -61,7 +72,10 @@ export default ({ uuid, refreshToken, onSuccess, onError }: Props) => {
                 load();
             })
             .catch((error) => onError(httpErrorToHuman(error)))
-            .then(() => setRemoving(false));
+            .then(() => {
+                removingRef.current = false;
+                setRemoving(false);
+            });
     };
 
     return (
@@ -78,6 +92,7 @@ export default ({ uuid, refreshToken, onSuccess, onError }: Props) => {
                         <div className={'inline-flex rounded-lg border border-neutral-600 bg-neutral-800 p-1'}>
                             <button
                                 type={'button'}
+                                aria-pressed={kind === 'plugin'}
                                 onClick={() => setKind('plugin')}
                                 className={`rounded-md px-3 py-2 text-sm font-semibold transition ${
                                     kind === 'plugin' ? 'bg-indigo-600 text-white' : 'text-neutral-400 hover:text-white'
@@ -87,6 +102,7 @@ export default ({ uuid, refreshToken, onSuccess, onError }: Props) => {
                             </button>
                             <button
                                 type={'button'}
+                                aria-pressed={kind === 'mod'}
                                 onClick={() => setKind('mod')}
                                 className={`rounded-md px-3 py-2 text-sm font-semibold transition ${
                                     kind === 'mod' ? 'bg-violet-600 text-white' : 'text-neutral-400 hover:text-white'
@@ -101,7 +117,7 @@ export default ({ uuid, refreshToken, onSuccess, onError }: Props) => {
                             disabled={loading}
                             aria-label={'Atualizar lista'}
                         >
-                            <FontAwesomeIcon icon={faRotate} spin={loading} />
+                            <FontAwesomeIcon icon={faSyncAlt} spin={loading} />
                         </Button.Text>
                     </div>
                 </div>

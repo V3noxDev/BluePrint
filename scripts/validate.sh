@@ -28,6 +28,29 @@ while IFS= read -r -d '' file; do
   php -l "$file" >/dev/null
 done < <(find "$TMP" -type f -name '*.php' -print0)
 
+MINEFLOW_VALIDATION_TMP="$TMP" php <<'PHP'
+<?php
+
+require getenv('MINEFLOW_VALIDATION_TMP') . '/app/Services/ServerPropertiesService.php';
+
+$class = 'Pterodactyl\\BlueprintFramework\\Extensions\\mineflow\\Services\\ServerPropertiesService';
+$service = new $class();
+$source = "# Preservar comentário\r\nmotd=Antigo\r\npvp=true\r\ncustom=value\r\n";
+$updated = $service->update($source, ['motd' => 'Novo', 'max-players' => '30'], ['pvp']);
+$parsed = $service->parse($updated);
+
+if (
+    !str_contains($updated, "# Preservar comentário\r\n")
+    || str_contains($updated, 'pvp=')
+    || ($parsed['motd'] ?? null) !== 'Novo'
+    || ($parsed['max-players'] ?? null) !== '30'
+    || ($parsed['custom'] ?? null) !== 'value'
+) {
+    fwrite(STDERR, "Erro: teste do editor de server.properties falhou.\n");
+    exit(1);
+}
+PHP
+
 for path in \
   resources/icon.svg \
   resources/styles/admin.css \
@@ -42,8 +65,8 @@ do
   }
 done
 
-if grep -R --line-number --fixed-strings '[identifier]' "$ROOT" \
-  --exclude-dir=.git --exclude-dir=dist >/dev/null; then
+if grep -R --line-number --fixed-strings '[identifier]' \
+  "$ROOT/conf.yml" "$ROOT/app" "$ROOT/routes" "$ROOT/resources" >/dev/null; then
   echo "Erro: placeholder de template não substituído." >&2
   exit 1
 fi

@@ -66,6 +66,8 @@ export const installAddon = (
             kind,
             project_id: projectId,
             version_id: versionId,
+        }, {
+            timeout: 180000,
         })
         .then(({ data }) => data);
 

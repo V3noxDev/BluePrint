@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import tw from 'twin.macro';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faBox, faCubes, faSliders, faWandMagicSparkles } from '@fortawesome/free-solid-svg-icons';
+import { faBox, faCubes, faMagic, faSlidersH } from '@fortawesome/free-solid-svg-icons';
 import ServerContentBlock from '@/components/elements/ServerContentBlock';
 import FlashMessageRender from '@/components/FlashMessageRender';
 import { ServerContext } from '@/state/server';
@@ -47,7 +47,7 @@ export default () => {
                 <div className={'relative z-10 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between'}>
                     <div className={'flex items-center gap-4'}>
                         <HeroMark>
-                            <FontAwesomeIcon icon={faWandMagicSparkles} className={'text-xl'} />
+                            <FontAwesomeIcon icon={faMagic} className={'text-xl'} />
                         </HeroMark>
                         <div>
                             <div className={'flex flex-wrap items-center gap-2'}>
@@ -71,6 +71,7 @@ export default () => {
                     type={'button'}
                     role={'tab'}
                     aria-selected={tab === 'catalog'}
+                    aria-label={'Catálogo'}
                     $active={tab === 'catalog'}
                     onClick={() => setTab('catalog')}
                 >
@@ -81,6 +82,7 @@ export default () => {
                     type={'button'}
                     role={'tab'}
                     aria-selected={tab === 'installed'}
+                    aria-label={'Addons instalados'}
                     $active={tab === 'installed'}
                     onClick={() => setTab('installed')}
                 >
@@ -91,10 +93,11 @@ export default () => {
                     type={'button'}
                     role={'tab'}
                     aria-selected={tab === 'properties'}
+                    aria-label={'Editar server.properties'}
                     $active={tab === 'properties'}
                     onClick={() => setTab('properties')}
                 >
-                    <FontAwesomeIcon icon={faSliders} />
+                    <FontAwesomeIcon icon={faSlidersH} />
                     <span className={'hidden sm:inline'}>server.properties</span>
                 </TabButton>
             </TabList>

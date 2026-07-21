@@ -4,6 +4,7 @@ namespace {appcontext}\Http\Controllers;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Response;
+use Illuminate\Validation\ValidationException;
 use Pterodactyl\Facades\Activity;
 use Pterodactyl\Models\Server;
 use Pterodactyl\Repositories\Wings\DaemonFileRepository;
@@ -85,10 +86,15 @@ final class MineFlowController extends ClientApiController
 
         $data = $request->validated();
         $directory = self::DIRECTORIES[$data['kind']];
-        $file = $this->modrinth->downloadableFile($data['project_id'], $data['version_id']);
-        $contents = $this->modrinth->download($file);
+        $file = $this->modrinth->downloadableFile($data['project_id'], $data['version_id'], $data['kind']);
+        $entries = $this->ensureDirectory($server, $directory);
 
-        $this->ensureDirectory($server, $directory);
+        $this->assertFilenameAvailable($entries, $directory, $file['filename']);
+
+        $contents = $this->modrinth->download($file);
+        $latestEntries = $this->files->setServer($server)->getDirectory($directory);
+        $this->assertFilenameAvailable($latestEntries, $directory, $file['filename']);
+
         $path = $directory . '/' . $file['filename'];
         $this->files->setServer($server)->putContent($path, $contents);
 
@@ -147,7 +153,8 @@ final class MineFlowController extends ClientApiController
     {
         $data = $request->validated();
         $content = $this->readProperties($server) ?? "#Minecraft server properties\n";
-        $updated = $this->propertiesService->update($content, $data['properties'], $data['remove'] ?? []);
+        $updates = array_map(static fn ($value): string => $value ?? '', $data['properties']);
+        $updated = $this->propertiesService->update($content, $updates, $data['remove'] ?? []);
 
         if (strlen($updated) > 524_288) {
             return new JsonResponse([
@@ -185,16 +192,33 @@ final class MineFlowController extends ClientApiController
         }
     }
 
-    private function ensureDirectory(Server $server, string $directory): void
+    private function ensureDirectory(Server $server, string $directory): array
     {
         try {
-            $this->files->setServer($server)->getDirectory($directory);
+            return $this->files->setServer($server)->getDirectory($directory);
         } catch (DaemonConnectionException $exception) {
             if ($exception->getStatusCode() !== Response::HTTP_NOT_FOUND) {
                 throw $exception;
             }
 
             $this->files->setServer($server)->createDirectory(ltrim($directory, '/'), '/');
+
+            return [];
+        }
+    }
+
+    private function assertFilenameAvailable(array $entries, string $directory, string $filename): void
+    {
+        foreach ($entries as $entry) {
+            if (strcasecmp((string) ($entry['name'] ?? ''), $filename) === 0) {
+                throw ValidationException::withMessages([
+                    'version_id' => sprintf(
+                        '%s já existe em %s. Remova o arquivo instalado antes de substituí-lo.',
+                        $filename,
+                        $directory
+                    ),
+                ]);
+            }
         }
     }
 }
