@@ -1,0 +1,17 @@
+.minecraft-properties-shell {
+    position: relative;
+}
+
+.minecraft-properties-shell input,
+.minecraft-properties-shell select,
+.minecraft-properties-shell textarea {
+    outline: none;
+}
+
+.minecraft-properties-card-glow {
+    box-shadow: 0 16px 50px rgba(16, 185, 129, 0.13);
+}
+
+.minecraft-properties-grid {
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}

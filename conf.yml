@@ -1,0 +1,36 @@
+info:
+  name: "Minecraft Properties"
+  identifier: "minecraftproperties"
+  description: "A polished Blueprint extension to edit Minecraft Java server.properties from the Pterodactyl server panel."
+  version: "1.0.0"
+  target: "beta-2026-01"
+  author: "Cursor"
+  icon: "resources/public/icon.svg"
+  website: ""
+
+admin:
+  view: "resources/views/admin.blade.php"
+  controller: ""
+  css: "resources/css/admin.css"
+  wrapper: ""
+
+dashboard:
+  css: "resources/css/dashboard.css"
+  wrapper: ""
+  components: "resources/scripts/components"
+
+data:
+  directory: ""
+  public: "resources/public"
+  console: ""
+
+requests:
+  views: ""
+  app: "app"
+  routers:
+    application: ""
+    client: "routes/client.php"
+    web: ""
+
+database:
+  migrations: ""

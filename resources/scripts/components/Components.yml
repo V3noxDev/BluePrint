@@ -1,0 +1,7 @@
+Navigation:
+  Routes:
+    - { Name: 'MC Properties', Path: '/minecraft-properties', Type: 'server', Component: 'MinecraftPropertiesPage', AdminOnly: 'false' }
+
+Server:
+  Settings:
+    AfterContent: 'MinecraftPropertiesShortcut'
