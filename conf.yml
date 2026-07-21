@@ -1,0 +1,36 @@
+info:
+ name: "Astra MC Suite"
+ identifier: "minecraftsuite"
+ description: "Instale ou remova addons Minecraft Java e edite server.properties por uma interface premium."
+ version: "1.0.0"
+ target: "beta-2026-01"
+ author: "Cursor Agent"
+ icon: "resources/icon.svg"
+ website: ""
+
+admin:
+ view: "resources/views/view.blade.php"
+ controller: ""
+ css: ""
+ wrapper: ""
+
+dashboard:
+ css: ""
+ wrapper: ""
+ components: "resources/scripts/components"
+
+data:
+ directory: ""
+ public: ""
+ console: ""
+
+requests:
+ views: ""
+ app: "app"
+ routers:
+  application: ""
+  client: ""
+  web: "routes/web.php"
+
+database:
+ migrations: ""
