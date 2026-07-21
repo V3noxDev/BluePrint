@@ -18,7 +18,7 @@ Compatibilidade de referência:
 - Modo avançado para propriedades personalizadas e arquivo bruto.
 - Preserva comentários, ordem, quebras de linha e opções desconhecidas.
 - Backup automático em `/server.properties.craftproperties.bak`.
-- Respeita as permissões nativas `file.read` e `file.update`.
+- Respeita as permissões nativas de conteúdo e gravação de arquivos.
 - Sem banco de dados, telemetria ou serviços externos.
 
 ## Instalação automática
@@ -74,10 +74,11 @@ A remoção mantém todos os `server.properties` e backups.
 
 | Permissão | Uso |
 | --- | --- |
-| `file.read` | Abrir o arquivo e carregar o backup |
-| `file.update` | Alterar, criar, salvar e restaurar |
+| `file.read-content` | Abrir o arquivo e carregar o backup no Pterodactyl 1.14 |
+| `file.create` | Alterar, criar, salvar e gerar o backup no Pterodactyl 1.14 |
+| `file.read` / `file.update` | Compatibilidade com versões anteriores do painel |
 
-Subusuários sem `file.update` recebem uma interface somente leitura. As operações passam pela API oficial de arquivos do Pterodactyl; a extensão não acessa diretamente os volumes dos servidores.
+Subusuários sem permissão de gravação recebem uma interface somente leitura. As operações passam pela API oficial de arquivos do Pterodactyl; a extensão não acessa diretamente os volumes dos servidores.
 
 ## Segurança de gravação
 

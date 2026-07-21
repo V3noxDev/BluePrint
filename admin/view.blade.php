@@ -57,8 +57,9 @@
                 </div>
             </div>
             <ul class="cp-admin__permissions">
-                <li><code>file.read</code><span>visualizar e restaurar</span></li>
-                <li><code>file.update</code><span>editar e salvar</span></li>
+                <li><code>file.read-content</code><span>visualizar e restaurar</span></li>
+                <li><code>file.create</code><span>editar, salvar e criar backup</span></li>
+                <li><code>file.read / file.update</code><span>compatibilidade com painéis anteriores</span></li>
             </ul>
         </section>
     </div>

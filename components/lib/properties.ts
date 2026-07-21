@@ -19,6 +19,8 @@ export interface PropertiesDocument {
 const hasOwn = (value: Record<string, string>, key: string): boolean =>
     Object.prototype.hasOwnProperty.call(value, key);
 
+const decodeCommonSeparators = (value: string): string => value.replace(/\\([:=])/g, '$1');
+
 const findSeparator = (line: string): number => {
     let escaped = false;
 
@@ -73,7 +75,7 @@ export const parseProperties = (source: string): PropertiesDocument => {
             type: 'property',
             raw,
             key,
-            value: raw.slice(separator + 1).replace(/^\s+/, ''),
+            value: decodeCommonSeparators(raw.slice(separator + 1).replace(/^\s+/, '')),
         };
     });
 

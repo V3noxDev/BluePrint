@@ -279,7 +279,14 @@ const UnknownProperty = ({ propertyKey, value, disabled, onChange, onRemove }: U
 const ServerProperties = () => {
     const uuid = ServerContext.useStoreState((state) => state.server.data!.uuid);
     const serverStatus = ServerContext.useStoreState((state) => state.status.value);
-    const [canRead, canWrite] = usePermissions(['file.read', 'file.update']);
+    const [canReadContent, canReadLegacy, canCreate, canUpdate] = usePermissions([
+        'file.read-content',
+        'file.read',
+        'file.create',
+        'file.update',
+    ]);
+    const canRead = canReadContent || canReadLegacy;
+    const canWrite = canCreate || canUpdate;
     const { addFlash, clearFlashes } = useFlash();
 
     const [rawContent, setRawContent] = useState('');
@@ -480,7 +487,7 @@ const ServerProperties = () => {
             return (
                 <EmptyState>
                     <h3>Permissão de leitura necessária</h3>
-                    <p>Solicite a permissão <code>file.read</code> para visualizar as propriedades deste servidor.</p>
+                    <p>Solicite a permissão <code>file.read-content</code> para visualizar as propriedades deste servidor.</p>
                 </EmptyState>
             );
         }
@@ -677,7 +684,7 @@ const ServerProperties = () => {
                 {!canWrite && canRead && (
                     <Notice tone='red'>
                         <Icon name='warning' />
-                        <span>Modo somente leitura. A permissão <code>file.update</code> é necessária para alterar ou restaurar o arquivo.</span>
+                        <span>Modo somente leitura. A permissão <code>file.create</code> é necessária para gravar o arquivo no Pterodactyl 1.14.</span>
                     </Notice>
                 )}
 
