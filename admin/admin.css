@@ -1,0 +1,71 @@
+.mcmanager-admin {
+  --mcm-accent: #0d9488;
+  --mcm-accent-2: #14b8a6;
+  --mcm-surface: #111827;
+  --mcm-border: rgba(255, 255, 255, 0.08);
+}
+
+.mcmanager-hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 0 0 1.25rem;
+  padding: 1.25rem 1.5rem;
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at top right, rgba(20, 184, 166, 0.28), transparent 42%),
+    linear-gradient(135deg, #0b1220, #111827 55%, #0f172a);
+  border: 1px solid var(--mcm-border);
+  color: #e5e7eb;
+}
+
+.mcmanager-kicker {
+  margin: 0 0 0.35rem;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #99f6e4;
+}
+
+.mcmanager-hero h2 {
+  margin: 0 0 0.4rem;
+  font-size: 28px;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.mcmanager-lead {
+  margin: 0;
+  max-width: 52ch;
+  color: #94a3b8;
+  line-height: 1.5;
+}
+
+.mcmanager-badge {
+  flex-shrink: 0;
+  padding: 0.4rem 0.75rem;
+  border-radius: 999px;
+  background: rgba(13, 148, 136, 0.18);
+  border: 1px solid rgba(45, 212, 191, 0.35);
+  color: #99f6e4;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.mcmanager-box .box-header,
+.mcmanager-side .box-header {
+  border-bottom-color: #e5e7eb;
+}
+
+.mcmanager-steps {
+  margin: 0;
+  padding-left: 1.15rem;
+  line-height: 1.7;
+}
+
+.mcmanager-admin code {
+  background: rgba(15, 23, 42, 0.06);
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+}

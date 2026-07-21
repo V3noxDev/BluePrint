@@ -1,0 +1,37 @@
+info:
+  name: 'MC Manager'
+  identifier: 'mcmanager'
+  description: 'Editor visual do server.properties e instalador/removedor de plugins (Modrinth) para servidores Minecraft Java no Pterodactyl.'
+  flags: ''
+  version: '1.0.0'
+  target: 'beta-2026-06'
+  author: 'V3noxDev'
+  icon: 'public/icon.svg'
+  website: 'https://github.com/V3noxDev/BluePrint'
+
+admin:
+  view: 'admin/view.blade.php'
+  controller: 'admin/controller.php'
+  css: 'admin/admin.css'
+  wrapper: ''
+
+dashboard:
+  css: 'dashboard.css'
+  wrapper: ''
+  components: 'components'
+
+data:
+  directory: 'private'
+  public: 'public'
+  console: ''
+
+requests:
+  views: ''
+  app: 'app'
+  routers:
+    application: ''
+    client: 'routes/client.php'
+    web: ''
+
+database:
+  migrations: 'migrations'

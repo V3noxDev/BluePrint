@@ -1,0 +1,8 @@
+.DS_Store
+*.blueprint
+*.zip
+.idea/
+.vscode/
+node_modules/
+.env
+*.log
