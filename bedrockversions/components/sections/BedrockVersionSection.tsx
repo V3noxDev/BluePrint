@@ -5,50 +5,62 @@ import Spinner from '@/components/elements/Spinner';
 import PageContentBlock from '@/components/elements/PageContentBlock';
 
 type Channel = 'stable' | 'preview';
-type View = 'home' | 'stable' | 'preview';
+type View = 'home' | 'bedrock';
 
-interface VersionItem {
-    channel: string;
-    version: string;
+interface Build {
+    id: string;
+    label: string;
+    full_version: string;
     download_url: string;
+    available: boolean;
     is_latest: boolean;
+}
+
+interface VersionGroup {
+    id: string;
+    version: string;
+    type: string;
+    channel: Channel;
+    builds: Build[];
+    builds_count: number;
+    is_latest_group: boolean;
 }
 
 interface SoftwareCard {
     id: string;
     name: string;
-    description: string;
+    icon: string | null;
     status: 'available' | 'coming_soon';
-    versions_count: number;
+    minecraft_versions: number;
+    builds: number;
     latest: string | null;
 }
 
 interface IndexData {
     is_bedrock: boolean;
     current_version: string | null;
+    current_group: string | null;
+    current_build: string | null;
     current_channel: Channel;
     latest_for_channel: string | null;
     outdated: boolean;
-    catalog: {
-        stable: VersionItem[];
-        preview: VersionItem[];
-        latest_stable: string | null;
-        latest_preview: string | null;
-        last_sync: string | null;
-    };
     software: SoftwareCard[];
+    release: VersionGroup[];
+    preview: VersionGroup[];
+    chest_icon: string;
 }
 
 const BedrockVersionSection = () => {
     const uuid = ServerContext.useStoreState((state) => state.server.data!.uuid);
 
     const [loading, setLoading] = useState(true);
-    const [syncing, setSyncing] = useState(false);
     const [installing, setInstalling] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [data, setData] = useState<IndexData | null>(null);
     const [view, setView] = useState<View>('home');
-    const [modal, setModal] = useState<{ channel: Channel; version: string } | null>(null);
+    const [showPreview, setShowPreview] = useState(false);
+    const [modal, setModal] = useState<VersionGroup | null>(null);
+    const [selectedBuild, setSelectedBuild] = useState<string>('');
     const [wipe, setWipe] = useState(false);
     const [acceptEula, setAcceptEula] = useState(false);
     const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
@@ -73,7 +85,7 @@ const BedrockVersionSection = () => {
         } catch (err: any) {
             setError(
                 err?.response?.data?.message ||
-                    'Falha ao carregar o gerenciador de versões Bedrock.'
+                    'Falha ao carregar versões. A API pode estar indisponível.'
             );
         } finally {
             setLoading(false);
@@ -84,28 +96,26 @@ const BedrockVersionSection = () => {
         load();
     }, [load]);
 
-    const handleSync = async () => {
-        setSyncing(true);
-        try {
-            await http.post(`/api/client/extensions/bedrockversions/servers/${uuid}/versions/sync`);
-            await load();
-            showToast('success', 'Lista de versões atualizada.');
-        } catch (err: any) {
-            showToast('error', err?.response?.data?.message || 'Falha ao sincronizar.');
-        } finally {
-            setSyncing(false);
-        }
+    const openInstall = (group: VersionGroup) => {
+        const preferred =
+            group.builds.find((b) => b.is_latest)?.full_version ||
+            group.builds[0]?.full_version ||
+            '';
+        setSelectedBuild(preferred);
+        setWipe(false);
+        setAcceptEula(false);
+        setModal(group);
     };
 
     const handleInstall = async () => {
-        if (!modal || !acceptEula) return;
+        if (!modal || !selectedBuild || !acceptEula) return;
         setInstalling(true);
         try {
             const { data: res } = await http.post(
                 `/api/client/extensions/bedrockversions/servers/${uuid}/versions/install`,
                 {
                     channel: modal.channel,
-                    version: modal.version,
+                    version: selectedBuild,
                     wipe,
                     accept_eula: acceptEula,
                     restart: true,
@@ -114,8 +124,6 @@ const BedrockVersionSection = () => {
             if (res.success) {
                 showToast('success', res.message || 'Versão instalada com sucesso!');
                 setModal(null);
-                setWipe(false);
-                setAcceptEula(false);
                 await load();
             } else {
                 showToast('error', res.message || 'Falha na instalação.');
@@ -127,19 +135,19 @@ const BedrockVersionSection = () => {
         }
     };
 
-    const versions = useMemo(() => {
+    const versionCards = useMemo(() => {
         if (!data) return [];
-        if (view === 'stable') return data.catalog.stable;
-        if (view === 'preview') return data.catalog.preview;
-        return [];
-    }, [data, view]);
+        return showPreview ? data.preview : data.release;
+    }, [data, showPreview]);
+
+    const chest = data?.chest_icon || '/extensions/bedrockversions/chest-face.svg';
 
     if (loading) {
         return (
-            <PageContentBlock title={'Bedrock Version'}>
+            <PageContentBlock title={'Versions'}>
                 <div className={'bv-loading'}>
                     <Spinner size={'large'} />
-                    <span>Carregando versões Bedrock...</span>
+                    <span>Buscando versões na API...</span>
                 </div>
             </PageContentBlock>
         );
@@ -147,7 +155,7 @@ const BedrockVersionSection = () => {
 
     if (error || !data) {
         return (
-            <PageContentBlock title={'Bedrock Version'}>
+            <PageContentBlock title={'Versions'}>
                 <div className={'bv-alert bv-alert--error'}>
                     <p>{error || 'Erro desconhecido.'}</p>
                     <button type={'button'} className={'bv-btn bv-btn--ghost'} onClick={load}>
@@ -159,237 +167,265 @@ const BedrockVersionSection = () => {
     }
 
     return (
-        <PageContentBlock title={'Bedrock Version'}>
-        <div className={'bv-page'}>
-            {toast && (
-                <div className={`bv-toast bv-toast--${toast.type}`}>
-                    <span>{toast.type === 'success' ? '✓' : '!'}</span>
-                    {toast.message}
-                </div>
-            )}
-
-            <div className={'bv-status'}>
-                <div className={'bv-status__icon'}>🧱</div>
-                <div className={'bv-status__body'}>
-                    <div className={'bv-status__title'}>
-                        {data.current_version
-                            ? 'Servidor Bedrock em execução'
-                            : 'Bedrock Dedicated Server'}
+        <PageContentBlock title={'Versions'}>
+            <div className={'bv-page'}>
+                {toast && (
+                    <div className={`bv-toast bv-toast--${toast.type}`}>
+                        <span>{toast.type === 'success' ? '✓' : '!'}</span>
+                        {toast.message}
                     </div>
-                    <div className={'bv-status__meta'}>
-                        Versão instalada:{' '}
-                        <strong>{data.current_version || 'não definida'}</strong>
-                        {data.current_channel && data.current_version && (
-                            <>
-                                {' '}
-                                · Canal: <strong>{data.current_channel}</strong>
-                            </>
-                        )}
+                )}
+
+                <div className={'bv-status'}>
+                    <img className={'bv-status__chest'} src={chest} alt={'Bedrock'} />
+                    <div className={'bv-status__body'}>
+                        <div className={'bv-status__title'}>
+                            {data.current_version
+                                ? 'Currently running Bedrock'
+                                : 'Bedrock Dedicated Server'}
+                        </div>
+                        <div className={'bv-status__meta'}>
+                            Installed Minecraft Version:{' '}
+                            <strong>{data.current_group || data.current_version || '—'}</strong>
+                            {data.current_build && (
+                                <>
+                                    {' '}
+                                    · Installed Build: <strong>#{data.current_build}</strong>
+                                </>
+                            )}
+                        </div>
                     </div>
                 </div>
-                <button
-                    type={'button'}
-                    className={'bv-btn bv-btn--ghost'}
-                    onClick={handleSync}
-                    disabled={syncing}
-                >
-                    {syncing ? 'Atualizando...' : 'Atualizar lista'}
-                </button>
-            </div>
 
-            {data.outdated && data.latest_for_channel && (
-                <div className={'bv-outdated'}>
-                    ⚠️ Seu servidor está em uma versão antiga ({data.current_version}). A mais
-                    recente do canal é <strong>{data.latest_for_channel}</strong>.
-                </div>
-            )}
+                {data.outdated && data.latest_for_channel && (
+                    <div className={'bv-outdated'}>
+                        ⚠️ Your server is currently running an outdated version of Bedrock
+                        {data.current_version ? ` ${data.current_version}` : ''}. The latest build is{' '}
+                        <strong>{data.latest_for_channel}</strong>.
+                    </div>
+                )}
 
-            {view === 'home' ? (
-                <>
-                    <div className={'bv-section-title'}>Software</div>
-                    <div className={'bv-software-grid'}>
-                        {data.software.map((item) => {
-                            const isActive =
-                                (item.id === 'stable' || item.id === 'preview') &&
-                                data.current_channel === item.id;
-                            const comingSoon = item.status === 'coming_soon';
+                {view === 'home' ? (
+                    <>
+                        <div className={'bv-section-title'}>Recommended</div>
+                        <div className={'bv-software-grid'}>
+                            {data.software.map((item) => {
+                                const comingSoon = item.status === 'coming_soon';
+                                const isActive =
+                                    item.id === 'bedrock' && !!data.current_version;
 
-                            return (
-                                <button
-                                    key={item.id}
-                                    type={'button'}
-                                    className={`bv-software-card ${isActive ? 'is-active' : ''} ${
-                                        comingSoon ? 'is-disabled' : ''
-                                    }`}
-                                    disabled={comingSoon}
-                                    onClick={() => {
-                                        if (item.id === 'stable' || item.id === 'preview') {
-                                            setView(item.id);
-                                        }
-                                    }}
-                                >
-                                    <div className={'bv-software-card__icon'}>
-                                        {item.id === 'pocketmine' ? '⏳' : '🧱'}
-                                    </div>
-                                    <div className={'bv-software-card__info'}>
-                                        <div className={'bv-software-card__name'}>
-                                            {item.name}
-                                            {comingSoon && (
-                                                <span className={'bv-pill'}>Em breve</span>
+                                return (
+                                    <button
+                                        key={item.id}
+                                        type={'button'}
+                                        className={`bv-software-card ${isActive ? 'is-active' : ''} ${
+                                            comingSoon ? 'is-disabled' : ''
+                                        }`}
+                                        disabled={comingSoon}
+                                        onClick={() => {
+                                            if (item.id === 'bedrock') setView('bedrock');
+                                        }}
+                                    >
+                                        <div className={'bv-software-card__icon-wrap'}>
+                                            {item.id === 'bedrock' ? (
+                                                <img src={chest} alt={'Bedrock'} />
+                                            ) : (
+                                                <span className={'bv-software-card__emoji'}>⏳</span>
                                             )}
                                         </div>
-                                        <div className={'bv-software-card__meta'}>
-                                            {comingSoon
-                                                ? 'Suporte planejado'
-                                                : `${item.versions_count} versões · Latest ${
-                                                      item.latest || '—'
-                                                  }`}
+                                        <div className={'bv-software-card__info'}>
+                                            <div className={'bv-software-card__name'}>
+                                                {item.name}
+                                                {comingSoon && (
+                                                    <span className={'bv-pill'}>Coming Soon</span>
+                                                )}
+                                            </div>
+                                            <div className={'bv-software-card__meta'}>
+                                                {comingSoon ? (
+                                                    'Support planned'
+                                                ) : (
+                                                    <>
+                                                        <div>
+                                                            {item.minecraft_versions} Minecraft
+                                                            versions
+                                                        </div>
+                                                        <div>{item.builds} Builds</div>
+                                                    </>
+                                                )}
+                                            </div>
                                         </div>
-                                    </div>
-                                </button>
-                            );
-                        })}
-                    </div>
-                </>
-            ) : (
-                <>
-                    <div className={'bv-toolbar'}>
-                        <button
-                            type={'button'}
-                            className={'bv-btn bv-btn--ghost'}
-                            onClick={() => setView('home')}
-                        >
-                            ← Voltar
-                        </button>
-                        <div className={'bv-section-title'} style={{ margin: 0 }}>
-                            {view === 'stable' ? 'Bedrock Stable' : 'Bedrock Preview'}
+                                    </button>
+                                );
+                            })}
                         </div>
-                    </div>
-
-                    <div className={'bv-version-grid'}>
-                        {versions.map((v) => {
-                            const installed = data.current_version === v.version;
-                            return (
-                                <button
-                                    key={`${v.channel}-${v.version}`}
-                                    type={'button'}
-                                    className={`bv-version-card ${installed ? 'is-active' : ''}`}
-                                    onClick={() =>
-                                        setModal({
-                                            channel: view as Channel,
-                                            version: v.version,
-                                        })
-                                    }
-                                >
-                                    <div className={'bv-version-card__left'}>
-                                        <div className={'bv-version-card__icon'}>🧱</div>
-                                        <div>
-                                            <div className={'bv-version-card__version'}>
-                                                {v.version}
-                                            </div>
-                                            <div className={'bv-version-card__type'}>
-                                                {v.is_latest ? 'LATEST' : 'RELEASE'}
-                                            </div>
-                                        </div>
-                                    </div>
-                                    {v.is_latest && <span className={'bv-pill bv-pill--gold'}>Latest</span>}
-                                </button>
-                            );
-                        })}
-                    </div>
-                </>
-            )}
-
-            {modal && (
-                <div className={'bv-modal-backdrop'} onClick={() => !installing && setModal(null)}>
-                    <div className={'bv-modal'} onClick={(e) => e.stopPropagation()}>
-                        <h3 className={'bv-modal__title'}>
-                            Instalar Bedrock {modal.channel === 'preview' ? 'Preview' : 'Stable'}{' '}
-                            {modal.version}
-                        </h3>
-
-                        <label className={'bv-field-label'}>Versão</label>
-                        <select
-                            className={'bv-select'}
-                            value={modal.version}
-                            onChange={(e) =>
-                                setModal({ ...modal, version: e.target.value })
-                            }
-                        >
-                            {(modal.channel === 'stable'
-                                ? data.catalog.stable
-                                : data.catalog.preview
-                            ).map((v) => (
-                                <option key={v.version} value={v.version}>
-                                    {v.version}
-                                    {v.is_latest ? ' (latest)' : ''}
-                                </option>
-                            ))}
-                        </select>
-
-                        <div className={'bv-option'}>
-                            <div>
-                                <div className={'bv-option__title'}>APAGAR ARQUIVOS DO SERVIDOR</div>
-                                <div className={'bv-option__desc'}>
-                                    Isso apaga todos os arquivos antes de instalar a nova versão.
-                                    Não pode ser desfeito.
-                                </div>
-                            </div>
+                    </>
+                ) : (
+                    <>
+                        <div className={'bv-actions-row'}>
                             <button
                                 type={'button'}
-                                className={`bv-toggle ${wipe ? 'is-on' : ''}`}
-                                onClick={() => setWipe((v) => !v)}
+                                className={'bv-action-btn'}
+                                onClick={() => setView('home')}
                             >
-                                <span />
+                                ← Go Back
+                            </button>
+                            <button
+                                type={'button'}
+                                className={`bv-action-btn ${showPreview ? 'is-on' : ''}`}
+                                onClick={() => setShowPreview((v) => !v)}
+                            >
+                                {showPreview ? 'Hide Preview Versions' : 'Show Preview Versions'}
                             </button>
                         </div>
 
-                        <div className={'bv-option'}>
-                            <div>
-                                <div className={'bv-option__title'}>ACEITAR EULA</div>
-                                <div className={'bv-option__desc'}>
-                                    Ao ativar, você confirma que leu e aceita a{' '}
-                                    <a
-                                        href={'https://account.mojang.com/documents/minecraft_eula'}
-                                        target={'_blank'}
-                                        rel={'noreferrer'}
+                        <div className={'bv-section-title'}>
+                            {showPreview ? 'Bedrock Preview' : 'Bedrock'}
+                        </div>
+
+                        <div className={'bv-version-grid'}>
+                            {versionCards.map((group) => {
+                                const installed = data.current_group === group.version;
+                                return (
+                                    <button
+                                        key={`${group.channel}-${group.version}`}
+                                        type={'button'}
+                                        className={`bv-version-card ${installed ? 'is-active' : ''}`}
+                                        onClick={() => openInstall(group)}
                                     >
-                                        Minecraft EULA
-                                    </a>
-                                    .
-                                </div>
-                            </div>
-                            <button
-                                type={'button'}
-                                className={`bv-toggle ${acceptEula ? 'is-on' : ''}`}
-                                onClick={() => setAcceptEula((v) => !v)}
-                            >
-                                <span />
-                            </button>
+                                        <div className={'bv-version-card__left'}>
+                                            <img
+                                                className={'bv-version-card__chest'}
+                                                src={chest}
+                                                alt={'chest'}
+                                            />
+                                            <div>
+                                                <div className={'bv-version-card__version'}>
+                                                    {group.version}
+                                                    {group.is_latest_group && (
+                                                        <span className={'bv-pill bv-pill--gold'}>
+                                                            Latest
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <div className={'bv-version-card__type'}>
+                                                    {group.is_latest_group ? 'LATEST' : group.type}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className={'bv-version-card__builds'}>
+                                            {group.builds_count}{' '}
+                                            {group.builds_count === 1 ? 'Build' : 'Builds'}
+                                        </div>
+                                    </button>
+                                );
+                            })}
                         </div>
 
-                        <div className={'bv-modal__actions'}>
-                            <button
-                                type={'button'}
-                                className={'bv-btn bv-btn--ghost'}
-                                disabled={installing}
-                                onClick={() => setModal(null)}
+                        {versionCards.length === 0 && (
+                            <div className={'bv-empty'}>
+                                Nenhuma versão disponível neste canal ainda.
+                            </div>
+                        )}
+                    </>
+                )}
+
+                {modal && (
+                    <div
+                        className={'bv-modal-backdrop'}
+                        onClick={() => !installing && setModal(null)}
+                    >
+                        <div className={'bv-modal'} onClick={(e) => e.stopPropagation()}>
+                            <div className={'bv-modal__header'}>
+                                <h3>
+                                    Install Bedrock {modal.version}
+                                </h3>
+                                <button
+                                    type={'button'}
+                                    className={'bv-modal__close'}
+                                    onClick={() => setModal(null)}
+                                    disabled={installing}
+                                >
+                                    ×
+                                </button>
+                            </div>
+
+                            <select
+                                className={'bv-select'}
+                                value={selectedBuild}
+                                onChange={(e) => setSelectedBuild(e.target.value)}
                             >
-                                Cancelar
-                            </button>
-                            <button
-                                type={'button'}
-                                className={'bv-btn bv-btn--danger'}
-                                disabled={installing || !acceptEula}
-                                onClick={handleInstall}
-                            >
-                                {installing ? 'Instalando...' : 'Instalar'}
-                            </button>
+                                {modal.builds.map((b) => (
+                                    <option key={b.full_version} value={b.full_version}>
+                                        {b.label}
+                                        {b.is_latest ? ' (latest)' : ''}
+                                        {!b.available ? ' — unavailable' : ''}
+                                    </option>
+                                ))}
+                            </select>
+
+                            <div className={'bv-option'}>
+                                <div>
+                                    <div className={'bv-option__title'}>WIPE SERVER FILES</div>
+                                    <div className={'bv-option__desc'}>
+                                        This will delete all files on your server before installing
+                                        the new version. This cannot be undone.
+                                    </div>
+                                </div>
+                                <button
+                                    type={'button'}
+                                    className={`bv-toggle ${wipe ? 'is-on' : ''}`}
+                                    onClick={() => setWipe((v) => !v)}
+                                >
+                                    <span />
+                                </button>
+                            </div>
+
+                            <div className={'bv-option'}>
+                                <div>
+                                    <div className={'bv-option__title'}>ACCEPT EULA</div>
+                                    <div className={'bv-option__desc'}>
+                                        By enabling this option you confirm that you have read and
+                                        accept the Minecraft EULA.{' '}
+                                        <a
+                                            href={'https://www.minecraft.net/eula'}
+                                            target={'_blank'}
+                                            rel={'noreferrer'}
+                                        >
+                                            https://minecraft.net/eula
+                                        </a>
+                                    </div>
+                                </div>
+                                <button
+                                    type={'button'}
+                                    className={`bv-toggle ${acceptEula ? 'is-on' : ''}`}
+                                    onClick={() => setAcceptEula((v) => !v)}
+                                >
+                                    <span />
+                                </button>
+                            </div>
+
+                            <div className={'bv-modal__actions'}>
+                                <button
+                                    type={'button'}
+                                    className={'bv-btn bv-btn--ghost'}
+                                    disabled={installing}
+                                    onClick={() => setModal(null)}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type={'button'}
+                                    className={'bv-btn bv-btn--danger'}
+                                    disabled={installing || !acceptEula || !selectedBuild}
+                                    onClick={handleInstall}
+                                >
+                                    {installing ? 'Installing...' : 'Install'}
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
-        </div>
+                )}
+            </div>
         </PageContentBlock>
     );
 };

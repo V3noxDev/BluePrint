@@ -1,20 +1,24 @@
+/* Bedrock Version Manager Admin — estilo limpo (igual Server Properties) */
+
 .bv-admin {
     --bv-text: #e5e7eb;
     --bv-muted: #94a3b8;
     --bv-card: #1e293b;
     --bv-border: #334155;
-    --bv-accent: #f59e0b;
+    --bv-gold: #f59e0b;
     --bv-blue: #3b82f6;
+    margin: 0 0 20px;
     color: var(--bv-text);
-    margin-bottom: 20px;
+    font-family: inherit;
 }
 
 .bv-admin__header {
     display: flex;
+    align-items: flex-start;
     justify-content: space-between;
     gap: 16px;
-    margin-bottom: 18px;
-    padding-bottom: 14px;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
     border-bottom: 1px solid var(--bv-border);
 }
 
@@ -22,6 +26,7 @@
     margin: 0 0 6px;
     font-size: 22px;
     font-weight: 700;
+    color: var(--bv-text);
 }
 
 .bv-admin__subtitle {
@@ -32,7 +37,11 @@
 }
 
 .bv-admin__subtitle code,
-.bv-admin__hint code {
+.bv-admin__hint code,
+.bv-admin__route code,
+.bv-admin__steps code,
+.bv-admin__list code,
+.bv-admin__stat-sub code {
     background: #0f172a;
     border: 1px solid var(--bv-border);
     color: #93c5fd;
@@ -41,11 +50,11 @@
     font-size: 12px;
 }
 
-.bv-admin__badge {
-    align-self: flex-start;
+.bv-admin__version {
+    flex-shrink: 0;
     background: rgba(245, 158, 11, 0.12);
-    border: 1px solid rgba(245, 158, 11, 0.35);
-    color: var(--bv-accent);
+    color: var(--bv-gold);
+    border: 1px solid rgba(245, 158, 11, 0.3);
     border-radius: 999px;
     padding: 4px 12px;
     font-size: 12px;
@@ -54,67 +63,68 @@
 
 .bv-admin__grid {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 12px;
-    margin-bottom: 14px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
 }
 
 .bv-admin__card {
     background: var(--bv-card);
     border: 1px solid var(--bv-border);
     border-radius: 10px;
-    padding: 16px;
+    padding: 18px;
 }
 
 .bv-admin__card--wide {
     grid-column: 1 / -1;
 }
 
-.bv-admin__label {
-    font-size: 12px;
+.bv-admin__card-title {
+    font-size: 13px;
+    font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.04em;
     color: var(--bv-muted);
-    margin-bottom: 8px;
+    margin-bottom: 12px;
 }
 
-.bv-admin__value {
+.bv-admin__steps,
+.bv-admin__list {
+    margin: 0;
+    padding-left: 18px;
+    color: var(--bv-text);
+    font-size: 13px;
+    line-height: 1.7;
+}
+
+.bv-admin__stat {
     font-size: 28px;
     font-weight: 700;
+    color: var(--bv-text);
 }
 
-.bv-admin__value--sm {
-    font-size: 14px;
-    font-weight: 600;
+.bv-admin__stat-sub {
+    margin-top: 6px;
+    color: var(--bv-muted);
+    font-size: 13px;
 }
 
-.bv-admin__toggle {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 14px;
-    cursor: pointer;
+.bv-admin__route {
+    margin-bottom: 10px;
 }
 
 .bv-admin__hint {
-    margin: 14px 0;
+    margin: 0;
     color: var(--bv-muted);
     font-size: 13px;
     line-height: 1.5;
 }
 
-.bv-admin__btn {
-    background: var(--bv-blue);
-    color: #fff;
-    border: none;
-    border-radius: 8px;
-    padding: 10px 18px;
-    font-weight: 600;
-    cursor: pointer;
-}
-
 @media (max-width: 768px) {
     .bv-admin__grid {
         grid-template-columns: 1fr;
+    }
+
+    .bv-admin__header {
+        flex-direction: column;
     }
 }

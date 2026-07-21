@@ -6,12 +6,8 @@ use Pterodactyl\Models\Server;
 
 class BedrockServerDetector
 {
-    /**
-     * Detect whether a server is a Bedrock Dedicated Server target.
-     */
     public function isBedrockServer(Server $server): bool
     {
-        // 1) Startup variable BEDROCK_VERSION
         $hasVariable = $server->variables()
             ->where('env_variable', 'BEDROCK_VERSION')
             ->exists();
@@ -20,7 +16,6 @@ class BedrockServerDetector
             return true;
         }
 
-        // 2) Egg name / nest hints
         $egg = $server->egg;
         if ($egg) {
             $haystack = strtolower(($egg->name ?? '') . ' ' . ($egg->description ?? '') . ' ' . ($egg->author ?? ''));
@@ -29,7 +24,6 @@ class BedrockServerDetector
             }
         }
 
-        // 3) Docker image + debian yolk commonly used by Bedrock eggs
         $image = strtolower((string) $server->image);
         if (
             str_contains($image, 'yolks:debian')
@@ -54,23 +48,44 @@ class BedrockServerDetector
 
         $value = $variable->server_value ?? $variable->default_value ?? null;
 
-        return $value !== '' ? $value : null;
+        return $value !== '' && $value !== null ? (string) $value : null;
     }
 
     public function getChannelForVersion(string $version, array $catalog): string
     {
-        foreach ($catalog['preview'] ?? [] as $row) {
-            if (($row['version'] ?? '') === $version) {
-                return 'preview';
-            }
-        }
-
-        foreach ($catalog['stable'] ?? [] as $row) {
-            if (($row['version'] ?? '') === $version) {
-                return 'stable';
+        foreach ($catalog['preview'] ?? [] as $group) {
+            foreach ($group['builds'] ?? [] as $build) {
+                if (($build['full_version'] ?? '') === $version) {
+                    return 'preview';
+                }
             }
         }
 
         return 'stable';
+    }
+
+    public function findBuildMeta(string $version, array $catalog): array
+    {
+        foreach (['release', 'preview'] as $bucket) {
+            foreach ($catalog[$bucket] ?? [] as $group) {
+                foreach ($group['builds'] ?? [] as $build) {
+                    if (($build['full_version'] ?? '') === $version) {
+                        return [
+                            'group' => $group['version'],
+                            'build' => $build['id'],
+                            'channel' => $group['channel'] ?? ($bucket === 'preview' ? 'preview' : 'stable'),
+                            'type' => $group['type'] ?? 'RELEASE',
+                        ];
+                    }
+                }
+            }
+        }
+
+        return [
+            'group' => $version,
+            'build' => null,
+            'channel' => 'stable',
+            'type' => 'RELEASE',
+        ];
     }
 }
