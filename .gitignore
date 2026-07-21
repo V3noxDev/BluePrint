@@ -1,0 +1,3 @@
+dist/
+*.bak
+.mcprops-backups/
