@@ -69,8 +69,10 @@ blueprint -install minehub.blueprint
 ### 4. Usar no servidor
 
 1. Acesse qualquer servidor Minecraft no painel
-2. Clique na aba **MineHub** na navegação
-3. Use **Server Properties** ou **Addon Manager**
+2. Clique em **Minecraft** na navegação
+3. URLs disponíveis:
+   - `/server/{id}/minecraft/properties` — Editor de server.properties
+   - `/server/{id}/minecraft/addons` — Gerenciador de addons
 
 ## Estrutura do Projeto
 
