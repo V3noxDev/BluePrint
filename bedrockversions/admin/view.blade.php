@@ -9,11 +9,11 @@
         <div>
             <h3 class="bv-admin__title">Bedrock Version Manager</h3>
             <p class="bv-admin__subtitle">
-                Seletor de versões do <code>Bedrock Dedicated Server</code> — Stable, Preview e
-                variável <code>BEDROCK_VERSION</code>.
+                Seletor profissional de versões do <code>Bedrock Dedicated Server</code> —
+                Release, Preview, builds e variável <code>BEDROCK_VERSION</code>.
             </p>
         </div>
-        <span class="bv-admin__version">v1.2.0</span>
+        <span class="bv-admin__version">v1.4.1</span>
     </div>
 
     <div class="bv-admin__grid">
@@ -29,10 +29,10 @@
         <div class="bv-admin__card">
             <div class="bv-admin__card-title">Recursos</div>
             <ul class="bv-admin__list">
-                <li>Busca automática na API oficial da Mojang</li>
-                <li>Detecta versões novas e marca só a mais recente como <strong>Latest</strong></li>
-                <li>Mantém histórico e ordena do mais novo ao mais antigo</li>
-                <li>Stable + Preview (PocketMine em breve)</li>
+                <li>Catálogo completo BDS (Stable + Preview)</li>
+                <li>Versão Minecraft = 3 segmentos (ex.: <code>1.26.33</code>)</li>
+                <li>Builds = hotfix da mesma versão (ex.: <code>.1</code> → <code>.2</code>)</li>
+                <li>Labels <strong>RELEASE</strong> / <strong>PREVIEW</strong></li>
                 <li>Atualiza a variável <code>BEDROCK_VERSION</code></li>
             </ul>
         </div>

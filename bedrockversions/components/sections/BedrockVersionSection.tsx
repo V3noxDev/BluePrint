@@ -12,8 +12,11 @@ interface Build {
     label: string;
     full_version: string;
     download_url: string;
+    mojang_build_id?: string | null;
+    released_at?: string | null;
     available: boolean;
     is_latest: boolean;
+    is_recommended: boolean;
 }
 
 interface VersionGroup {
@@ -34,6 +37,7 @@ interface SoftwareCard {
     minecraft_versions: number;
     builds: number;
     latest: string | null;
+    description?: string | null;
 }
 
 interface IndexData {
@@ -85,7 +89,7 @@ const BedrockVersionSection = () => {
         } catch (err: any) {
             setError(
                 err?.response?.data?.message ||
-                    'Falha ao carregar versões. A API pode estar indisponível.'
+                    'Falha ao carregar as versões. A API pode estar indisponível.'
             );
         } finally {
             setLoading(false);
@@ -98,6 +102,7 @@ const BedrockVersionSection = () => {
 
     const openInstall = (group: VersionGroup) => {
         const preferred =
+            group.builds.find((b) => b.is_recommended)?.full_version ||
             group.builds.find((b) => b.is_latest)?.full_version ||
             group.builds[0]?.full_version ||
             '';
@@ -108,7 +113,7 @@ const BedrockVersionSection = () => {
     };
 
     const handleInstall = async () => {
-        if (!modal || !selectedBuild || !acceptEula) return;
+        if (!modal || !selectedBuild) return;
         setInstalling(true);
         try {
             const { data: res } = await http.post(
@@ -129,7 +134,7 @@ const BedrockVersionSection = () => {
                 showToast('error', res.message || 'Falha na instalação.');
             }
         } catch (err: any) {
-            showToast('error', err?.response?.data?.message || 'Erro ao instalar versão.');
+            showToast('error', err?.response?.data?.message || 'Erro ao instalar a versão.');
         } finally {
             setInstalling(false);
         }
@@ -140,14 +145,19 @@ const BedrockVersionSection = () => {
         return showPreview ? data.preview : data.release;
     }, [data, showPreview]);
 
-    const chest = data?.chest_icon || '/extensions/bedrockversions/chest-face.svg';
+    const selectedBuildMeta = useMemo(() => {
+        if (!modal) return null;
+        return modal.builds.find((b) => b.full_version === selectedBuild) || null;
+    }, [modal, selectedBuild]);
+
+    const chest = data?.chest_icon || '/extensions/bedrockversions/chest-face.png';
 
     if (loading) {
         return (
-            <PageContentBlock title={'Versions'}>
+            <PageContentBlock title={'Versões'}>
                 <div className={'bv-loading'}>
                     <Spinner size={'large'} />
-                    <span>Buscando versões na API...</span>
+                    <span>Carregando catálogo do Bedrock Dedicated Server...</span>
                 </div>
             </PageContentBlock>
         );
@@ -155,7 +165,7 @@ const BedrockVersionSection = () => {
 
     if (error || !data) {
         return (
-            <PageContentBlock title={'Versions'}>
+            <PageContentBlock title={'Versões'}>
                 <div className={'bv-alert bv-alert--error'}>
                     <p>{error || 'Erro desconhecido.'}</p>
                     <button type={'button'} className={'bv-btn bv-btn--ghost'} onClick={load}>
@@ -167,7 +177,7 @@ const BedrockVersionSection = () => {
     }
 
     return (
-        <PageContentBlock title={'Versions'}>
+        <PageContentBlock title={'Versões'}>
             <div className={'bv-page'}>
                 {toast && (
                     <div className={`bv-toast bv-toast--${toast.type}`}>
@@ -177,20 +187,26 @@ const BedrockVersionSection = () => {
                 )}
 
                 <div className={'bv-status'}>
-                    <img className={'bv-status__chest'} src={chest} alt={'Bedrock'} />
+                    <img className={'bv-status__chest'} src={chest} alt={'Bedrock Dedicated Server'} />
                     <div className={'bv-status__body'}>
                         <div className={'bv-status__title'}>
                             {data.current_version
-                                ? 'Currently running Bedrock'
-                                : 'Bedrock Dedicated Server'}
+                                ? 'Bedrock Dedicated Server'
+                                : 'Nenhuma versão selecionada'}
                         </div>
                         <div className={'bv-status__meta'}>
-                            Installed Minecraft Version:{' '}
+                            Versão Minecraft:{' '}
                             <strong>{data.current_group || data.current_version || '—'}</strong>
                             {data.current_build && (
                                 <>
                                     {' '}
-                                    · Installed Build: <strong>#{data.current_build}</strong>
+                                    · Build <strong>#{data.current_build}</strong>
+                                </>
+                            )}
+                            {data.current_version && data.current_group && (
+                                <>
+                                    {' '}
+                                    · Pacote <strong>{data.current_version}</strong>
                                 </>
                             )}
                         </div>
@@ -199,59 +215,37 @@ const BedrockVersionSection = () => {
 
                 {data.outdated && data.latest_for_channel && (
                     <div className={'bv-outdated'}>
-                        ⚠️ Your server is currently running an outdated version of Bedrock
-                        {data.current_version ? ` ${data.current_version}` : ''}. The latest build is{' '}
-                        <strong>{data.latest_for_channel}</strong>.
+                        Seu servidor está desatualizado
+                        {data.current_version ? ` (${data.current_version})` : ''}. A build mais
+                        recente do canal é <strong>{data.latest_for_channel}</strong>.
                     </div>
                 )}
 
                 {view === 'home' ? (
                     <>
-                        <div className={'bv-section-title'}>Recommended</div>
+                        <div className={'bv-section-title'}>Software</div>
                         <div className={'bv-software-grid'}>
                             {data.software.map((item) => {
-                                const comingSoon = item.status === 'coming_soon';
-                                const isActive =
-                                    item.id === 'bedrock' && !!data.current_version;
+                                const isActive = item.id === 'bedrock' && !!data.current_version;
 
                                 return (
                                     <button
                                         key={item.id}
                                         type={'button'}
-                                        className={`bv-software-card ${isActive ? 'is-active' : ''} ${
-                                            comingSoon ? 'is-disabled' : ''
-                                        }`}
-                                        disabled={comingSoon}
-                                        onClick={() => {
-                                            if (item.id === 'bedrock') setView('bedrock');
-                                        }}
+                                        className={`bv-software-card ${isActive ? 'is-active' : ''}`}
+                                        onClick={() => setView('bedrock')}
                                     >
                                         <div className={'bv-software-card__icon-wrap'}>
-                                            {item.id === 'bedrock' ? (
-                                                <img src={chest} alt={'Bedrock'} />
-                                            ) : (
-                                                <span className={'bv-software-card__emoji'}>⏳</span>
-                                            )}
+                                            <img src={chest} alt={'Bedrock'} />
                                         </div>
                                         <div className={'bv-software-card__info'}>
-                                            <div className={'bv-software-card__name'}>
-                                                {item.name}
-                                                {comingSoon && (
-                                                    <span className={'bv-pill'}>Coming Soon</span>
-                                                )}
-                                            </div>
+                                            <div className={'bv-software-card__name'}>{item.name}</div>
                                             <div className={'bv-software-card__meta'}>
-                                                {comingSoon ? (
-                                                    'Support planned'
-                                                ) : (
-                                                    <>
-                                                        <div>
-                                                            {item.minecraft_versions} Minecraft
-                                                            versions
-                                                        </div>
-                                                        <div>{item.builds} Builds</div>
-                                                    </>
-                                                )}
+                                                <div>
+                                                    {item.minecraft_versions} versões Minecraft
+                                                </div>
+                                                <div>{item.builds} builds</div>
+                                                {item.latest && <div>Latest: {item.latest}</div>}
                                             </div>
                                         </div>
                                     </button>
@@ -267,19 +261,21 @@ const BedrockVersionSection = () => {
                                 className={'bv-action-btn'}
                                 onClick={() => setView('home')}
                             >
-                                ← Go Back
+                                ← Voltar
                             </button>
                             <button
                                 type={'button'}
                                 className={`bv-action-btn ${showPreview ? 'is-on' : ''}`}
                                 onClick={() => setShowPreview((v) => !v)}
                             >
-                                {showPreview ? 'Hide Preview Versions' : 'Show Preview Versions'}
+                                {showPreview
+                                    ? 'Ocultar versões Preview'
+                                    : 'Mostrar versões Preview'}
                             </button>
                         </div>
 
                         <div className={'bv-section-title'}>
-                            {showPreview ? 'Bedrock Preview' : 'Bedrock'}
+                            {showPreview ? 'Bedrock Preview' : 'Bedrock · Release'}
                         </div>
 
                         <div className={'bv-version-grid'}>
@@ -289,26 +285,24 @@ const BedrockVersionSection = () => {
                                     <button
                                         key={`${group.channel}-${group.version}`}
                                         type={'button'}
-                                        className={`bv-version-card ${installed ? 'is-active' : ''}`}
+                                        className={`bv-version-card ${installed ? 'is-active' : ''} ${
+                                            group.is_latest_group ? 'is-newest' : ''
+                                        }`}
                                         onClick={() => openInstall(group)}
                                     >
                                         <div className={'bv-version-card__left'}>
                                             <img
                                                 className={'bv-version-card__chest'}
                                                 src={chest}
-                                                alt={'chest'}
+                                                alt={'baú'}
                                             />
                                             <div>
                                                 <div className={'bv-version-card__version'}>
                                                     {group.version}
-                                                    {group.is_latest_group && (
-                                                        <span className={'bv-pill bv-pill--gold'}>
-                                                            Latest
-                                                        </span>
-                                                    )}
                                                 </div>
                                                 <div className={'bv-version-card__type'}>
-                                                    {group.is_latest_group ? 'LATEST' : group.type}
+                                                    {group.type}
+                                                    {group.is_latest_group ? ' · MAIS RECENTE' : ''}
                                                 </div>
                                             </div>
                                         </div>
@@ -336,9 +330,7 @@ const BedrockVersionSection = () => {
                     >
                         <div className={'bv-modal'} onClick={(e) => e.stopPropagation()}>
                             <div className={'bv-modal__header'}>
-                                <h3>
-                                    Install Bedrock {modal.version}
-                                </h3>
+                                <h3>Instalar Bedrock {modal.version}</h3>
                                 <button
                                     type={'button'}
                                     className={'bv-modal__close'}
@@ -349,7 +341,17 @@ const BedrockVersionSection = () => {
                                 </button>
                             </div>
 
+                            <p className={'bv-modal__hint'}>
+                                Builds são republicações da mesma versão Minecraft quando a Mojang
+                                corrige um erro (ex.: 1.26.33.1 → 1.26.33.2). Use a build recomendada
+                                salvo se precisar de uma específica.
+                            </p>
+
+                            <label className={'bv-field-label'} htmlFor={'bv-build-select'}>
+                                Selecionar build
+                            </label>
                             <select
+                                id={'bv-build-select'}
                                 className={'bv-select'}
                                 value={selectedBuild}
                                 onChange={(e) => setSelectedBuild(e.target.value)}
@@ -357,18 +359,33 @@ const BedrockVersionSection = () => {
                                 {modal.builds.map((b) => (
                                     <option key={b.full_version} value={b.full_version}>
                                         {b.label}
-                                        {b.is_latest ? ' (latest)' : ''}
-                                        {!b.available ? ' — unavailable' : ''}
+                                        {b.is_recommended ? ' · recomendada' : ''}
                                     </option>
                                 ))}
                             </select>
 
+                            {selectedBuildMeta && (
+                                <div className={'bv-build-meta'}>
+                                    Pacote completo: <code>{selectedBuildMeta.full_version}</code>
+                                    {selectedBuildMeta.mojang_build_id && (
+                                        <>
+                                            {' '}
+                                            · Mojang build{' '}
+                                            <code>{selectedBuildMeta.mojang_build_id}</code>
+                                        </>
+                                    )}
+                                </div>
+                            )}
+
                             <div className={'bv-option'}>
                                 <div>
-                                    <div className={'bv-option__title'}>WIPE SERVER FILES</div>
+                                    <div className={'bv-option__title'}>
+                                        APAGAR ARQUIVOS DO SERVIDOR
+                                    </div>
                                     <div className={'bv-option__desc'}>
-                                        This will delete all files on your server before installing
-                                        the new version. This cannot be undone.
+                                        Opcional. Apaga tudo antes de instalar. Desligado = só
+                                        substitui os arquivos da build baixada (mundo e configs
+                                        ficam).
                                     </div>
                                 </div>
                                 <button
@@ -382,16 +399,17 @@ const BedrockVersionSection = () => {
 
                             <div className={'bv-option'}>
                                 <div>
-                                    <div className={'bv-option__title'}>ACCEPT EULA</div>
+                                    <div className={'bv-option__title'}>ACEITAR EULA</div>
                                     <div className={'bv-option__desc'}>
-                                        By enabling this option you confirm that you have read and
-                                        accept the Minecraft EULA.{' '}
+                                        Opcional. Grava <code>eula=true</code> no{' '}
+                                        <code>eula.txt</code> para o servidor subir. Sem isso, ele
+                                        liga e desliga pedindo o aceite.{' '}
                                         <a
-                                            href={'https://www.minecraft.net/eula'}
+                                            href={'https://aka.ms/MinecraftEULA'}
                                             target={'_blank'}
                                             rel={'noreferrer'}
                                         >
-                                            https://minecraft.net/eula
+                                            Minecraft EULA
                                         </a>
                                     </div>
                                 </div>
@@ -411,15 +429,15 @@ const BedrockVersionSection = () => {
                                     disabled={installing}
                                     onClick={() => setModal(null)}
                                 >
-                                    Cancel
+                                    Cancelar
                                 </button>
                                 <button
                                     type={'button'}
                                     className={'bv-btn bv-btn--danger'}
-                                    disabled={installing || !acceptEula || !selectedBuild}
+                                    disabled={installing || !selectedBuild}
                                     onClick={handleInstall}
                                 >
-                                    {installing ? 'Installing...' : 'Install'}
+                                    {installing ? 'Instalando...' : 'Instalar'}
                                 </button>
                             </div>
                         </div>

@@ -16,6 +16,8 @@ return new class extends Migration
                 $table->string('version', 64);
                 $table->string('download_url', 512);
                 $table->string('download_type', 64);
+                $table->string('mojang_build_id', 64)->nullable();
+                $table->timestamp('released_at')->nullable();
                 $table->boolean('is_latest')->default(false);
                 $table->timestamp('first_seen_at')->useCurrent();
                 $table->timestamp('last_seen_at')->useCurrent();
@@ -23,6 +25,15 @@ return new class extends Migration
 
                 $table->unique(['channel', 'version']);
                 $table->index(['channel', 'is_latest']);
+            });
+        } else {
+            Schema::table('bedrock_versions', function (Blueprint $table) {
+                if (!Schema::hasColumn('bedrock_versions', 'mojang_build_id')) {
+                    $table->string('mojang_build_id', 64)->nullable()->after('download_type');
+                }
+                if (!Schema::hasColumn('bedrock_versions', 'released_at')) {
+                    $table->timestamp('released_at')->nullable()->after('mojang_build_id');
+                }
             });
         }
 

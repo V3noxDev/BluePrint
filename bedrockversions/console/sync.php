@@ -12,8 +12,8 @@ $catalog = $service->syncFromApi(true);
 $blueprint->dbSet('bedrockversions', 'last_sync', now()->toDateTimeString());
 
 echo sprintf(
-    "Synced Bedrock versions — Stable: %d | Preview: %d | Latest Stable: %s | Latest Preview: %s\n",
-    count($catalog['stable'] ?? []),
+    "Catálogo Bedrock sincronizado — Stable: %d grupos | Preview: %d grupos | Latest Stable: %s | Latest Preview: %s\n",
+    count($catalog['release'] ?? []),
     count($catalog['preview'] ?? []),
     $catalog['latest_stable'] ?? '-',
     $catalog['latest_preview'] ?? '-'

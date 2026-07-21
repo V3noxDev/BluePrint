@@ -13,6 +13,8 @@ class BedrockVersion extends Model
         'version',
         'download_url',
         'download_type',
+        'mojang_build_id',
+        'released_at',
         'is_latest',
         'first_seen_at',
         'last_seen_at',
@@ -20,6 +22,7 @@ class BedrockVersion extends Model
 
     protected $casts = [
         'is_latest' => 'boolean',
+        'released_at' => 'datetime',
         'first_seen_at' => 'datetime',
         'last_seen_at' => 'datetime',
     ];
