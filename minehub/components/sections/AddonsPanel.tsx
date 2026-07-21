@@ -33,13 +33,7 @@ import {
     VersionButton,
     VersionList,
 } from '../styles';
-import {
-    AddonType,
-    CatalogMetadata,
-    CatalogProject,
-    CatalogVersion,
-    InstalledAddon,
-} from '../types';
+import { AddonType, CatalogMetadata, CatalogProject, CatalogVersion, InstalledAddon } from '../types';
 
 interface AddonsPanelProps {
     serverIdentifier: string;
@@ -69,8 +63,16 @@ interface StatusMessage {
 
 const directoryFor = (type: AddonType): string => (type === 'plugin' ? '/plugins' : '/mods');
 const typeLabel = (type: AddonType): string => (type === 'plugin' ? 'plugin' : 'mod');
-const formatDownloads = (value: number): string =>
-    new Intl.NumberFormat('pt-BR', { notation: 'compact', maximumFractionDigits: 1 }).format(value);
+const formatDownloads = (value: number): string => {
+    if (value >= 1_000_000) {
+        return `${(value / 1_000_000).toFixed(1).replace('.0', '')} mi`;
+    }
+    if (value >= 1_000) {
+        return `${(value / 1_000).toFixed(1).replace('.0', '')} mil`;
+    }
+
+    return String(value);
+};
 const formatBytes = (value: number): string => {
     if (value < 1024) return `${value} B`;
     if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`;
@@ -100,7 +102,11 @@ const AddonsPanel = ({
     const [searchNonce, setSearchNonce] = useState(0);
     const [offset, setOffset] = useState(0);
     const [projects, setProjects] = useState<CatalogProject[]>([]);
-    const [searchMeta, setSearchMeta] = useState({ offset: 0, limit: 12, total: 0 });
+    const [searchMeta, setSearchMeta] = useState({
+        offset: 0,
+        limit: 12,
+        total: 0,
+    });
     const [searching, setSearching] = useState(false);
     const [searchError, setSearchError] = useState('');
     const [installed, setInstalled] = useState<InstalledAddon[]>([]);
@@ -147,7 +153,9 @@ const AddonsPanel = ({
                     name: String(attributes.name ?? ''),
                     size: Number(attributes.size ?? 0),
                     modifiedAt: attributes.modified_at ? String(attributes.modified_at) : null,
-                    disabled: String(attributes.name ?? '').toLowerCase().endsWith('.jar.disabled'),
+                    disabled: String(attributes.name ?? '')
+                        .toLowerCase()
+                        .endsWith('.jar.disabled'),
                 }))
                 .filter((addon: InstalledAddon) => {
                     const name = addon.name.toLowerCase();
@@ -185,19 +193,16 @@ const AddonsPanel = ({
             setSearchError('');
 
             try {
-                const { data } = await http.get<SearchResponse>(
-                    '/api/client/extensions/minehub/catalog/search',
-                    {
-                        params: {
-                            query: submittedQuery,
-                            type: addonType,
-                            version: gameVersion,
-                            loader,
-                            sort,
-                            offset,
-                        },
-                    }
-                );
+                const { data } = await http.get<SearchResponse>('/api/client/extensions/minehub/catalog/search', {
+                    params: {
+                        query: submittedQuery,
+                        type: addonType,
+                        version: gameVersion,
+                        loader,
+                        sort,
+                        offset,
+                    },
+                });
 
                 if (active) {
                     setProjects(data.data);
@@ -223,7 +228,7 @@ const AddonsPanel = ({
     }, [addonType, availableLoaders, gameVersion, loader, offset, searchNonce, sort, submittedQuery]);
 
     const installedNames = useMemo(
-        () => new Set(installed.map((addon) => addon.name.toLowerCase())),
+        () => new Set(installed.map((addon) => addon.name.toLowerCase().replace(/\.disabled$/, ''))),
         [installed]
     );
 
@@ -258,11 +263,17 @@ const AddonsPanel = ({
         setStatus(null);
 
         try {
-            if (!directoryExists) {
-                await http.post(`/api/client/servers/${serverIdentifier}/files/create-folder`, {
-                    root: '/',
-                    name: directory.slice(1),
-                });
+            if (!directoryExists || !canRead) {
+                try {
+                    await http.post(`/api/client/servers/${serverIdentifier}/files/create-folder`, {
+                        root: '/',
+                        name: directory.slice(1),
+                    });
+                } catch (error) {
+                    if (![400, 409].includes(errorStatus(error) ?? 0)) {
+                        throw error;
+                    }
+                }
                 setDirectoryExists(true);
             }
 
@@ -297,7 +308,10 @@ const AddonsPanel = ({
                 root: directory,
                 files: [deletingAddon.name],
             });
-            setStatus({ tone: 'success', text: `${deletingAddon.name} foi removido.` });
+            setStatus({
+                tone: 'success',
+                text: `${deletingAddon.name} foi removido.`,
+            });
             setDeletingAddon(null);
             await loadInstalled();
         } catch (error) {
@@ -308,9 +322,7 @@ const AddonsPanel = ({
     };
 
     const toggleAddon = async (addon: InstalledAddon) => {
-        const targetName = addon.disabled
-            ? addon.name.replace(/\.disabled$/i, '')
-            : `${addon.name}.disabled`;
+        const targetName = addon.disabled ? addon.name.replace(/\.disabled$/i, '') : `${addon.name}.disabled`;
 
         setActionInProgress(addon.name);
 
@@ -331,8 +343,7 @@ const AddonsPanel = ({
         }
     };
 
-    const selectedLoaderName =
-        availableLoaders.find((option) => option.id === loader)?.name ?? loader;
+    const selectedLoaderName = availableLoaders.find((option) => option.id === loader)?.name ?? loader;
 
     return (
         <>
@@ -342,24 +353,24 @@ const AddonsPanel = ({
                         <h2>Gerenciador de addons</h2>
                         <p>Instale pelo catálogo ou administre os arquivos já presentes no servidor.</p>
                     </Heading>
-                    <Toolbar aria-label="Tipo de addon">
+                    <Toolbar aria-label='Tipo de addon'>
                         {enabledTypes.map((type) => (
                             <Button
                                 key={type}
-                                type="button"
+                                type='button'
                                 $variant={addonType === type ? 'primary' : 'secondary'}
                                 onClick={() => onAddonTypeChange(type)}
                             >
                                 {type === 'plugin' ? 'Plugins' : 'Mods'}
                             </Button>
                         ))}
-                        <Button type="button" $variant="secondary" onClick={() => void loadInstalled()}>
+                        <Button type='button' $variant='secondary' onClick={() => void loadInstalled()}>
                             Atualizar
                         </Button>
                     </Toolbar>
                 </PanelHeader>
 
-                <Filters as="form" onSubmit={submitSearch}>
+                <Filters as='form' onSubmit={submitSearch}>
                     <Field>
                         Pesquisar
                         <Input
@@ -410,13 +421,13 @@ const AddonsPanel = ({
                                 setOffset(0);
                             }}
                         >
-                            <option value="relevance">Relevância</option>
-                            <option value="downloads">Downloads</option>
-                            <option value="updated">Atualizados</option>
-                            <option value="newest">Mais novos</option>
+                            <option value='relevance'>Relevância</option>
+                            <option value='downloads'>Downloads</option>
+                            <option value='updated'>Atualizados</option>
+                            <option value='newest'>Mais novos</option>
                         </Select>
                     </Field>
-                    <Button type="submit" disabled={searching || !gameVersion || !loader}>
+                    <Button type='submit' disabled={searching || !gameVersion || !loader}>
                         {searching ? <Spinner /> : 'Buscar'}
                     </Button>
                 </Filters>
@@ -424,9 +435,14 @@ const AddonsPanel = ({
                 <Content>
                     {status ? <Notice $tone={status.tone}>{status.text}</Notice> : null}
                     {!canRead ? (
-                        <Notice $tone="warning">
-                            Você não possui a permissão <code>file.read</code>. A lista de addons instalados
-                            não pode ser exibida.
+                        <Notice $tone='warning'>
+                            Você não possui a permissão <code>file.read</code>. A lista de addons instalados não pode
+                            ser exibida.
+                        </Notice>
+                    ) : null}
+                    {!canCreate ? (
+                        <Notice $tone='warning'>
+                            Você precisa da permissão <code>file.create</code> para instalar addons pelo catálogo.
                         </Notice>
                     ) : null}
 
@@ -437,7 +453,7 @@ const AddonsPanel = ({
 
                     {installedLoading ? (
                         <LoadingState>
-                            <Spinner aria-label="Carregando addons instalados" />
+                            <Spinner aria-label='Carregando addons instalados' />
                         </LoadingState>
                     ) : installed.length === 0 ? (
                         <EmptyState>
@@ -464,28 +480,26 @@ const AddonsPanel = ({
                                                     : ''}
                                             </small>
                                         </CardCopy>
-                                        <Pill $warning={addon.disabled}>
-                                            {addon.disabled ? 'Desativado' : 'Ativo'}
-                                        </Pill>
+                                        <Pill $warning={addon.disabled}>{addon.disabled ? 'Desativado' : 'Ativo'}</Pill>
                                     </CardTop>
                                     <Description>
-                                        Arquivo local em {directory}. Alterações entram em vigor após reiniciar
-                                        o servidor.
+                                        Arquivo local em {directory}. Alterações entram em vigor após reiniciar o
+                                        servidor.
                                     </Description>
                                     <CardFooter>
                                         <Button
-                                            type="button"
+                                            type='button'
                                             $compact
-                                            $variant="secondary"
+                                            $variant='secondary'
                                             disabled={!canUpdate || actionInProgress === addon.name}
                                             onClick={() => void toggleAddon(addon)}
                                         >
                                             {addon.disabled ? 'Ativar' : 'Desativar'}
                                         </Button>
                                         <Button
-                                            type="button"
+                                            type='button'
                                             $compact
-                                            $variant="danger"
+                                            $variant='danger'
                                             disabled={!canDelete || actionInProgress === addon.name}
                                             onClick={() => setDeletingAddon(addon)}
                                         >
@@ -500,14 +514,16 @@ const AddonsPanel = ({
                     <Divider />
 
                     <SectionTitle>
-                        <h3>Catálogo para {gameVersion || 'Minecraft'} · {selectedLoaderName}</h3>
+                        <h3>
+                            Catálogo para {gameVersion || 'Minecraft'} · {selectedLoaderName}
+                        </h3>
                         <span>{searchMeta.total} resultado(s)</span>
                     </SectionTitle>
 
-                    {searchError ? <Notice $tone="danger">{searchError}</Notice> : null}
+                    {searchError ? <Notice $tone='danger'>{searchError}</Notice> : null}
                     {searching ? (
                         <LoadingState>
-                            <Spinner aria-label="Pesquisando catálogo" />
+                            <Spinner aria-label='Pesquisando catálogo' />
                         </LoadingState>
                     ) : projects.length === 0 ? (
                         <EmptyState>
@@ -533,7 +549,7 @@ const AddonsPanel = ({
                                     <CardFooter>
                                         <Meta>{formatDownloads(project.downloads)} downloads</Meta>
                                         <Button
-                                            type="button"
+                                            type='button'
                                             $compact
                                             disabled={!canCreate}
                                             onClick={() => void openVersions(project)}
@@ -549,16 +565,16 @@ const AddonsPanel = ({
                     {searchMeta.total > searchMeta.limit ? (
                         <Toolbar style={{ justifyContent: 'flex-end', marginTop: 15 }}>
                             <Button
-                                type="button"
-                                $variant="secondary"
+                                type='button'
+                                $variant='secondary'
                                 disabled={offset === 0 || searching}
                                 onClick={() => setOffset(Math.max(0, offset - searchMeta.limit))}
                             >
                                 Anterior
                             </Button>
                             <Button
-                                type="button"
-                                $variant="secondary"
+                                type='button'
+                                $variant='secondary'
                                 disabled={offset + searchMeta.limit >= searchMeta.total || searching}
                                 onClick={() => setOffset(offset + searchMeta.limit)}
                             >
@@ -571,9 +587,9 @@ const AddonsPanel = ({
 
             {selectedProject ? (
                 <ModalBackdrop
-                    role="dialog"
-                    aria-modal="true"
-                    aria-labelledby="minehub-version-title"
+                    role='dialog'
+                    aria-modal='true'
+                    aria-labelledby='minehub-version-title'
                     onMouseDown={(event) => {
                         if (event.target === event.currentTarget && !installingVersion) {
                             setSelectedProject(null);
@@ -583,18 +599,18 @@ const AddonsPanel = ({
                     <ModalCard>
                         <ModalHeader>
                             <div>
-                                <h3 id="minehub-version-title">Instalar {selectedProject.title}</h3>
+                                <h3 id='minehub-version-title'>Instalar {selectedProject.title}</h3>
                                 <p>
                                     Escolha uma versão para Minecraft {gameVersion} com {selectedLoaderName}.
                                 </p>
                             </div>
                             <Button
-                                type="button"
-                                $variant="ghost"
+                                type='button'
+                                $variant='ghost'
                                 $compact
                                 disabled={Boolean(installingVersion)}
                                 onClick={() => setSelectedProject(null)}
-                                aria-label="Fechar"
+                                aria-label='Fechar'
                             >
                                 Fechar
                             </Button>
@@ -602,7 +618,7 @@ const AddonsPanel = ({
                         <ModalBody>
                             {versionsLoading ? (
                                 <LoadingState>
-                                    <Spinner aria-label="Carregando versões" />
+                                    <Spinner aria-label='Carregando versões' />
                                 </LoadingState>
                             ) : versions.length === 0 ? (
                                 <EmptyState>
@@ -616,7 +632,7 @@ const AddonsPanel = ({
                                     {versions.map((version) => (
                                         <VersionButton
                                             key={version.id}
-                                            type="button"
+                                            type='button'
                                             disabled={
                                                 Boolean(installingVersion) ||
                                                 installedNames.has(version.file.filename.toLowerCase())
@@ -647,28 +663,28 @@ const AddonsPanel = ({
             ) : null}
 
             {deletingAddon ? (
-                <ModalBackdrop role="dialog" aria-modal="true" aria-labelledby="minehub-delete-title">
+                <ModalBackdrop role='dialog' aria-modal='true' aria-labelledby='minehub-delete-title'>
                     <ModalCard style={{ maxWidth: 460 }}>
                         <ModalHeader>
                             <div>
-                                <h3 id="minehub-delete-title">Remover addon?</h3>
+                                <h3 id='minehub-delete-title'>Remover addon?</h3>
                                 <p>Esta ação excluirá permanentemente o arquivo do servidor.</p>
                             </div>
                         </ModalHeader>
                         <ModalBody>
-                            <Notice $tone="warning">{deletingAddon.name}</Notice>
+                            <Notice $tone='warning'>{deletingAddon.name}</Notice>
                             <Toolbar style={{ justifyContent: 'flex-end' }}>
                                 <Button
-                                    type="button"
-                                    $variant="secondary"
+                                    type='button'
+                                    $variant='secondary'
                                     disabled={Boolean(actionInProgress)}
                                     onClick={() => setDeletingAddon(null)}
                                 >
                                     Cancelar
                                 </Button>
                                 <Button
-                                    type="button"
-                                    $variant="danger"
+                                    type='button'
+                                    $variant='danger'
                                     disabled={Boolean(actionInProgress)}
                                     onClick={() => void removeAddon()}
                                 >

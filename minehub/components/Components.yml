@@ -1,3 +1,9 @@
 Navigation:
-  Routes:
-    - { Name: "MineHub", Path: "/minehub", Type: "server", Component: "sections/MineHubSection", AdminOnly: "false" }
+    Routes:
+        - {
+              Name: 'MineHub',
+              Path: '/minehub',
+              Type: 'server',
+              Component: 'sections/MineHubSection',
+              AdminOnly: 'false',
+          }

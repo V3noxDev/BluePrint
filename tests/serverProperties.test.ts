@@ -19,10 +19,7 @@ test('updates only the last duplicate and preserves comments and line endings', 
     const source = '# Minecraft\r\nmotd=Old\r\nunknown=value\r\nmotd = Current\r\n';
     const updated = setProperty(source, 'motd', 'New server');
 
-    assert.equal(
-        updated,
-        '# Minecraft\r\nmotd=Old\r\nunknown=value\r\nmotd = New server\r\n'
-    );
+    assert.equal(updated, '# Minecraft\r\nmotd=Old\r\nunknown=value\r\nmotd = New server\r\n');
 });
 
 test('appends missing properties without rewriting existing content', () => {

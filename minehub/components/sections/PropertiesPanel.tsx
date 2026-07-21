@@ -372,8 +372,7 @@ const PropertiesPanel = ({ serverIdentifier, canRead, canUpdate }: PropertiesPan
         () =>
             groups.reduce(
                 (count, group) =>
-                    count +
-                    group.fields.filter((field) => getProperty(content, field.key, '') !== '').length,
+                    count + group.fields.filter((field) => getProperty(content, field.key, '') !== '').length,
                 0
             ),
         [content]
@@ -389,14 +388,14 @@ const PropertiesPanel = ({ serverIdentifier, canRead, canUpdate }: PropertiesPan
                 <PropertyCard key={field.key}>
                     <ToggleRow>
                         <div>
-                            <Field as="span" id={`${id}-label`}>
+                            <Field as='span' id={`${id}-label`}>
                                 {field.label}
                             </Field>
                             <p>{field.description}</p>
                         </div>
                         <Toggle
-                            type="button"
-                            role="switch"
+                            type='button'
+                            role='switch'
                             aria-checked={checked}
                             aria-labelledby={`${id}-label`}
                             $checked={checked}
@@ -455,14 +454,13 @@ const PropertiesPanel = ({ serverIdentifier, canRead, canUpdate }: PropertiesPan
                 <Heading>
                     <h2>Editor do server.properties</h2>
                     <p>
-                        {configuredCount} opções detectadas · comentários e propriedades desconhecidas são
-                        preservados.
+                        {configuredCount} opções detectadas · comentários e propriedades desconhecidas são preservados.
                     </p>
                 </Heading>
                 <Toolbar>
                     <Button
-                        type="button"
-                        $variant="secondary"
+                        type='button'
+                        $variant='secondary'
                         onClick={() => {
                             if (!dirty || window.confirm('Descartar as alterações que ainda não foram salvas?')) {
                                 void load();
@@ -473,14 +471,14 @@ const PropertiesPanel = ({ serverIdentifier, canRead, canUpdate }: PropertiesPan
                         Recarregar
                     </Button>
                     <Button
-                        type="button"
-                        $variant="secondary"
+                        type='button'
+                        $variant='secondary'
                         onClick={() => setAdvanced((value) => !value)}
                         disabled={loading}
                     >
                         {advanced ? 'Editor visual' : 'Modo avançado'}
                     </Button>
-                    <Button type="button" onClick={() => void save()} disabled={!dirty || saving || !canUpdate}>
+                    <Button type='button' onClick={() => void save()} disabled={!dirty || saving || !canUpdate}>
                         {saving ? <Spinner /> : 'Salvar alterações'}
                     </Button>
                 </Toolbar>
@@ -488,47 +486,47 @@ const PropertiesPanel = ({ serverIdentifier, canRead, canUpdate }: PropertiesPan
 
             <Content>
                 {!canRead ? (
-                    <Notice $tone="warning">
+                    <Notice $tone='warning'>
                         Você precisa da permissão <code>file.read-content</code> para abrir este arquivo.
                     </Notice>
                 ) : null}
                 {!canUpdate ? (
-                    <Notice $tone="warning">
+                    <Notice $tone='warning'>
                         O modo é somente leitura. A permissão <code>file.update</code> é necessária para salvar.
                     </Notice>
                 ) : null}
-                {error ? <Notice $tone="danger">{error}</Notice> : null}
-                {success ? <Notice $tone="success">{success}</Notice> : null}
+                {error ? <Notice $tone='danger'>{error}</Notice> : null}
+                {success ? <Notice $tone='success'>{success}</Notice> : null}
                 {dirty ? (
-                    <Notice $tone="info">
+                    <Notice $tone='info'>
                         Existem alterações não salvas. O arquivo só será modificado ao clicar em salvar.
                     </Notice>
                 ) : null}
 
                 {loading ? (
                     <LoadingState>
-                        <Spinner aria-label="Carregando server.properties" />
+                        <Spinner aria-label='Carregando server.properties' />
                     </LoadingState>
                 ) : !canRead || (!content && error) ? (
                     <EmptyState>
                         <div>
                             <strong>Arquivo indisponível</strong>
                             <p>
-                                Inicie o servidor pelo menos uma vez para gerar o server.properties e confira
-                                suas permissões de arquivos.
+                                Inicie o servidor pelo menos uma vez para gerar o server.properties e confira suas
+                                permissões de arquivos.
                             </p>
                         </div>
                     </EmptyState>
                 ) : advanced ? (
                     <>
-                        <Notice $tone="warning">
-                            O modo avançado edita o arquivo completo. Uma linha inválida pode impedir o servidor
-                            de iniciar corretamente.
+                        <Notice $tone='warning'>
+                            O modo avançado edita o arquivo completo. Uma linha inválida pode impedir o servidor de
+                            iniciar corretamente.
                         </Notice>
-                        <Field htmlFor="minehub-raw-properties">
+                        <Field htmlFor='minehub-raw-properties'>
                             Conteúdo bruto
                             <Textarea
-                                id="minehub-raw-properties"
+                                id='minehub-raw-properties'
                                 value={content}
                                 spellCheck={false}
                                 onChange={(event) => {

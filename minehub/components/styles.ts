@@ -282,7 +282,9 @@ export const Button = styled.button<{
 
 export const Filters = styled.div`
     display: grid;
-    grid-template-columns: minmax(210px, 1.7fr) repeat(3, minmax(125px, 0.7fr)) auto;
+    grid-template-columns:
+        minmax(210px, 1.7fr) repeat(3, minmax(125px, 0.7fr))
+        auto;
     gap: 10px;
     padding: 18px 22px;
     border-bottom: 1px solid var(--mh-border);
@@ -312,7 +314,9 @@ const controlStyles = css`
     width: 100%;
     min-height: 39px;
     padding: 8px 11px;
-    transition: border-color 140ms ease, box-shadow 140ms ease;
+    transition:
+        border-color 140ms ease,
+        box-shadow 140ms ease;
     border: 1px solid var(--mh-border);
     border-radius: 9px;
     outline: none;
@@ -415,8 +419,7 @@ export const ProjectIcon = styled.div<{ $url?: string | null }>`
     place-items: center;
     border: 1px solid rgba(52, 211, 153, 0.14);
     border-radius: 10px;
-    background:
-        ${({ $url }) => ($url ? `url("${$url}") center / cover no-repeat,` : '')}
+    background: ${({ $url }) => ($url ? `url("${$url}") center / cover no-repeat,` : '')}
         linear-gradient(145deg, rgba(52, 211, 153, 0.18), rgba(5, 150, 105, 0.06));
     color: #6ee7b7;
     font-size: 15px;
@@ -510,7 +513,9 @@ export const EmptyState = styled.div`
     }
 `;
 
-export const Notice = styled.div<{ $tone?: 'info' | 'success' | 'danger' | 'warning' }>`
+export const Notice = styled.div<{
+    $tone?: 'info' | 'success' | 'danger' | 'warning';
+}>`
     display: flex;
     align-items: flex-start;
     gap: 10px;
@@ -526,24 +531,16 @@ export const Notice = styled.div<{ $tone?: 'info' | 'success' | 'danger' | 'warn
                     ? 'rgba(52, 211, 153, .2)'
                     : 'rgba(96, 165, 250, .2)'};
     border-radius: 10px;
-    background:
-        ${({ $tone }) =>
-            $tone === 'danger'
-                ? 'rgba(239, 68, 68, .08)'
-                : $tone === 'warning'
-                  ? 'rgba(245, 158, 11, .08)'
-                  : $tone === 'success'
-                    ? 'rgba(16, 185, 129, .08)'
-                    : 'rgba(59, 130, 246, .08)'};
-    color:
-        ${({ $tone }) =>
-            $tone === 'danger'
-                ? '#fca5a5'
-                : $tone === 'warning'
-                  ? '#fcd34d'
-                  : $tone === 'success'
-                    ? '#6ee7b7'
-                    : '#93c5fd'};
+    background: ${({ $tone }) =>
+        $tone === 'danger'
+            ? 'rgba(239, 68, 68, .08)'
+            : $tone === 'warning'
+              ? 'rgba(245, 158, 11, .08)'
+              : $tone === 'success'
+                ? 'rgba(16, 185, 129, .08)'
+                : 'rgba(59, 130, 246, .08)'};
+    color: ${({ $tone }) =>
+        $tone === 'danger' ? '#fca5a5' : $tone === 'warning' ? '#fcd34d' : $tone === 'success' ? '#6ee7b7' : '#93c5fd'};
     font-size: 10px;
     line-height: 1.5;
 `;
@@ -653,7 +650,9 @@ export const VersionButton = styled.button`
     gap: 12px;
     width: 100%;
     padding: 12px 13px;
-    transition: border-color 140ms ease, background 140ms ease;
+    transition:
+        border-color 140ms ease,
+        background 140ms ease;
     border: 1px solid var(--mh-border);
     border-radius: 10px;
     background: rgba(30, 41, 59, 0.48);

@@ -28,9 +28,9 @@ O MineHub oferece:
 2. Copie o arquivo para a raiz do painel Pterodactyl, normalmente `/var/www/pterodactyl`.
 3. Execute:
 
-   ```bash
-   blueprint -install minehub
-   ```
+    ```bash
+    blueprint -install minehub
+    ```
 
 4. No painel administrativo, abra **Extensions → MineHub** e selecione os recursos desejados.
 5. Nas permissões da extensão no Blueprint, limite a rota aos eggs de Minecraft.
@@ -47,13 +47,13 @@ A remoção da extensão não apaga plugins, mods ou o `server.properties` dos s
 
 O MineHub usa a API oficial do Pterodactyl. Cada ação exige a permissão correspondente:
 
-| Recurso | Permissão |
-| --- | --- |
-| Listar addons | `file.read` |
-| Abrir `server.properties` | `file.read-content` |
-| Instalar addon | `file.create` |
-| Ativar, desativar ou salvar propriedades | `file.update` |
-| Remover addon | `file.delete` |
+| Recurso                                  | Permissão           |
+| ---------------------------------------- | ------------------- |
+| Listar addons                            | `file.read`         |
+| Abrir `server.properties`                | `file.read-content` |
+| Instalar addon                           | `file.create`       |
+| Ativar, desativar ou salvar propriedades | `file.update`       |
+| Remover addon                            | `file.delete`       |
 
 ## Desenvolvimento
 

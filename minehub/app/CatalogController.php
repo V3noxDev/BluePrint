@@ -57,8 +57,7 @@ class CatalogController extends Controller
                 }
 
                 return collect($response->json())
-                    ->filter(fn (array $version): bool => ($version['version_type'] ?? null) === 'release'
-                        && (bool) ($version['major'] ?? false))
+                    ->filter(fn (array $version): bool => ($version['version_type'] ?? null) === 'release')
                     ->take(40)
                     ->map(fn (array $version): array => [
                         'id' => (string) $version['version'],
@@ -257,7 +256,15 @@ class CatalogController extends Controller
 
     private function safeCdnUrl(mixed $url): ?string
     {
-        if (!is_string($url) || $url === '') {
+        if (
+            !is_string($url)
+            || $url === ''
+            || filter_var($url, FILTER_VALIDATE_URL) === false
+            || preg_match('/[\\x00-\\x20\\x7F]/', $url)
+            || str_contains($url, '"')
+            || str_contains($url, "'")
+            || str_contains($url, '\\')
+        ) {
             return null;
         }
 

@@ -43,8 +43,7 @@ const MineHubSection = () => {
     const [addonType, setAddonType] = useState<AddonType>('plugin');
 
     const hasPermission = useCallback(
-        (permission: string): boolean =>
-            permissions.includes('*') || permissions.includes(permission),
+        (permission: string): boolean => permissions.includes('*') || permissions.includes(permission),
         [permissions]
     );
 
@@ -53,21 +52,27 @@ const MineHubSection = () => {
         setConfigurationError('');
         setMetadataError('');
 
-        const [configurationResult, metadataResult] = await Promise.allSettled([
-            http.get<MineHubConfiguration>('/api/client/extensions/minehub/catalog/config'),
-            http.get<CatalogMetadata>('/api/client/extensions/minehub/catalog/metadata'),
+        const [configurationResult, metadataResult] = await Promise.all([
+            http
+                .get<MineHubConfiguration>('/api/client/extensions/minehub/catalog/config')
+                .then((response) => ({ response, error: null }))
+                .catch((error) => ({ response: null, error })),
+            http
+                .get<CatalogMetadata>('/api/client/extensions/minehub/catalog/metadata')
+                .then((response) => ({ response, error: null }))
+                .catch((error) => ({ response: null, error })),
         ]);
 
-        if (configurationResult.status === 'fulfilled') {
-            setConfiguration(configurationResult.value.data);
+        if (configurationResult.response) {
+            setConfiguration(configurationResult.response.data);
         } else {
-            setConfigurationError(httpErrorToHuman(configurationResult.reason));
+            setConfigurationError(httpErrorToHuman(configurationResult.error));
         }
 
-        if (metadataResult.status === 'fulfilled') {
-            setMetadata(metadataResult.value.data);
+        if (metadataResult.response) {
+            setMetadata(metadataResult.response.data);
         } else {
-            setMetadataError(httpErrorToHuman(metadataResult.reason));
+            setMetadataError(httpErrorToHuman(metadataResult.error));
         }
 
         setLoading(false);
@@ -90,10 +95,9 @@ const MineHubSection = () => {
     useEffect(() => {
         if (!configuration) return;
 
-        const preferred =
-            enabledTypes.includes(configuration.default_section) ?
-                configuration.default_section
-            :   enabledTypes[0];
+        const preferred = enabledTypes.includes(configuration.default_section)
+            ? configuration.default_section
+            : enabledTypes[0];
 
         if (preferred) {
             setAddonType(preferred);
@@ -108,16 +112,16 @@ const MineHubSection = () => {
 
     if (loading && !configuration) {
         return (
-            <PageContentBlock title="MineHub">
+            <PageContentBlock title='MineHub'>
                 <LoadingState style={{ minHeight: 420 }}>
-                    <Spinner aria-label="Carregando MineHub" />
+                    <Spinner aria-label='Carregando MineHub' />
                 </LoadingState>
             </PageContentBlock>
         );
     }
 
     return (
-        <PageContentBlock title="MineHub">
+        <PageContentBlock title='MineHub'>
             <Shell>
                 <Hero>
                     <HeroContent>
@@ -127,8 +131,8 @@ const MineHubSection = () => {
                         </Eyebrow>
                         <HeroTitle>MineHub</HeroTitle>
                         <HeroDescription>
-                            Plugins, mods e configurações do Minecraft em um só lugar. Todas as ações
-                            respeitam as permissões definidas para sua conta.
+                            Plugins, mods e configurações do Minecraft em um só lugar. Todas as ações respeitam as
+                            permissões definidas para sua conta.
                         </HeroDescription>
                         <HeroBadges>
                             <Badge>Servidor: {server.name}</Badge>
@@ -145,21 +149,21 @@ const MineHubSection = () => {
                                 <h2>Não foi possível carregar o MineHub</h2>
                                 <p>A configuração da extensão não respondeu corretamente.</p>
                             </Heading>
-                            <Button type="button" onClick={() => void loadExtensionData()}>
+                            <Button type='button' onClick={() => void loadExtensionData()}>
                                 Tentar novamente
                             </Button>
                         </PanelHeader>
                         <Content>
-                            <Notice $tone="danger">{configurationError}</Notice>
+                            <Notice $tone='danger'>{configurationError}</Notice>
                         </Content>
                     </Panel>
                 ) : configuration ? (
                     <>
-                        {(enabledTypes.length > 0 || configuration.properties_enabled) ? (
-                            <Tabs aria-label="Seções do MineHub">
+                        {enabledTypes.length > 0 || configuration.properties_enabled ? (
+                            <Tabs aria-label='Seções do MineHub'>
                                 {enabledTypes.length > 0 ? (
                                     <TabButton
-                                        type="button"
+                                        type='button'
                                         $active={activeTab === 'addons'}
                                         onClick={() => setActiveTab('addons')}
                                     >
@@ -168,7 +172,7 @@ const MineHubSection = () => {
                                 ) : null}
                                 {configuration.properties_enabled ? (
                                     <TabButton
-                                        type="button"
+                                        type='button'
                                         $active={activeTab === 'properties'}
                                         onClick={() => setActiveTab('properties')}
                                     >
@@ -194,10 +198,10 @@ const MineHubSection = () => {
                             ) : (
                                 <Panel>
                                     <Content>
-                                        <Notice $tone="danger">
+                                        <Notice $tone='danger'>
                                             {metadataError || 'O catálogo não retornou versões disponíveis.'}
                                         </Notice>
-                                        <Button type="button" onClick={() => void loadExtensionData()}>
+                                        <Button type='button' onClick={() => void loadExtensionData()}>
                                             Recarregar catálogo
                                         </Button>
                                     </Content>

@@ -95,10 +95,9 @@ export const setProperty = (content: string, key: string, value: string): string
         const entry = parsePropertyLine(lines[matchingLine]);
 
         if (entry) {
-            lines[matchingLine] =
-                entry.hasSeparator
-                    ? lines[matchingLine].slice(0, entry.valueStart) + safeValue
-                    : `${lines[matchingLine]}=${safeValue}`;
+            lines[matchingLine] = entry.hasSeparator
+                ? lines[matchingLine].slice(0, entry.valueStart) + safeValue
+                : `${lines[matchingLine]}=${safeValue}`;
         }
     } else {
         lines.push(`${key}=${safeValue}`);
