@@ -1,0 +1,37 @@
+info:
+  name: "CraftProperties"
+  identifier: "craftproperties"
+  description: "Editor visual, seguro e moderno para o server.properties de servidores Minecraft Java."
+  flags: ""
+  version: "1.0.0"
+  target: "beta-2026-06"
+  author: "V3noxDev"
+  icon: "craftproperties.svg"
+  website: "https://github.com/V3noxDev/BluePrint"
+
+admin:
+  view: "admin/view.blade.php"
+  controller: ""
+  css: "admin/admin.css"
+  wrapper: ""
+
+dashboard:
+  css: ""
+  wrapper: ""
+  components: "components"
+
+data:
+  directory: "data"
+  public: ""
+  console: ""
+
+requests:
+  views: ""
+  app: ""
+  routers:
+    application: ""
+    client: ""
+    web: ""
+
+database:
+  migrations: ""

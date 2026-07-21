@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "moduleResolution": "node",
+    "jsx": "react",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["../.dist/types/*"],
+      "@definitions/*": ["../.dist/types/api/definitions/*"],
+      "@feature/*": ["../.dist/types/components/server/features/*"],
+      "@blueprint/*": ["../.dist/types/blueprint/*"]
+    },
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "strict": true,
+    "typeRoots": ["../.dist/types"]
+  },
+  "include": ["./**/*.ts", "./**/*.tsx"],
+  "exclude": ["node_modules"]
+}

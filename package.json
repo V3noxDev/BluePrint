@@ -1,0 +1,13 @@
+{
+  "name": "craftproperties-blueprint",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "node --experimental-strip-types --test tests/*.test.ts",
+    "package": "bash scripts/package.sh"
+  }
+}
