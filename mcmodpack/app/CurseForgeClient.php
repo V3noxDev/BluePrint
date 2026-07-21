@@ -1,0 +1,223 @@
+<?php
+
+namespace Pterodactyl\BlueprintFramework\Extensions\mcmodpack;
+
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+use Pterodactyl\BlueprintFramework\Libraries\ExtensionLibrary\Admin\BlueprintAdminLibrary as BlueprintExtensionLibrary;
+
+class CurseForgeClient
+{
+    public const BASE = 'https://api.curseforge.com';
+    public const GAME_MINECRAFT = 432;
+    public const CLASS_MODPACKS = 4471;
+
+    /** @see CurseForge ModLoaderType */
+    public const LOADERS = [
+        0 => 'Qualquer',
+        1 => 'Forge',
+        4 => 'Fabric',
+        6 => 'NeoForge',
+    ];
+
+    /** @see CurseForge ModsSearchSortField */
+    public const SORTS = [
+        1 => 'Destaques',
+        2 => 'Popularidade',
+        3 => 'Atualização',
+        4 => 'Nome',
+        6 => 'Downloads',
+    ];
+
+    public function __construct(private BlueprintExtensionLibrary $blueprint) {}
+
+    public function getApiKey(): string
+    {
+        return trim((string) ($this->blueprint->dbGet('mcmodpack', 'curseforge_api_key') ?: ''));
+    }
+
+    public function hasApiKey(): bool
+    {
+        return $this->getApiKey() !== '';
+    }
+
+    private function request(string $method, string $path, array $query = []): ?array
+    {
+        $key = $this->getApiKey();
+        if ($key === '') {
+            return null;
+        }
+
+        try {
+            $response = Http::timeout(30)
+                ->withHeaders([
+                    'Accept' => 'application/json',
+                    'x-api-key' => $key,
+                    'User-Agent' => 'MCModpack/1.0 (Blueprint)',
+                ])
+                ->send($method, self::BASE . $path, ['query' => array_filter($query, fn ($v) => $v !== null && $v !== '')]);
+
+            if (!$response->successful()) {
+                Log::warning('[mcmodpack] CurseForge HTTP ' . $response->status() . ' ' . $path);
+                return null;
+            }
+
+            return $response->json();
+        } catch (\Throwable $e) {
+            Log::warning('[mcmodpack] CurseForge erro: ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    public function searchModpacks(array $params): array
+    {
+        if (!$this->hasApiKey()) {
+            return ['data' => [], 'pagination' => ['index' => 0, 'pageSize' => 20, 'resultCount' => 0, 'totalCount' => 0]];
+        }
+
+        $query = [
+            'gameId' => self::GAME_MINECRAFT,
+            'classId' => self::CLASS_MODPACKS,
+            'searchFilter' => $params['search'] ?? null,
+            'gameVersion' => $params['game_version'] ?? null,
+            'modLoaderType' => isset($params['loader']) && (int) $params['loader'] > 0 ? (int) $params['loader'] : null,
+            'sortField' => (int) ($params['sort'] ?? 2),
+            'sortOrder' => $params['sort_order'] ?? 'desc',
+            'pageSize' => min(50, max(1, (int) ($params['page_size'] ?? 20))),
+            'index' => max(0, (int) ($params['index'] ?? 0)),
+        ];
+
+        $json = $this->request('GET', '/v1/mods/search', $query);
+        if (!$json) {
+            return ['data' => [], 'pagination' => ['index' => 0, 'pageSize' => 20, 'resultCount' => 0, 'totalCount' => 0]];
+        }
+
+        return [
+            'data' => array_map([$this, 'mapModpack'], $json['data'] ?? []),
+            'pagination' => $json['pagination'] ?? ['index' => 0, 'pageSize' => 20, 'resultCount' => 0, 'totalCount' => 0],
+        ];
+    }
+
+    public function getModpack(int $modId): ?array
+    {
+        $json = $this->request('GET', '/v1/mods/' . $modId);
+        if (!$json || empty($json['data'])) {
+            return null;
+        }
+
+        $mapped = $this->mapModpack($json['data']);
+        $desc = $this->request('GET', '/v1/mods/' . $modId . '/description');
+        $mapped['description_html'] = $desc['data'] ?? '';
+
+        return $mapped;
+    }
+
+    public function getFiles(int $modId, int $index = 0, int $pageSize = 50): array
+    {
+        $json = $this->request('GET', '/v1/mods/' . $modId . '/files', [
+            'index' => $index,
+            'pageSize' => min(50, max(1, $pageSize)),
+        ]);
+
+        if (!$json) {
+            return ['data' => [], 'pagination' => ['index' => 0, 'pageSize' => 50, 'resultCount' => 0, 'totalCount' => 0]];
+        }
+
+        $files = array_map([$this, 'mapFile'], $json['data'] ?? []);
+
+        return [
+            'data' => $files,
+            'pagination' => $json['pagination'] ?? [],
+        ];
+    }
+
+    public function getFile(int $modId, int $fileId): ?array
+    {
+        $json = $this->request('GET', '/v1/mods/' . $modId . '/files/' . $fileId);
+        if (!$json || empty($json['data'])) {
+            return null;
+        }
+
+        return $this->mapFile($json['data']);
+    }
+
+    public function getDownloadUrl(int $modId, int $fileId): ?string
+    {
+        $json = $this->request('GET', '/v1/mods/' . $modId . '/files/' . $fileId . '/download-url');
+        $url = $json['data'] ?? null;
+
+        return is_string($url) && $url !== '' ? $url : null;
+    }
+
+    public function mapModpack(array $mod): array
+    {
+        $authors = collect($mod['authors'] ?? [])->pluck('name')->filter()->values()->all();
+        $categories = collect($mod['categories'] ?? [])->pluck('name')->filter()->values()->all();
+        $loaders = [];
+        foreach ($mod['latestFilesIndexes'] ?? [] as $idx) {
+            $lt = (int) ($idx['modLoader'] ?? 0);
+            if ($lt > 0 && isset(self::LOADERS[$lt])) {
+                $loaders[self::LOADERS[$lt]] = true;
+            }
+        }
+
+        $gameVersions = [];
+        foreach ($mod['latestFilesIndexes'] ?? [] as $idx) {
+            if (!empty($idx['gameVersion'])) {
+                $gameVersions[$idx['gameVersion']] = true;
+            }
+        }
+
+        return [
+            'id' => (int) ($mod['id'] ?? 0),
+            'name' => (string) ($mod['name'] ?? 'Modpack'),
+            'slug' => (string) ($mod['slug'] ?? ''),
+            'summary' => (string) ($mod['summary'] ?? ''),
+            'authors' => $authors,
+            'author' => $authors[0] ?? 'Desconhecido',
+            'download_count' => (int) ($mod['downloadCount'] ?? 0),
+            'thumbs_up' => (int) (($mod['thumbsUpCount'] ?? null) ?? ($mod['rating'] ?? 0)),
+            'logo' => $mod['logo']['thumbnailUrl'] ?? ($mod['logo']['url'] ?? null),
+            'url' => $mod['links']['websiteUrl'] ?? null,
+            'categories' => $categories,
+            'loaders' => array_keys($loaders),
+            'game_versions' => array_keys($gameVersions),
+            'date_created' => $mod['dateCreated'] ?? null,
+            'date_modified' => $mod['dateModified'] ?? null,
+            'main_file_id' => (int) ($mod['mainFileId'] ?? 0),
+        ];
+    }
+
+    public function mapFile(array $file): array
+    {
+        $loaders = [];
+        $gameVersions = [];
+        foreach ($file['sortableGameVersions'] ?? [] as $gv) {
+            if (!empty($gv['gameVersion'])) {
+                $gameVersions[] = $gv['gameVersion'];
+            }
+        }
+        foreach ($file['gameVersions'] ?? [] as $v) {
+            $lower = strtolower((string) $v);
+            if (in_array($lower, ['forge', 'fabric', 'neoforge', 'quilt'], true)) {
+                $loaders[] = ucfirst($lower === 'neoforge' ? 'NeoForge' : $lower);
+            } elseif (preg_match('/^\d+\.\d+/', (string) $v)) {
+                $gameVersions[] = (string) $v;
+            }
+        }
+
+        return [
+            'id' => (int) ($file['id'] ?? 0),
+            'display_name' => (string) ($file['displayName'] ?? $file['fileName'] ?? 'Versão'),
+            'file_name' => (string) ($file['fileName'] ?? ''),
+            'download_count' => (int) ($file['downloadCount'] ?? 0),
+            'file_date' => $file['fileDate'] ?? null,
+            'release_type' => (int) ($file['releaseType'] ?? 1),
+            'download_url' => $file['downloadUrl'] ?? null,
+            'is_server_pack' => (bool) ($file['isServerPack'] ?? false),
+            'server_pack_file_id' => isset($file['serverPackFileId']) ? (int) $file['serverPackFileId'] : null,
+            'loaders' => array_values(array_unique($loaders)),
+            'game_versions' => array_values(array_unique($gameVersions)),
+        ];
+    }
+}

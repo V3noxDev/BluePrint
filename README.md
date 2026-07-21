@@ -17,6 +17,14 @@ Editor visual de `server.properties` (PT-BR):
 Seletor de versões do Bedrock Dedicated Server:
 
 - URL: `/server/{id}/minecraft/bedrock-version`
-- Stable + Preview via API oficial
-- PocketMine marcado como “Em breve”
+- Catálogo BDS completo + builds hotfix
+- Baixa o zip oficial via install do egg
 - Atualiza `BEDROCK_VERSION`
+
+### [MC Modpacks](./mcmodpack/)
+
+Instalador de modpacks CurseForge (Forge / NeoForge / Fabric):
+
+- URL: `/server/{id}/minecraft/modpacks`
+- API Key configurável no admin
+- Busca, detalhes, versões e install com server pack
