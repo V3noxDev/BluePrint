@@ -12,8 +12,11 @@ interface Build {
     label: string;
     full_version: string;
     download_url: string;
+    mojang_build_id?: string | null;
+    released_at?: string | null;
     available: boolean;
     is_latest: boolean;
+    is_recommended: boolean;
 }
 
 interface VersionGroup {
@@ -34,6 +37,7 @@ interface SoftwareCard {
     minecraft_versions: number;
     builds: number;
     latest: string | null;
+    description?: string | null;
 }
 
 interface IndexData {
@@ -98,6 +102,7 @@ const BedrockVersionSection = () => {
 
     const openInstall = (group: VersionGroup) => {
         const preferred =
+            group.builds.find((b) => b.is_recommended)?.full_version ||
             group.builds.find((b) => b.is_latest)?.full_version ||
             group.builds[0]?.full_version ||
             '';
@@ -140,6 +145,11 @@ const BedrockVersionSection = () => {
         return showPreview ? data.preview : data.release;
     }, [data, showPreview]);
 
+    const selectedBuildMeta = useMemo(() => {
+        if (!modal) return null;
+        return modal.builds.find((b) => b.full_version === selectedBuild) || null;
+    }, [modal, selectedBuild]);
+
     const chest = data?.chest_icon || '/extensions/bedrockversions/chest-face.png';
 
     if (loading) {
@@ -147,7 +157,7 @@ const BedrockVersionSection = () => {
             <PageContentBlock title={'Versões'}>
                 <div className={'bv-loading'}>
                     <Spinner size={'large'} />
-                    <span>Carregando todas as versões do Bedrock...</span>
+                    <span>Carregando catálogo do Bedrock Dedicated Server...</span>
                 </div>
             </PageContentBlock>
         );
@@ -177,20 +187,26 @@ const BedrockVersionSection = () => {
                 )}
 
                 <div className={'bv-status'}>
-                    <img className={'bv-status__chest'} src={chest} alt={'Baú Minecraft'} />
+                    <img className={'bv-status__chest'} src={chest} alt={'Bedrock Dedicated Server'} />
                     <div className={'bv-status__body'}>
                         <div className={'bv-status__title'}>
                             {data.current_version
-                                ? 'Executando Bedrock'
-                                : 'Bedrock Dedicated Server'}
+                                ? 'Bedrock Dedicated Server'
+                                : 'Nenhuma versão selecionada'}
                         </div>
                         <div className={'bv-status__meta'}>
-                            Versão instalada:{' '}
+                            Versão Minecraft:{' '}
                             <strong>{data.current_group || data.current_version || '—'}</strong>
                             {data.current_build && (
                                 <>
                                     {' '}
-                                    · Build: <strong>#{data.current_build}</strong>
+                                    · Build <strong>#{data.current_build}</strong>
+                                </>
+                            )}
+                            {data.current_version && data.current_group && (
+                                <>
+                                    {' '}
+                                    · Pacote <strong>{data.current_version}</strong>
                                 </>
                             )}
                         </div>
@@ -199,58 +215,37 @@ const BedrockVersionSection = () => {
 
                 {data.outdated && data.latest_for_channel && (
                     <div className={'bv-outdated'}>
-                        ⚠️ Seu servidor está em uma versão antiga
-                        {data.current_version ? ` (${data.current_version})` : ''}. A mais recente é{' '}
-                        <strong>{data.latest_for_channel}</strong>.
+                        Seu servidor está desatualizado
+                        {data.current_version ? ` (${data.current_version})` : ''}. A build mais
+                        recente do canal é <strong>{data.latest_for_channel}</strong>.
                     </div>
                 )}
 
                 {view === 'home' ? (
                     <>
-                        <div className={'bv-section-title'}>Recomendado</div>
+                        <div className={'bv-section-title'}>Software</div>
                         <div className={'bv-software-grid'}>
                             {data.software.map((item) => {
-                                const comingSoon = item.status === 'coming_soon';
                                 const isActive = item.id === 'bedrock' && !!data.current_version;
 
                                 return (
                                     <button
                                         key={item.id}
                                         type={'button'}
-                                        className={`bv-software-card ${isActive ? 'is-active' : ''} ${
-                                            comingSoon ? 'is-disabled' : ''
-                                        }`}
-                                        disabled={comingSoon}
-                                        onClick={() => {
-                                            if (item.id === 'bedrock') setView('bedrock');
-                                        }}
+                                        className={`bv-software-card ${isActive ? 'is-active' : ''}`}
+                                        onClick={() => setView('bedrock')}
                                     >
                                         <div className={'bv-software-card__icon-wrap'}>
-                                            {item.id === 'bedrock' ? (
-                                                <img src={chest} alt={'Bedrock'} />
-                                            ) : (
-                                                <span className={'bv-software-card__emoji'}>⏳</span>
-                                            )}
+                                            <img src={chest} alt={'Bedrock'} />
                                         </div>
                                         <div className={'bv-software-card__info'}>
-                                            <div className={'bv-software-card__name'}>
-                                                {item.name}
-                                                {comingSoon && (
-                                                    <span className={'bv-pill'}>Em breve</span>
-                                                )}
-                                            </div>
+                                            <div className={'bv-software-card__name'}>{item.name}</div>
                                             <div className={'bv-software-card__meta'}>
-                                                {comingSoon ? (
-                                                    'Suporte planejado'
-                                                ) : (
-                                                    <>
-                                                        <div>
-                                                            {item.minecraft_versions} versões
-                                                            Minecraft
-                                                        </div>
-                                                        <div>{item.builds} builds</div>
-                                                    </>
-                                                )}
+                                                <div>
+                                                    {item.minecraft_versions} versões Minecraft
+                                                </div>
+                                                <div>{item.builds} builds</div>
+                                                {item.latest && <div>Latest: {item.latest}</div>}
                                             </div>
                                         </div>
                                     </button>
@@ -280,7 +275,7 @@ const BedrockVersionSection = () => {
                         </div>
 
                         <div className={'bv-section-title'}>
-                            {showPreview ? 'Bedrock Preview' : 'Bedrock'}
+                            {showPreview ? 'Bedrock Preview' : 'Bedrock · Release'}
                         </div>
 
                         <div className={'bv-version-grid'}>
@@ -307,6 +302,7 @@ const BedrockVersionSection = () => {
                                                 </div>
                                                 <div className={'bv-version-card__type'}>
                                                     {group.type}
+                                                    {group.is_latest_group ? ' · MAIS RECENTE' : ''}
                                                 </div>
                                             </div>
                                         </div>
@@ -345,7 +341,17 @@ const BedrockVersionSection = () => {
                                 </button>
                             </div>
 
+                            <p className={'bv-modal__hint'}>
+                                Builds são republicações da mesma versão Minecraft quando a Mojang
+                                corrige um erro (ex.: 1.26.33.1 → 1.26.33.2). Use a build recomendada
+                                salvo se precisar de uma específica.
+                            </p>
+
+                            <label className={'bv-field-label'} htmlFor={'bv-build-select'}>
+                                Selecionar build
+                            </label>
                             <select
+                                id={'bv-build-select'}
                                 className={'bv-select'}
                                 value={selectedBuild}
                                 onChange={(e) => setSelectedBuild(e.target.value)}
@@ -353,10 +359,23 @@ const BedrockVersionSection = () => {
                                 {modal.builds.map((b) => (
                                     <option key={b.full_version} value={b.full_version}>
                                         {b.label}
-                                        {b.is_latest ? ' (mais recente)' : ''}
+                                        {b.is_recommended ? ' · recomendada' : ''}
                                     </option>
                                 ))}
                             </select>
+
+                            {selectedBuildMeta && (
+                                <div className={'bv-build-meta'}>
+                                    Pacote completo: <code>{selectedBuildMeta.full_version}</code>
+                                    {selectedBuildMeta.mojang_build_id && (
+                                        <>
+                                            {' '}
+                                            · Mojang build{' '}
+                                            <code>{selectedBuildMeta.mojang_build_id}</code>
+                                        </>
+                                    )}
+                                </div>
+                            )}
 
                             <div className={'bv-option'}>
                                 <div>

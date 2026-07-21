@@ -15,6 +15,9 @@ class BedrockVersionService
     /** Full historical catalog (Linux stable + preview) */
     public const CATALOG_API = 'https://raw.githubusercontent.com/Bedrock-OSS/BDS-Versions/main/versions.json';
 
+    /** Per-build metadata (build_id, date, download_url) */
+    public const ARCHIVE_ROOT = 'https://raw.githubusercontent.com/Bedrock-OSS/BDS-Versions/main';
+
     public const TYPE_STABLE = 'serverBedrockLinux';
     public const TYPE_PREVIEW = 'serverBedrockPreviewLinux';
     public const SYNC_TTL_MINUTES = 30;
@@ -31,6 +34,7 @@ class BedrockVersionService
             $this->importFullCatalog();
             $this->importLatestFromMojang();
             $this->recomputeLatestFlags();
+            $this->enrichBuildMetadata();
             $this->blueprint->dbSet('bedrockversions', 'last_sync', now()->toDateTimeString());
         } catch (\Throwable $e) {
             Log::warning('[bedrockversions] sync failed: ' . $e->getMessage());
@@ -65,7 +69,7 @@ class BedrockVersionService
     private function importFullCatalog(): void
     {
         $response = Http::timeout(45)
-            ->withHeaders(['User-Agent' => 'BedrockVersionManager/1.3'])
+            ->withHeaders(['User-Agent' => 'BedrockVersionManager/1.4'])
             ->get(self::CATALOG_API);
 
         if (!$response->successful()) {
@@ -111,7 +115,7 @@ class BedrockVersionService
     private function importLatestFromMojang(): void
     {
         $response = Http::timeout(20)
-            ->withHeaders(['User-Agent' => 'BedrockVersionManager/1.3'])
+            ->withHeaders(['User-Agent' => 'BedrockVersionManager/1.4'])
             ->acceptJson()
             ->get(self::MOJANG_API);
 
@@ -140,6 +144,86 @@ class BedrockVersionService
             }
 
             $this->upsertVersion($channel, $version, $url, $type, $now);
+        }
+    }
+
+    /**
+     * Enrich builds with Mojang archive metadata (build_id + release date).
+     *
+     * BDS versioning: MAJOR.MINOR.PATCH.BUILD — e.g. 1.26.33.1 and 1.26.33.2
+     * are two builds of the same Minecraft version after a hotfix republish.
+     * We fetch archive JSON for multi-build groups and channel latests.
+     */
+    private function enrichBuildMetadata(): void
+    {
+        $rows = BedrockVersion::query()->get();
+        if ($rows->isEmpty()) {
+            return;
+        }
+
+        $byGroup = [];
+        foreach ($rows as $row) {
+            $key = $row->channel . '|' . $this->versionGroupKey($row->version);
+            $byGroup[$key][] = $row;
+        }
+
+        // Prefer multi-build groups (hotfix republishes) + channel latests
+        $targets = [];
+        foreach ($byGroup as $groupRows) {
+            $multi = count($groupRows) > 1;
+            foreach ($groupRows as $row) {
+                if ($multi || $row->is_latest) {
+                    $targets[] = $row;
+                }
+            }
+        }
+
+        // Cap concurrent archive lookups to keep sync snappy
+        $targets = array_slice($targets, 0, 80);
+        if (empty($targets)) {
+            return;
+        }
+
+        $responses = Http::pool(function ($pool) use ($targets) {
+            foreach ($targets as $index => $row) {
+                $folder = $row->channel === 'preview' ? 'linux_preview' : 'linux';
+                $url = self::ARCHIVE_ROOT . "/{$folder}/{$row->version}.json";
+                $pool->as((string) $index)
+                    ->timeout(12)
+                    ->withHeaders(['User-Agent' => 'BedrockVersionManager/1.4'])
+                    ->get($url);
+            }
+        });
+
+        foreach ($targets as $index => $row) {
+            $response = $responses[(string) $index] ?? null;
+            if (!$response || !is_object($response) || !method_exists($response, 'successful') || !$response->successful()) {
+                continue;
+            }
+
+            $json = $response->json();
+            if (!is_array($json)) {
+                continue;
+            }
+
+            $updates = [];
+            if (!empty($json['build_id'])) {
+                $updates['mojang_build_id'] = (string) $json['build_id'];
+            }
+            if (!empty($json['download_url'])) {
+                $updates['download_url'] = (string) $json['download_url'];
+            }
+            if (!empty($json['date'])) {
+                try {
+                    $updates['released_at'] = Carbon::parse($json['date']);
+                } catch (\Throwable) {
+                    // ignore bad dates
+                }
+            }
+
+            if (!empty($updates)) {
+                $row->fill($updates)->save();
+            }
         }
     }
 
@@ -204,12 +288,12 @@ class BedrockVersionService
 
     public function getCatalog(): array
     {
-        // If DB empty, force a sync once
         if (!BedrockVersion::query()->exists()) {
             try {
                 $this->importFullCatalog();
                 $this->importLatestFromMojang();
                 $this->recomputeLatestFlags();
+                $this->enrichBuildMetadata();
                 $this->blueprint->dbSet('bedrockversions', 'last_sync', now()->toDateTimeString());
             } catch (\Throwable $e) {
                 Log::warning('[bedrockversions] bootstrap catalog failed: ' . $e->getMessage());
@@ -228,7 +312,7 @@ class BedrockVersionService
             }
 
             $groupKey = $this->versionGroupKey($row->version);
-            $buildId = $this->versionBuildId($row->version);
+            $buildNumber = $this->versionBuildId($row->version);
 
             if (!isset($groups[$channel][$groupKey])) {
                 $groups[$channel][$groupKey] = [
@@ -242,12 +326,15 @@ class BedrockVersionService
             }
 
             $groups[$channel][$groupKey]['builds'][] = [
-                'id' => $buildId,
-                'label' => 'Build #' . $buildId,
+                'id' => $buildNumber,
+                'label' => $this->formatBuildLabel($row, $buildNumber),
                 'full_version' => $row->version,
                 'download_url' => $row->download_url,
+                'mojang_build_id' => $row->mojang_build_id,
+                'released_at' => $row->released_at?->toIso8601String(),
                 'available' => true,
                 'is_latest' => (bool) $row->is_latest,
+                'is_recommended' => false,
             ];
 
             if ($row->is_latest) {
@@ -261,8 +348,13 @@ class BedrockVersionService
         foreach ([&$stable, &$preview] as &$list) {
             foreach ($list as &$group) {
                 usort($group['builds'], fn ($a, $b) => version_compare($b['full_version'], $a['full_version']));
+
+                // Newest build inside this Minecraft version is the recommended one
+                if (!empty($group['builds'])) {
+                    $group['builds'][0]['is_recommended'] = true;
+                }
+
                 $group['builds_count'] = count($group['builds']);
-                // Always RELEASE / PREVIEW labels (never "LATEST" as type)
                 $group['type'] = ($group['channel'] ?? '') === 'preview' ? 'PREVIEW' : 'RELEASE';
             }
         }
@@ -277,21 +369,13 @@ class BedrockVersionService
             'software' => [
                 [
                     'id' => 'bedrock',
-                    'name' => 'Bedrock',
+                    'name' => 'Bedrock Dedicated Server',
                     'icon' => '/extensions/bedrockversions/chest-face.png',
                     'status' => 'available',
                     'minecraft_versions' => count($stable) + count($preview),
                     'builds' => $stableBuilds + $previewBuilds,
                     'latest' => $latestStable,
-                ],
-                [
-                    'id' => 'pocketmine',
-                    'name' => 'PocketMine',
-                    'icon' => null,
-                    'status' => 'coming_soon',
-                    'minecraft_versions' => 0,
-                    'builds' => 0,
-                    'latest' => null,
+                    'description' => 'Servidor oficial da Mojang para Minecraft Bedrock Edition',
                 ],
             ],
             'release' => $stable,
@@ -347,7 +431,7 @@ class BedrockVersionService
     {
         try {
             $response = Http::timeout(12)
-                ->withHeaders(['User-Agent' => 'BedrockVersionManager/1.3'])
+                ->withHeaders(['User-Agent' => 'BedrockVersionManager/1.4'])
                 ->head($url);
 
             if ($response->successful()) {
@@ -356,7 +440,7 @@ class BedrockVersionService
 
             $get = Http::timeout(12)
                 ->withHeaders([
-                    'User-Agent' => 'BedrockVersionManager/1.3',
+                    'User-Agent' => 'BedrockVersionManager/1.4',
                     'Range' => 'bytes=0-0',
                 ])
                 ->get($url);
@@ -367,6 +451,10 @@ class BedrockVersionService
         }
     }
 
+    /**
+     * Minecraft version card key = first 3 segments (e.g. 1.26.33 from 1.26.33.2).
+     * The 4th segment is the BDS build / hotfix republish number.
+     */
     public function versionGroupKey(string $version): string
     {
         $parts = explode('.', $version);
@@ -382,6 +470,17 @@ class BedrockVersionService
         $parts = explode('.', $version);
 
         return (string) (end($parts) ?: '1');
+    }
+
+    private function formatBuildLabel(BedrockVersion $row, string $buildNumber): string
+    {
+        $label = "Build #{$buildNumber} · {$row->version}";
+
+        if ($row->released_at) {
+            $label .= ' · ' . $row->released_at->format('d/m/Y');
+        }
+
+        return $label;
     }
 
     private function findLatestFullVersion(array $groups): ?string

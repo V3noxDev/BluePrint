@@ -1,9 +1,9 @@
 info:
   name: "Bedrock Version Manager"
   identifier: "bedrockversions"
-  description: "Seletor de versões do Minecraft Bedrock Dedicated Server (Stable e Preview) com cache e integração BEDROCK_VERSION."
+  description: "Seletor profissional de versões do Minecraft Bedrock Dedicated Server — Release, Preview, builds hotfix e BEDROCK_VERSION."
   flags: ""
-  version: "1.3.0"
+  version: "1.4.0"
   target: "beta-2026-06"
   author: "BluePrint"
   icon: "data/icon.svg"

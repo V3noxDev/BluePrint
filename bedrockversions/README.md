@@ -1,6 +1,6 @@
 # Bedrock Version Manager
 
-Blueprint addon para seleção de versões do **Minecraft Bedrock Dedicated Server**.
+Blueprint addon para seleção profissional de versões do **Minecraft Bedrock Dedicated Server**.
 
 ## URL
 
@@ -10,13 +10,25 @@ Blueprint addon para seleção de versões do **Minecraft Bedrock Dedicated Serv
 
 ## O que faz
 
-- Consulta a API oficial da Mojang
-- Filtra **Stable** (`serverBedrockLinux`) e **Preview** (`serverBedrockPreviewLinux`)
-- Extrai a versão da URL e mantém histórico em cache (banco)
+- Importa o catálogo completo via [Bedrock-OSS/BDS-Versions](https://github.com/Bedrock-OSS/BDS-Versions)
+- Detecta builds novas pela API oficial da Mojang
+- Agrupa **versão Minecraft** (3 segmentos) e **builds** (4º segmento / hotfix)
+- Labels **RELEASE** e **PREVIEW**
 - Atualiza a variável de startup `BEDROCK_VERSION`
-- UI no estilo Versions (cards + modal Instalar)
-- **PocketMine-MP** aparece como “Em breve”
+- UI no estilo Versions (software → versão → modal de build)
 - Detecção automática de servidor Bedrock (egg / variável / imagem)
+
+## Versão vs Build
+
+No BDS, o pacote usa 4 números — exemplo: `1.26.33.2`
+
+| Parte | Significado | Exemplo |
+|-------|-------------|---------|
+| `1.26.33` | Versão Minecraft (card na UI) | Release 1.26.33 |
+| `.2` | Build / republicação hotfix | Build #2 |
+
+Quando a Mojang corrige um erro na mesma versão do jogo, publica uma build nova
+(`1.26.33.1` → `1.26.33.2`). O card continua o mesmo; o modal deixa escolher a build.
 
 ## Requisitos
 
@@ -39,7 +51,7 @@ Depois:
 
 1. Admin → Extensions → **Bedrock Version Manager**
 2. Engrenagem do Blueprint → liberar só nos eggs Bedrock
-3. (Opcional) Salvar com “Sincronizar agora”
+3. (Opcional) Rodar `php artisan bedrockversions:sync`
 
 ## Atualização
 
@@ -55,15 +67,7 @@ php artisan bedrockversions:sync
 blueprint -remove bedrockversions
 ```
 
-## API do addon (própria)
-
-A extensão expõe uma API client que:
-
-1. Consulta a API oficial Mojang
-2. Extrai versões das URLs
-3. Verifica disponibilidade do download
-4. Agrupa em `RELEASE` / `PREVIEW` com builds
-5. Cacheia no banco (mantém histórico)
+## API do addon
 
 | Método | Endpoint |
 |--------|----------|
@@ -85,10 +89,9 @@ Body do install:
 
 ## Fontes de versões
 
-1. **Catálogo completo** — [Bedrock-OSS/BDS-Versions](https://github.com/Bedrock-OSS/BDS-Versions) (~180+ Stable + Preview)
-2. **Mojang (latest)** — API oficial para detectar versões novas imediatamente
-
-A label exibida é sempre **RELEASE** (Stable) ou **PREVIEW**. A mais recente fica destacada e ordenada no topo.
+1. **Catálogo completo** — [Bedrock-OSS/BDS-Versions](https://github.com/Bedrock-OSS/BDS-Versions)
+2. **Metadados por build** — `linux/{versão}.json` (build_id, data, download_url)
+3. **Mojang (latest)** — API oficial para detectar pacotes novos imediatamente
 
 ## Estrutura
 
