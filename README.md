@@ -6,10 +6,10 @@ Repositório com extensões Blueprint para Pterodactyl.
 
 ### [MineHub](./minehub/)
 
-Editor visual de `server.properties` no estilo Configs:
+Editor visual de `server.properties` (PT-BR):
 
 - URL: `/server/{id}/minecraft/properties`
-- Grid de cards, busca e botão Save
-- Toggles para booleans e inputs para valores
+- Só mostra propriedades existentes no arquivo
+- Eggs configuráveis na engrenagem do Blueprint
 
 Veja o [README do MineHub](./minehub/README.md).

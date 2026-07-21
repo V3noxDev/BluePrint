@@ -1,6 +1,6 @@
 # MineHub — Blueprint Extension
 
-Editor visual de `server.properties` para servidores Minecraft Java no Pterodactyl, no estilo Configs.
+Editor visual de `server.properties` para Minecraft Java no Pterodactyl.
 
 ## URL
 
@@ -8,23 +8,14 @@ Editor visual de `server.properties` para servidores Minecraft Java no Pterodact
 /server/{id}/minecraft/properties
 ```
 
-## Funcionalidades
+## Recursos
 
-- Dropdown do arquivo (`server.properties`)
-- Busca em tempo real
-- Botão **Save**
-- Grid de 2 colunas com cards
-- Labels em UPPERCASE
-- Toggle azul para booleans
-- Input para strings/números
-- Leitura e escrita via Wings API
-
-## Requisitos
-
-- Blueprint `beta-2026-06`+
-- Pterodactyl Panel v1.12.x
-- Node.js v20.x+
-- Servidor Minecraft Java
+- Mostra **apenas** propriedades que existem no `server.properties` do servidor
+- Labels em **português**
+- Detecta automaticamente `true`/`false` (toggle) vs texto
+- Busca + botão Salvar
+- Card verde de confirmação ao salvar
+- Restrito a eggs via **engrenagem do Blueprint** (igual às outras extensões)
 
 ## Instalação
 
@@ -34,30 +25,11 @@ cd /var/www/pterodactyl
 blueprint -build
 ```
 
-Ou:
+## Configurar eggs
 
-```bash
-blueprint -export minehub
-blueprint -install minehub.blueprint
-```
-
-## Estrutura
-
-```
-minehub/
-├── conf.yml
-├── admin/
-├── app/
-│   ├── ServerPropertiesController.php
-│   └── ServerPropertiesService.php
-├── routes/client.php
-└── components/
-    ├── Components.yml
-    ├── dashboard.css
-    └── sections/
-        ├── MinecraftPropertiesSection.tsx
-        └── ServerPropertiesEditor.tsx
-```
+1. Admin → Extensions → **MineHub**
+2. Clique na **engrenagem** (configurações do Blueprint)
+3. Selecione os eggs (Paper, Spigot, Vanilla, etc.)
 
 ## API
 

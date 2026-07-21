@@ -1,94 +1,136 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ServerContext } from '@/state/server';
 import http from '@/api/http';
-import useFlash from '@/plugins/useFlash';
 import Spinner from '@/components/elements/Spinner';
 
 interface PropertiesResponse {
     success: boolean;
     data?: {
         properties: Record<string, string>;
-        definitions?: Record<string, unknown>;
     };
     message?: string;
 }
 
-const BOOLEAN_KEYS = new Set([
-    'accepts-transfers',
-    'allow-flight',
-    'allow-nether',
-    'broadcast-console-to-ops',
-    'broadcast-rcon-to-ops',
-    'debug',
-    'enable-command-block',
-    'enable-jmx-monitoring',
-    'enable-query',
-    'enable-rcon',
-    'enable-status',
-    'enforce-secure-profile',
-    'enforce-whitelist',
-    'force-gamemode',
-    'generate-structures',
-    'hardcore',
-    'hide-online-players',
-    'online-mode',
-    'prevent-proxy-connections',
-    'pvp',
-    'require-resource-pack',
-    'spawn-animals',
-    'spawn-monsters',
-    'spawn-npcs',
-    'sync-chunk-writes',
-    'use-native-transport',
-    'white-list',
-]);
+const LABELS_PT: Record<string, string> = {
+    'accepts-transfers': 'Aceitar transferências',
+    'allow-flight': 'Permitir voo',
+    'allow-nether': 'Permitir Nether',
+    'broadcast-console-to-ops': 'Enviar console para ops',
+    'broadcast-rcon-to-ops': 'Enviar RCON para ops',
+    'bug-report-link': 'Link de relatório de bugs',
+    'debug': 'Modo debug',
+    'difficulty': 'Dificuldade',
+    'enable-command-block': 'Blocos de comando',
+    'enable-jmx-monitoring': 'Monitoramento JMX',
+    'enable-query': 'Ativar Query',
+    'enable-rcon': 'Ativar RCON',
+    'enable-status': 'Status do servidor',
+    'enforce-secure-profile': 'Perfil seguro obrigatório',
+    'enforce-whitelist': 'Forçar whitelist',
+    'entity-broadcast-range-percentage': 'Alcance de broadcast de entidades (%)',
+    'force-gamemode': 'Forçar modo de jogo',
+    'function-permission-level': 'Nível de permissão de funções',
+    'gamemode': 'Modo de jogo',
+    'generate-structures': 'Gerar estruturas',
+    'generator-settings': 'Configurações do gerador',
+    'hardcore': 'Hardcore',
+    'hide-online-players': 'Ocultar jogadores online',
+    'initial-disabled-packs': 'Packs desativados iniciais',
+    'initial-enabled-packs': 'Packs ativados iniciais',
+    'level-name': 'Nome do mundo',
+    'level-seed': 'Seed do mundo',
+    'level-type': 'Tipo de mundo',
+    'log-ips': 'Registrar IPs',
+    'max-chained-neighbor-updates': 'Máx. updates encadeados',
+    'max-players': 'Máximo de jogadores',
+    'max-tick-time': 'Tempo máximo por tick (ms)',
+    'max-world-size': 'Tamanho máximo do mundo',
+    'motd': 'MOTD',
+    'network-compression-threshold': 'Compressão de rede',
+    'online-mode': 'Modo online (Mojang)',
+    'op-permission-level': 'Nível de permissão de OP',
+    'player-idle-timeout': 'Timeout AFK (min)',
+    'prevent-proxy-connections': 'Bloquear conexões proxy',
+    'pvp': 'PvP',
+    'query.port': 'Porta Query',
+    'rate-limit': 'Limite de taxa',
+    'rcon.password': 'Senha RCON',
+    'rcon.port': 'Porta RCON',
+    'region-file-compression': 'Compressão de região',
+    'require-resource-pack': 'Exigir resource pack',
+    'resource-pack': 'Resource pack',
+    'resource-pack-id': 'ID do resource pack',
+    'resource-pack-prompt': 'Mensagem do resource pack',
+    'resource-pack-sha1': 'SHA1 do resource pack',
+    'server-ip': 'IP do servidor',
+    'server-port': 'Porta do servidor',
+    'simulation-distance': 'Distância de simulação',
+    'spawn-animals': 'Spawnar animais',
+    'spawn-monsters': 'Spawnar monstros',
+    'spawn-npcs': 'Spawnar NPCs',
+    'spawn-protection': 'Proteção do spawn',
+    'sync-chunk-writes': 'Sincronizar escrita de chunks',
+    'text-filtering-config': 'Filtro de texto',
+    'use-native-transport': 'Transporte nativo',
+    'view-distance': 'Distância de visão',
+    'white-list': 'Whitelist',
+};
 
-const formatLabel = (key: string): string =>
-    key.replace(/[-_]/g, ' ').replace(/\./g, ' ').toUpperCase();
+const formatLabel = (key: string): string => {
+    if (LABELS_PT[key]) return LABELS_PT[key];
 
-const isBooleanValue = (key: string, value: string): boolean => {
-    if (BOOLEAN_KEYS.has(key)) return true;
-    return value === 'true' || value === 'false';
+    return key
+        .replace(/[-_.]/g, ' ')
+        .replace(/\b\w/g, (c) => c.toUpperCase());
+};
+
+/** Só true/false exatos viram toggle. Qualquer outro valor = texto. */
+const isBooleanValue = (value: string): boolean => {
+    const normalized = value.trim().toLowerCase();
+    return normalized === 'true' || normalized === 'false';
 };
 
 const ServerPropertiesEditor = () => {
-    const { id } = ServerContext.useStoreState((state) => state.server.data!);
-    const { clearFlashes, addFlash } = useFlash();
+    const uuid = ServerContext.useStoreState((state) => state.server.data!.uuid);
 
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [properties, setProperties] = useState<Record<string, string>>({});
-    const [original, setOriginal] = useState<Record<string, string>>({});
     const [error, setError] = useState<string | null>(null);
     const [search, setSearch] = useState('');
     const [dirty, setDirty] = useState(false);
+    const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+    const showToast = (type: 'success' | 'error', message: string) => {
+        setToast({ type, message });
+        window.setTimeout(() => setToast(null), 3500);
+    };
 
     const loadProperties = useCallback(async () => {
         setLoading(true);
         setError(null);
-        clearFlashes('minehub:properties');
 
         try {
             const { data } = await http.get<PropertiesResponse>(
-                `/api/client/extensions/minehub/servers/${id}/properties`
+                `/api/client/extensions/minehub/servers/${uuid}/properties`
             );
 
             if (data.success && data.data) {
+                // Apenas chaves que existem no server.properties do servidor
                 setProperties({ ...data.data.properties });
-                setOriginal({ ...data.data.properties });
                 setDirty(false);
             } else {
-                setError(data.message || 'Failed to load properties.');
+                setError(data.message || 'Não foi possível carregar as propriedades.');
             }
         } catch (err: any) {
             setError(
                 err?.response?.data?.message ||
-                    'Could not load server.properties.'
+                    'Arquivo server.properties não encontrado neste servidor.'
             );
         } finally {
             setLoading(false);
         }
-    }, [id, clearFlashes]);
+    }, [uuid]);
 
     useEffect(() => {
         loadProperties();
@@ -101,31 +143,24 @@ const ServerPropertiesEditor = () => {
 
     const handleSave = async () => {
         setSaving(true);
-        clearFlashes('minehub:properties');
 
         try {
             const { data } = await http.post(
-                `/api/client/extensions/minehub/servers/${id}/properties`,
+                `/api/client/extensions/minehub/servers/${uuid}/properties`,
                 { properties }
             );
 
             if (data.success) {
-                setOriginal({ ...properties });
                 setDirty(false);
-                addFlash({
-                    key: 'minehub:properties',
-                    type: 'success',
-                    message: 'Configuration saved successfully.',
-                });
+                showToast('success', 'Configurações salvas com sucesso!');
+            } else {
+                showToast('error', data.message || 'Falha ao salvar.');
             }
         } catch (err: any) {
-            addFlash({
-                key: 'minehub:properties',
-                type: 'error',
-                message:
-                    err?.response?.data?.message ||
-                    'Failed to save server.properties.',
-            });
+            showToast(
+                'error',
+                err?.response?.data?.message || 'Erro ao salvar o server.properties.'
+            );
         } finally {
             setSaving(false);
         }
@@ -133,6 +168,7 @@ const ServerPropertiesEditor = () => {
 
     const filteredKeys = useMemo(() => {
         const query = search.trim().toLowerCase();
+        // Só as chaves que vieram do arquivo
         const keys = Object.keys(properties).sort((a, b) => a.localeCompare(b));
 
         if (!query) return keys;
@@ -140,7 +176,11 @@ const ServerPropertiesEditor = () => {
         return keys.filter((key) => {
             const label = formatLabel(key).toLowerCase();
             const value = (properties[key] || '').toLowerCase();
-            return key.includes(query) || label.includes(query) || value.includes(query);
+            return (
+                key.toLowerCase().includes(query) ||
+                label.includes(query) ||
+                value.includes(query)
+            );
         });
     }, [properties, search]);
 
@@ -148,17 +188,17 @@ const ServerPropertiesEditor = () => {
         return (
             <div className={'mh-loading'}>
                 <Spinner size={'large'} />
-                <span>Loading configuration...</span>
+                <span>Carregando configurações...</span>
             </div>
         );
     }
 
     if (error) {
         return (
-            <div className={'mh-alert'}>
+            <div className={'mh-alert mh-alert--error'}>
                 <p>{error}</p>
                 <button type={'button'} className={'mh-btn mh-btn--ghost'} onClick={loadProperties}>
-                    Try again
+                    Tentar novamente
                 </button>
             </div>
         );
@@ -166,24 +206,22 @@ const ServerPropertiesEditor = () => {
 
     return (
         <div className={'mh-configs'}>
+            {toast && (
+                <div className={`mh-toast mh-toast--${toast.type}`} role={'status'}>
+                    <span className={'mh-toast__icon'}>{toast.type === 'success' ? '✓' : '!'}</span>
+                    <span>{toast.message}</span>
+                </div>
+            )}
+
             <div className={'mh-toolbar'}>
-                <div className={'mh-select'}>
-                    <select value={'server.properties'} disabled>
-                        <option value={'server.properties'}>server.properties</option>
-                    </select>
-                    <svg viewBox={'0 0 20 20'} fill={'currentColor'} aria-hidden={'true'}>
-                        <path
-                            fillRule={'evenodd'}
-                            d={'M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z'}
-                            clipRule={'evenodd'}
-                        />
-                    </svg>
+                <div className={'mh-file'}>
+                    <span>server.properties</span>
                 </div>
 
                 <div className={'mh-search'}>
                     <input
                         type={'text'}
-                        placeholder={'Search...'}
+                        placeholder={'Buscar...'}
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                     />
@@ -195,18 +233,22 @@ const ServerPropertiesEditor = () => {
                     onClick={handleSave}
                     disabled={saving || !dirty}
                 >
-                    {saving ? 'Saving...' : 'Save'}
+                    {saving ? 'Salvando...' : 'Salvar'}
                 </button>
             </div>
 
             {filteredKeys.length === 0 ? (
-                <div className={'mh-empty'}>No properties found.</div>
+                <div className={'mh-empty'}>
+                    {search
+                        ? 'Nenhuma propriedade encontrada para esta busca.'
+                        : 'Nenhuma propriedade encontrada no server.properties.'}
+                </div>
             ) : (
                 <div className={'mh-grid'}>
                     {filteredKeys.map((key) => {
                         const value = properties[key] ?? '';
-                        const booleanField = isBooleanValue(key, value);
-                        const isOn = value === 'true';
+                        const booleanField = isBooleanValue(value);
+                        const isOn = value.trim().toLowerCase() === 'true';
 
                         return (
                             <div key={key} className={'mh-card'}>
