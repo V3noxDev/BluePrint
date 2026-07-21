@@ -340,13 +340,84 @@
     padding: 16px;
     font-size: 14px;
     line-height: 1.55;
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    max-width: 100%;
 }
 
-.mp-description img {
+.mp-description * {
     max-width: 100%;
-    border-radius: 8px;
 }
+
+.mp-description img,
+.mp-description video,
+.mp-description iframe,
+.mp-description embed,
+.mp-description object {
+    display: block;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    border-radius: 8px;
+    margin: 12px auto;
+}
+
+/* Banners/imagens grandes: limita altura no PC e no celular */
+.mp-description img {
+    object-fit: contain;
+    max-height: min(420px, 55vh);
+}
+
+.mp-description video {
+    max-height: min(480px, 60vh);
+    background: #0f172a;
+}
+
+/* YouTube / embeds: proporção 16:9 responsiva */
+.mp-description iframe {
+    aspect-ratio: 16 / 9;
+    height: auto !important;
+    max-height: min(480px, 60vh);
+    border: 0;
+    background: #0f172a;
+}
+
+.mp-description table {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    border-collapse: collapse;
+}
+
+.mp-description pre,
+.mp-description code {
+    white-space: pre-wrap;
+    overflow-x: auto;
+}
+
+.mp-description a {
+    color: #93c5fd;
+}
+
+@media (max-width: 700px) {
+    .mp-description {
+        padding: 12px;
+        font-size: 13px;
+    }
+
+    .mp-description img {
+        max-height: min(260px, 40vh);
+        margin: 10px auto;
+    }
+
+    .mp-description video,
+    .mp-description iframe {
+        max-height: min(220px, 38vh);
+        margin: 10px auto;
+    }
+}
+
 
 .mp-versions {
     display: flex;
