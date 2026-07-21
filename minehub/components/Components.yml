@@ -1,3 +1,0 @@
-Navigation:
-  Routes:
-    - { Name: 'Properties', Path: '/minecraft/properties', Type: 'server', Component: 'sections/MinecraftPropertiesSection', AdminOnly: 'false' }

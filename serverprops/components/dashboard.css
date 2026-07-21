@@ -1,7 +1,6 @@
-/* MineHub Properties — Configs-style UI */
+/* Server Properties — UI estilo Configs (PT-BR) */
 
 .mh-configs {
-    --mh-bg: transparent;
     --mh-card: #1a2332;
     --mh-card-border: #243044;
     --mh-input: #111827;
@@ -10,8 +9,10 @@
     --mh-muted: #9ca3af;
     --mh-blue: #3b82f6;
     --mh-blue-hover: #2563eb;
+    --mh-green: #22c55e;
     --mh-toggle-off: #4b5563;
     width: 100%;
+    position: relative;
 }
 
 .mh-toolbar {
@@ -22,39 +23,18 @@
     flex-wrap: wrap;
 }
 
-.mh-select {
-    position: relative;
-    min-width: 220px;
-}
-
-.mh-select select {
-    appearance: none;
-    width: 100%;
+.mh-file {
+    min-width: 200px;
     height: 42px;
-    padding: 0 36px 0 14px;
+    padding: 0 14px;
     border-radius: 8px;
     border: 1px solid var(--mh-input-border);
     background: var(--mh-card);
     color: var(--mh-text);
     font-size: 14px;
     font-weight: 500;
-    cursor: pointer;
-}
-
-.mh-select select:disabled {
-    opacity: 1;
-    cursor: default;
-}
-
-.mh-select svg {
-    position: absolute;
-    right: 12px;
-    top: 50%;
-    width: 16px;
-    height: 16px;
-    transform: translateY(-50%);
-    color: var(--mh-muted);
-    pointer-events: none;
+    display: flex;
+    align-items: center;
 }
 
 .mh-search {
@@ -94,7 +74,7 @@
 
 .mh-btn--save {
     height: 42px;
-    min-width: 96px;
+    min-width: 110px;
     padding: 0 22px;
     background: var(--mh-blue);
     color: #fff;
@@ -137,10 +117,8 @@
 
 .mh-card__label {
     color: var(--mh-text);
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
+    font-size: 13px;
+    font-weight: 600;
     line-height: 1.3;
 }
 
@@ -207,14 +185,81 @@
 }
 
 .mh-alert {
-    background: rgba(239, 68, 68, 0.1);
-    border: 1px solid rgba(239, 68, 68, 0.35);
-    color: #fca5a5;
     border-radius: 10px;
     padding: 16px;
     display: flex;
     flex-direction: column;
     gap: 12px;
+    font-size: 14px;
+}
+
+.mh-alert--error {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.35);
+    color: #fca5a5;
+}
+
+.mh-toast {
+    position: fixed;
+    top: 24px;
+    right: 24px;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 280px;
+    max-width: 420px;
+    padding: 14px 18px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 500;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+    animation: mh-toast-in 0.25s ease;
+}
+
+.mh-toast--success {
+    background: #14532d;
+    border: 1px solid rgba(34, 197, 94, 0.55);
+    color: #bbf7d0;
+}
+
+.mh-toast--error {
+    background: #7f1d1d;
+    border: 1px solid rgba(239, 68, 68, 0.55);
+    color: #fecaca;
+}
+
+.mh-toast__icon {
+    width: 22px;
+    height: 22px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.mh-toast--success .mh-toast__icon {
+    background: var(--mh-green);
+    color: #052e16;
+}
+
+.mh-toast--error .mh-toast__icon {
+    background: #ef4444;
+    color: #450a0a;
+}
+
+@keyframes mh-toast-in {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 @media (max-width: 900px) {
@@ -227,9 +272,16 @@
         align-items: stretch;
     }
 
-    .mh-select,
+    .mh-file,
     .mh-search,
     .mh-btn--save {
         width: 100%;
+    }
+
+    .mh-toast {
+        left: 16px;
+        right: 16px;
+        top: 16px;
+        min-width: 0;
     }
 }

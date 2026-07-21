@@ -1,6 +1,6 @@
 <?php
 
-namespace Pterodactyl\BlueprintFramework\Extensions\minehub;
+namespace Pterodactyl\BlueprintFramework\Extensions\serverprops;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -32,12 +32,12 @@ class ServerPropertiesController extends Controller
         } catch (DaemonConnectionException $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Could not connect to the server daemon.',
+                'message' => 'Não foi possível conectar ao daemon do servidor.',
             ], 502);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'server.properties not found or inaccessible.',
+                'message' => 'Arquivo server.properties não encontrado ou inacessível.',
             ], 404);
         }
     }
@@ -55,10 +55,14 @@ class ServerPropertiesController extends Controller
                 ->setServer($server)
                 ->getContent(ServerPropertiesService::getFilePath());
 
-            $merged = array_merge(
-                ServerPropertiesService::parse($original),
-                $request->input('properties', [])
-            );
+            // Mantém só chaves que já existem no arquivo + as enviadas
+            $current = ServerPropertiesService::parse($original);
+            $incoming = $request->input('properties', []);
+            $merged = [];
+
+            foreach ($current as $key => $value) {
+                $merged[$key] = array_key_exists($key, $incoming) ? (string) $incoming[$key] : $value;
+            }
 
             $content = ServerPropertiesService::serialize($merged, $original);
 
@@ -68,18 +72,18 @@ class ServerPropertiesController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'server.properties updated successfully.',
+                'message' => 'Configurações salvas com sucesso!',
                 'data' => ['properties' => $merged],
             ]);
         } catch (DaemonConnectionException $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Could not connect to the server daemon.',
+                'message' => 'Não foi possível conectar ao daemon do servidor.',
             ], 502);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to save server.properties.',
+                'message' => 'Erro ao salvar o server.properties.',
             ], 500);
         }
     }

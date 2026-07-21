@@ -4,7 +4,7 @@ import ServerPropertiesEditor from './ServerPropertiesEditor';
 
 const MinecraftPropertiesSection = () => {
     return (
-        <PageContentBlock title={'Properties'}>
+        <PageContentBlock title={'Propriedades'}>
             <ServerPropertiesEditor />
         </PageContentBlock>
     );
