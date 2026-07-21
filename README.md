@@ -6,10 +6,10 @@ Repositório com extensões Blueprint para Pterodactyl.
 
 ### [MineHub](./minehub/)
 
-Extensão Blueprint para gerenciamento de servidores Minecraft Java:
+Editor visual de `server.properties` no estilo Configs:
 
-- Editor visual de `server.properties`
-- Instalador automático de addons com seleção e remoção
-- Painel admin premium com gerenciamento de catálogo
+- URL: `/server/{id}/minecraft/properties`
+- Grid de cards, busca e botão Save
+- Toggles para booleans e inputs para valores
 
-Veja o [README do MineHub](./minehub/README.md) para instruções de instalação.
+Veja o [README do MineHub](./minehub/README.md).

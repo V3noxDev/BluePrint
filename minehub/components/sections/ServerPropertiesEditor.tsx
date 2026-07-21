@@ -1,34 +1,55 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ServerContext } from '@/state/server';
 import http from '@/api/http';
 import useFlash from '@/plugins/useFlash';
 import Spinner from '@/components/elements/Spinner';
 
-interface FieldDef {
-    key: string;
-    label: string;
-    type: 'text' | 'number' | 'boolean' | 'select';
-    description?: string;
-    min?: number;
-    max?: number;
-    options?: string[];
-}
-
-interface SectionDef {
-    label: string;
-    icon: string;
-    fields: FieldDef[];
-}
-
 interface PropertiesResponse {
     success: boolean;
     data?: {
         properties: Record<string, string>;
-        definitions: Record<string, SectionDef>;
-        modules: string[];
+        definitions?: Record<string, unknown>;
     };
     message?: string;
 }
+
+const BOOLEAN_KEYS = new Set([
+    'accepts-transfers',
+    'allow-flight',
+    'allow-nether',
+    'broadcast-console-to-ops',
+    'broadcast-rcon-to-ops',
+    'debug',
+    'enable-command-block',
+    'enable-jmx-monitoring',
+    'enable-query',
+    'enable-rcon',
+    'enable-status',
+    'enforce-secure-profile',
+    'enforce-whitelist',
+    'force-gamemode',
+    'generate-structures',
+    'hardcore',
+    'hide-online-players',
+    'online-mode',
+    'prevent-proxy-connections',
+    'pvp',
+    'require-resource-pack',
+    'spawn-animals',
+    'spawn-monsters',
+    'spawn-npcs',
+    'sync-chunk-writes',
+    'use-native-transport',
+    'white-list',
+]);
+
+const formatLabel = (key: string): string =>
+    key.replace(/[-_]/g, ' ').replace(/\./g, ' ').toUpperCase();
+
+const isBooleanValue = (key: string, value: string): boolean => {
+    if (BOOLEAN_KEYS.has(key)) return true;
+    return value === 'true' || value === 'false';
+};
 
 const ServerPropertiesEditor = () => {
     const { id } = ServerContext.useStoreState((state) => state.server.data!);
@@ -38,8 +59,8 @@ const ServerPropertiesEditor = () => {
     const [saving, setSaving] = useState(false);
     const [properties, setProperties] = useState<Record<string, string>>({});
     const [original, setOriginal] = useState<Record<string, string>>({});
-    const [definitions, setDefinitions] = useState<Record<string, SectionDef>>({});
     const [error, setError] = useState<string | null>(null);
+    const [search, setSearch] = useState('');
     const [dirty, setDirty] = useState(false);
 
     const loadProperties = useCallback(async () => {
@@ -55,14 +76,14 @@ const ServerPropertiesEditor = () => {
             if (data.success && data.data) {
                 setProperties({ ...data.data.properties });
                 setOriginal({ ...data.data.properties });
-                setDefinitions(data.data.definitions);
+                setDirty(false);
             } else {
-                setError(data.message || 'Erro ao carregar propriedades.');
+                setError(data.message || 'Failed to load properties.');
             }
         } catch (err: any) {
             setError(
                 err?.response?.data?.message ||
-                    'Não foi possível carregar o server.properties.'
+                    'Could not load server.properties.'
             );
         } finally {
             setLoading(false);
@@ -76,11 +97,6 @@ const ServerPropertiesEditor = () => {
     const updateProperty = (key: string, value: string) => {
         setProperties((prev) => ({ ...prev, [key]: value }));
         setDirty(true);
-    };
-
-    const toggleBoolean = (key: string) => {
-        const current = properties[key] === 'true';
-        updateProperty(key, current ? 'false' : 'true');
     };
 
     const handleSave = async () => {
@@ -99,7 +115,7 @@ const ServerPropertiesEditor = () => {
                 addFlash({
                     key: 'minehub:properties',
                     type: 'success',
-                    message: 'server.properties salvo com sucesso!',
+                    message: 'Configuration saved successfully.',
                 });
             }
         } catch (err: any) {
@@ -108,139 +124,117 @@ const ServerPropertiesEditor = () => {
                 type: 'error',
                 message:
                     err?.response?.data?.message ||
-                    'Erro ao salvar server.properties.',
+                    'Failed to save server.properties.',
             });
         } finally {
             setSaving(false);
         }
     };
 
-    const handleReset = () => {
-        setProperties({ ...original });
-        setDirty(false);
-    };
+    const filteredKeys = useMemo(() => {
+        const query = search.trim().toLowerCase();
+        const keys = Object.keys(properties).sort((a, b) => a.localeCompare(b));
 
-    const renderField = (field: FieldDef) => {
-        const value = properties[field.key] ?? '';
+        if (!query) return keys;
 
-        if (field.type === 'boolean') {
-            const isOn = value === 'true';
-            return (
-                <div key={field.key} className={'minehub-switch'}>
-                    <div className={'minehub-switch__info'}>
-                        <div className={'minehub-switch__label'}>{field.label}</div>
-                        {field.description && (
-                            <div className={'minehub-switch__desc'}>{field.description}</div>
-                        )}
-                    </div>
-                    <button
-                        type={'button'}
-                        className={`minehub-switch__toggle ${isOn ? 'active' : ''}`}
-                        onClick={() => toggleBoolean(field.key)}
-                    />
-                </div>
-            );
-        }
-
-        if (field.type === 'select') {
-            return (
-                <div key={field.key} className={'minehub-field'}>
-                    <label className={'minehub-field__label'}>{field.label}</label>
-                    <select
-                        value={value}
-                        onChange={(e) => updateProperty(field.key, e.target.value)}
-                    >
-                        {field.options?.map((opt) => (
-                            <option key={opt} value={opt}>
-                                {opt}
-                            </option>
-                        ))}
-                    </select>
-                    {field.description && (
-                        <div className={'minehub-field__desc'}>{field.description}</div>
-                    )}
-                </div>
-            );
-        }
-
-        return (
-            <div key={field.key} className={'minehub-field'}>
-                <label className={'minehub-field__label'}>{field.label}</label>
-                <input
-                    type={field.type === 'number' ? 'number' : 'text'}
-                    value={value}
-                    min={field.min}
-                    max={field.max}
-                    onChange={(e) => updateProperty(field.key, e.target.value)}
-                />
-                {field.description && (
-                    <div className={'minehub-field__desc'}>{field.description}</div>
-                )}
-            </div>
-        );
-    };
+        return keys.filter((key) => {
+            const label = formatLabel(key).toLowerCase();
+            const value = (properties[key] || '').toLowerCase();
+            return key.includes(query) || label.includes(query) || value.includes(query);
+        });
+    }, [properties, search]);
 
     if (loading) {
         return (
-            <div className={'minehub-loading'}>
+            <div className={'mh-loading'}>
                 <Spinner size={'large'} />
-                <span>Carregando server.properties...</span>
+                <span>Loading configuration...</span>
             </div>
         );
     }
 
     if (error) {
         return (
-            <div className={'minehub-alert minehub-alert--error'}>
-                {error}
-                <div style={{ marginTop: '12px' }}>
-                    <button className={'minehub-btn minehub-btn--ghost'} onClick={loadProperties}>
-                        Tentar novamente
-                    </button>
-                </div>
+            <div className={'mh-alert'}>
+                <p>{error}</p>
+                <button type={'button'} className={'mh-btn mh-btn--ghost'} onClick={loadProperties}>
+                    Try again
+                </button>
             </div>
         );
     }
 
     return (
-        <div>
-            {Object.entries(definitions).map(([key, section]) => (
-                <div key={key} className={'minehub-props-section'}>
-                    <div className={'minehub-props-section__header'}>
-                        <span className={'minehub-props-section__icon'}>{section.icon}</span>
-                        <h3>{section.label}</h3>
-                    </div>
-                    <div className={'minehub-props-grid'}>
-                        {section.fields.map((field) =>
-                            field.type === 'boolean'
-                                ? renderField(field)
-                                : renderField(field)
-                        )}
-                    </div>
+        <div className={'mh-configs'}>
+            <div className={'mh-toolbar'}>
+                <div className={'mh-select'}>
+                    <select value={'server.properties'} disabled>
+                        <option value={'server.properties'}>server.properties</option>
+                    </select>
+                    <svg viewBox={'0 0 20 20'} fill={'currentColor'} aria-hidden={'true'}>
+                        <path
+                            fillRule={'evenodd'}
+                            d={'M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z'}
+                            clipRule={'evenodd'}
+                        />
+                    </svg>
                 </div>
-            ))}
 
-            {dirty && (
-                <div className={'minehub-save-bar'}>
-                    <div className={'minehub-save-bar__inner'}>
-                        <span className={'minehub-save-bar__text'}>
-                            Alterações não salvas
-                        </span>
-                        <button
-                            className={'minehub-btn minehub-btn--ghost'}
-                            onClick={handleReset}
-                            disabled={saving}
-                        >
-                            Descartar
-                        </button>
-                        <button
-                            className={'minehub-btn minehub-btn--primary'}
-                            onClick={handleSave}
-                            disabled={saving}
-                        >
-                            {saving ? 'Salvando...' : '💾 Salvar Properties'}
-                        </button>
-                    </div>
+                <div className={'mh-search'}>
+                    <input
+                        type={'text'}
+                        placeholder={'Search...'}
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                    />
+                </div>
+
+                <button
+                    type={'button'}
+                    className={'mh-btn mh-btn--save'}
+                    onClick={handleSave}
+                    disabled={saving || !dirty}
+                >
+                    {saving ? 'Saving...' : 'Save'}
+                </button>
+            </div>
+
+            {filteredKeys.length === 0 ? (
+                <div className={'mh-empty'}>No properties found.</div>
+            ) : (
+                <div className={'mh-grid'}>
+                    {filteredKeys.map((key) => {
+                        const value = properties[key] ?? '';
+                        const booleanField = isBooleanValue(key, value);
+                        const isOn = value === 'true';
+
+                        return (
+                            <div key={key} className={'mh-card'}>
+                                <div className={'mh-card__label'}>{formatLabel(key)}</div>
+
+                                {booleanField ? (
+                                    <button
+                                        type={'button'}
+                                        className={`mh-toggle ${isOn ? 'is-on' : ''}`}
+                                        onClick={() =>
+                                            updateProperty(key, isOn ? 'false' : 'true')
+                                        }
+                                        aria-pressed={isOn}
+                                        aria-label={formatLabel(key)}
+                                    >
+                                        <span className={'mh-toggle__knob'} />
+                                    </button>
+                                ) : (
+                                    <input
+                                        className={'mh-input'}
+                                        type={'text'}
+                                        value={value}
+                                        onChange={(e) => updateProperty(key, e.target.value)}
+                                    />
+                                )}
+                            </div>
+                        );
+                    })}
                 </div>
             )}
         </div>

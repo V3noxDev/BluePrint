@@ -22,26 +22,22 @@ class ServerPropertiesController extends Controller
                 ->setServer($server)
                 ->getContent(ServerPropertiesService::getFilePath());
 
-            $properties = ServerPropertiesService::parse($content);
-
             return response()->json([
                 'success' => true,
                 'data' => [
-                    'properties' => $properties,
-                    'definitions' => ServerPropertiesService::getDefinitions(),
+                    'properties' => ServerPropertiesService::parse($content),
                     'raw' => $content,
-                    'modules' => AddonCatalogService::getEnabledModules(),
                 ],
             ]);
         } catch (DaemonConnectionException $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Não foi possível conectar ao daemon do servidor.',
+                'message' => 'Could not connect to the server daemon.',
             ], 502);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Arquivo server.properties não encontrado ou inacessível.',
+                'message' => 'server.properties not found or inaccessible.',
             ], 404);
         }
     }
@@ -72,20 +68,19 @@ class ServerPropertiesController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'server.properties atualizado com sucesso.',
+                'message' => 'server.properties updated successfully.',
                 'data' => ['properties' => $merged],
             ]);
         } catch (DaemonConnectionException $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Não foi possível conectar ao daemon do servidor.',
+                'message' => 'Could not connect to the server daemon.',
             ], 502);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Erro ao salvar server.properties.',
+                'message' => 'Failed to save server.properties.',
             ], 500);
         }
     }
-
 }
