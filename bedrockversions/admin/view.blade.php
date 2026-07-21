@@ -9,7 +9,7 @@
                 <code>BEDROCK_VERSION</code>.
             </p>
         </div>
-        <span class="bv-admin__badge">v1.0.0</span>
+        <span class="bv-admin__badge">v1.1.0</span>
     </div>
 
     <div class="bv-admin__grid">

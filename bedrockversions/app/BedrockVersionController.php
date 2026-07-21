@@ -35,14 +35,11 @@ class BedrockVersionController extends Controller
 
         $catalog = $this->versions->syncFromApi(false);
         $current = $this->detector->getCurrentVersion($server);
-        $channel = $current
-            ? $this->detector->getChannelForVersion($current, $catalog)
-            : 'stable';
-
+        $meta = $current ? $this->detector->findBuildMeta($current, $catalog) : null;
+        $channel = $meta['channel'] ?? 'stable';
         $latest = $channel === 'preview'
             ? ($catalog['latest_preview'] ?? null)
             : ($catalog['latest_stable'] ?? null);
-
         $outdated = $current && $latest && version_compare($current, $latest, '<');
 
         return response()->json([
@@ -50,36 +47,18 @@ class BedrockVersionController extends Controller
             'data' => [
                 'is_bedrock' => true,
                 'current_version' => $current,
+                'current_group' => $meta['group'] ?? null,
+                'current_build' => $meta['build'] ?? null,
                 'current_channel' => $channel,
                 'latest_for_channel' => $latest,
                 'outdated' => $outdated,
-                'catalog' => $catalog,
-                'software' => [
-                    [
-                        'id' => 'stable',
-                        'name' => 'Bedrock Stable',
-                        'description' => 'Versões estáveis do Bedrock Dedicated Server',
-                        'status' => 'available',
-                        'versions_count' => count($catalog['stable'] ?? []),
-                        'latest' => $catalog['latest_stable'] ?? null,
-                    ],
-                    [
-                        'id' => 'preview',
-                        'name' => 'Bedrock Preview',
-                        'description' => 'Builds de preview / beta do Bedrock',
-                        'status' => 'available',
-                        'versions_count' => count($catalog['preview'] ?? []),
-                        'latest' => $catalog['latest_preview'] ?? null,
-                    ],
-                    [
-                        'id' => 'pocketmine',
-                        'name' => 'PocketMine-MP',
-                        'description' => 'Em breve — suporte planejado',
-                        'status' => 'coming_soon',
-                        'versions_count' => 0,
-                        'latest' => null,
-                    ],
-                ],
+                'software' => $catalog['software'],
+                'release' => $catalog['release'],
+                'preview' => $catalog['preview'],
+                'latest_stable' => $catalog['latest_stable'],
+                'latest_preview' => $catalog['latest_preview'],
+                'last_sync' => $catalog['last_sync'],
+                'chest_icon' => '/extensions/bedrockversions/chest-face.png',
             ],
         ]);
     }
@@ -92,7 +71,7 @@ class BedrockVersionController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Versões sincronizadas com a API oficial.',
+            'message' => 'Versões sincronizadas com a API.',
             'data' => $catalog,
         ]);
     }
@@ -122,14 +101,19 @@ class BedrockVersionController extends Controller
         $restart = (bool) ($data['restart'] ?? true);
 
         $record = $this->versions->findVersion($channel, $version);
-        if (!$record) {
-            // Still allow known-format versions using constructed URL
-            if (!preg_match('/^[0-9]+(?:\.[0-9]+){2,}$/', $version)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Versão inválida.',
-                ], 422);
-            }
+        if (!$record && !preg_match('/^[0-9]+(?:\.[0-9]+){2,}$/', $version)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Versão inválida ou indisponível.',
+            ], 422);
+        }
+
+        $url = $this->versions->buildDownloadUrl($channel, $version);
+        if (!$this->versions->isDownloadAvailable($url)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Esta versão não está disponível para download no momento.',
+            ], 404);
         }
 
         try {
@@ -143,17 +127,17 @@ class BedrockVersionController extends Controller
                 try {
                     $this->power->setServer($server)->send('restart');
                 } catch (\Throwable) {
-                    // Variable is set even if restart fails (server may be offline)
+                    // ok se o servidor estiver offline
                 }
             }
 
             return response()->json([
                 'success' => true,
-                'message' => "Versão {$version} aplicada em BEDROCK_VERSION.",
+                'message' => "Bedrock {$version} instalado com sucesso!",
                 'data' => [
                     'version' => $version,
                     'channel' => $channel,
-                    'download_url' => $this->versions->buildDownloadUrl($channel, $version),
+                    'download_url' => $url,
                     'wiped' => $wipe,
                 ],
             ]);
@@ -197,11 +181,7 @@ class BedrockVersionController extends Controller
     private function wipeServerFiles(Server $server): void
     {
         $listing = $this->files->setServer($server)->getDirectory('/');
-        $names = collect($listing)
-            ->pluck('name')
-            ->filter()
-            ->values()
-            ->all();
+        $names = collect($listing)->pluck('name')->filter()->values()->all();
 
         if (!empty($names)) {
             $this->files->setServer($server)->deleteFiles('/', $names);

@@ -9,7 +9,6 @@ use Pterodactyl\BlueprintFramework\Libraries\ExtensionLibrary\Admin\BlueprintAdm
 class BedrockVersionService
 {
     public const API_URL = 'https://net-secondary.web.minecraft-services.net/api/v1.0/download/links';
-
     public const TYPE_STABLE = 'serverBedrockLinux';
     public const TYPE_PREVIEW = 'serverBedrockPreviewLinux';
 
@@ -19,17 +18,15 @@ class BedrockVersionService
     {
         $auto = ($this->blueprint->dbGet('bedrockversions', 'auto_sync') ?: 'true') === 'true';
         if (!$force && !$auto) {
-            return $this->getCachedVersions();
+            return $this->getCatalog();
         }
 
         try {
-            $response = Http::timeout(20)
-                ->acceptJson()
-                ->get(self::API_URL);
+            $response = Http::timeout(20)->acceptJson()->get(self::API_URL);
 
             if (!$response->successful()) {
-                Log::warning('[bedrockversions] API unavailable', ['status' => $response->status()]);
-                return $this->getCachedVersions();
+                Log::warning('[bedrockversions] API Mojang indisponível', ['status' => $response->status()]);
+                return $this->getCatalog();
             }
 
             $links = $response->json('result.links') ?? [];
@@ -54,6 +51,8 @@ class BedrockVersionService
                     continue;
                 }
 
+                $available = $this->isDownloadAvailable($url);
+
                 BedrockVersion::query()
                     ->where('channel', $channel)
                     ->update(['is_latest' => false]);
@@ -63,66 +62,130 @@ class BedrockVersionService
                     ->where('version', $version)
                     ->first();
 
+                $payload = [
+                    'download_url' => $url,
+                    'download_type' => $type,
+                    'is_latest' => true,
+                    'last_seen_at' => $now,
+                ];
+
+                // Store availability in download_type suffix? Better add column - for now use is_latest and skip unavailable
                 if ($existing) {
-                    $existing->fill([
-                        'download_url' => $url,
-                        'download_type' => $type,
-                        'is_latest' => true,
-                        'last_seen_at' => $now,
-                    ])->save();
-                } else {
-                    BedrockVersion::query()->create([
+                    if ($available) {
+                        $existing->fill($payload)->save();
+                    }
+                } elseif ($available) {
+                    BedrockVersion::query()->create(array_merge($payload, [
                         'channel' => $channel,
                         'version' => $version,
-                        'download_url' => $url,
-                        'download_type' => $type,
-                        'is_latest' => true,
                         'first_seen_at' => $now,
-                        'last_seen_at' => $now,
-                    ]);
+                    ]));
                 }
             }
 
-            $this->seedHistoricalIfEmpty();
+            $this->mergeSeedVersions();
             $this->blueprint->dbSet('bedrockversions', 'last_sync', $now->toDateTimeString());
         } catch (\Throwable $e) {
             Log::warning('[bedrockversions] sync failed: ' . $e->getMessage());
         }
 
-        return $this->getCachedVersions();
+        return $this->getCatalog();
     }
 
-    public function getCachedVersions(): array
+    /**
+     * Catalog shaped like commercial Versions UI.
+     */
+    public function getCatalog(): array
     {
-        $this->seedHistoricalIfEmpty();
+        $this->mergeSeedVersions();
 
-        $stable = BedrockVersion::query()
-            ->where('channel', 'stable')
-            ->orderByDesc('version')
-            ->get()
-            ->map(fn (BedrockVersion $v) => $this->serialize($v))
-            ->values()
-            ->all();
+        $rows = BedrockVersion::query()->get();
 
-        $preview = BedrockVersion::query()
-            ->where('channel', 'preview')
-            ->orderByDesc('version')
-            ->get()
-            ->map(fn (BedrockVersion $v) => $this->serialize($v))
-            ->values()
-            ->all();
+        $groups = [
+            'stable' => [],
+            'preview' => [],
+        ];
 
-        // Sort versions properly (semver-ish)
-        usort($stable, fn ($a, $b) => version_compare($b['version'], $a['version']));
-        usort($preview, fn ($a, $b) => version_compare($b['version'], $a['version']));
+        foreach ($rows as $row) {
+            $channel = $row->channel;
+            if (!isset($groups[$channel])) {
+                continue;
+            }
+
+            $groupKey = $this->versionGroupKey($row->version);
+            $buildId = $this->versionBuildId($row->version);
+
+            if (!isset($groups[$channel][$groupKey])) {
+                $groups[$channel][$groupKey] = [
+                    'id' => $groupKey,
+                    'version' => $groupKey,
+                    'type' => $channel === 'preview' ? 'PREVIEW' : 'RELEASE',
+                    'channel' => $channel,
+                    'builds' => [],
+                    'is_latest_group' => false,
+                ];
+            }
+
+            $groups[$channel][$groupKey]['builds'][] = [
+                'id' => $buildId,
+                'label' => 'Build #' . $buildId,
+                'full_version' => $row->version,
+                'download_url' => $row->download_url,
+                'available' => true,
+                'is_latest' => (bool) $row->is_latest,
+            ];
+
+            if ($row->is_latest) {
+                $groups[$channel][$groupKey]['is_latest_group'] = true;
+            }
+        }
+
+        $stable = $this->sortGroups(array_values($groups['stable']));
+        $preview = $this->sortGroups(array_values($groups['preview']));
+
+        foreach ([&$stable, &$preview] as &$list) {
+            foreach ($list as &$group) {
+                usort($group['builds'], function ($a, $b) {
+                    return version_compare($b['full_version'], $a['full_version']);
+                });
+                $group['builds_count'] = count($group['builds']);
+            }
+        }
+        unset($list, $group);
+
+        $latestStable = collect($stable)->firstWhere('is_latest_group')['builds'][0]['full_version']
+            ?? ($stable[0]['builds'][0]['full_version'] ?? null);
+        $latestPreview = collect($preview)->firstWhere('is_latest_group')['builds'][0]['full_version']
+            ?? ($preview[0]['builds'][0]['full_version'] ?? null);
+
+        $stableBuilds = array_sum(array_column($stable, 'builds_count'));
+        $previewBuilds = array_sum(array_column($preview, 'builds_count'));
 
         return [
-            'stable' => $stable,
+            'software' => [
+                [
+                    'id' => 'bedrock',
+                    'name' => 'Bedrock',
+                    'icon' => '/extensions/bedrockversions/chest-face.png',
+                    'status' => 'available',
+                    'minecraft_versions' => count($stable) + count($preview),
+                    'builds' => $stableBuilds + $previewBuilds,
+                    'latest' => $latestStable,
+                ],
+                [
+                    'id' => 'pocketmine',
+                    'name' => 'PocketMine',
+                    'icon' => null,
+                    'status' => 'coming_soon',
+                    'minecraft_versions' => 0,
+                    'builds' => 0,
+                    'latest' => null,
+                ],
+            ],
+            'release' => $stable,
             'preview' => $preview,
-            'latest_stable' => collect($stable)->firstWhere('is_latest')['version']
-                ?? ($stable[0]['version'] ?? null),
-            'latest_preview' => collect($preview)->firstWhere('is_latest')['version']
-                ?? ($preview[0]['version'] ?? null),
+            'latest_stable' => $latestStable,
+            'latest_preview' => $latestPreview,
             'last_sync' => $this->blueprint->dbGet('bedrockversions', 'last_sync') ?: null,
         ];
     }
@@ -166,28 +229,63 @@ class BedrockVersionService
         return null;
     }
 
-    private function serialize(BedrockVersion $v): array
+    public function isDownloadAvailable(string $url): bool
     {
-        return [
-            'channel' => $v->channel,
-            'version' => $v->version,
-            'download_url' => $v->download_url,
-            'download_type' => $v->download_type,
-            'is_latest' => (bool) $v->is_latest,
-            'first_seen_at' => optional($v->first_seen_at)->toIso8601String(),
-            'last_seen_at' => optional($v->last_seen_at)->toIso8601String(),
-        ];
+        try {
+            $response = Http::timeout(10)
+                ->withHeaders(['User-Agent' => 'BedrockVersionManager/1.0'])
+                ->head($url);
+
+            if ($response->successful()) {
+                return true;
+            }
+
+            // Some CDNs block HEAD — try a ranged GET
+            $get = Http::timeout(10)
+                ->withHeaders([
+                    'User-Agent' => 'BedrockVersionManager/1.0',
+                    'Range' => 'bytes=0-0',
+                ])
+                ->get($url);
+
+            return $get->successful() || $get->status() === 206;
+        } catch (\Throwable $e) {
+            Log::debug('[bedrockversions] availability check failed: ' . $e->getMessage());
+            // Don't drop newly discovered versions if CDN blocks probes
+            return true;
+        }
     }
 
-    private function seedHistoricalIfEmpty(): void
+    /** Group 1.26.33.2 → 1.26.33 */
+    public function versionGroupKey(string $version): string
     {
-        if (BedrockVersion::query()->exists()) {
-            return;
+        $parts = explode('.', $version);
+        if (count($parts) >= 3) {
+            return implode('.', array_slice($parts, 0, 3));
         }
 
+        return $version;
+    }
+
+    /** Build id from 1.26.33.2 → 2 */
+    public function versionBuildId(string $version): string
+    {
+        $parts = explode('.', $version);
+
+        return (string) (end($parts) ?: '1');
+    }
+
+    private function sortGroups(array $groups): array
+    {
+        usort($groups, fn ($a, $b) => version_compare($b['version'], $a['version']));
+
+        return $groups;
+    }
+
+    private function mergeSeedVersions(): void
+    {
         $seedPath = base_path('.blueprint/extensions/bedrockversions/private/seed-versions.json');
         if (!file_exists($seedPath)) {
-            // Fallback bundled relative path during early install
             $seedPath = __DIR__ . '/../data/seed-versions.json';
         }
 
@@ -199,19 +297,24 @@ class BedrockVersionService
         $now = now();
 
         foreach ($seed as $row) {
-            BedrockVersion::query()->updateOrCreate(
-                [
-                    'channel' => $row['channel'],
-                    'version' => $row['version'],
-                ],
-                [
-                    'download_url' => $row['download_url'],
-                    'download_type' => $row['download_type'],
-                    'is_latest' => (bool) ($row['is_latest'] ?? false),
-                    'first_seen_at' => $now,
-                    'last_seen_at' => $now,
-                ]
-            );
+            $exists = BedrockVersion::query()
+                ->where('channel', $row['channel'])
+                ->where('version', $row['version'])
+                ->exists();
+
+            if ($exists) {
+                continue;
+            }
+
+            BedrockVersion::query()->create([
+                'channel' => $row['channel'],
+                'version' => $row['version'],
+                'download_url' => $row['download_url'],
+                'download_type' => $row['download_type'],
+                'is_latest' => false,
+                'first_seen_at' => $now,
+                'last_seen_at' => $now,
+            ]);
         }
     }
 }
