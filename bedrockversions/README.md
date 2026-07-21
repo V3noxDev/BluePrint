@@ -82,10 +82,13 @@ Body do install:
   "channel": "stable",
   "version": "1.26.33.2",
   "wipe": false,
-  "accept_eula": true,
+  "accept_eula": false,
   "restart": true
 }
 ```
+
+`wipe` e `accept_eula` são opcionais. Sem wipe o egg só dá replace nos arquivos da build.
+Com `accept_eula: true` o addon grava `eula.txt` com `eula=true`.
 
 ## Fontes de versões
 

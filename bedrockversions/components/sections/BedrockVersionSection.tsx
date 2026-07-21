@@ -113,7 +113,7 @@ const BedrockVersionSection = () => {
     };
 
     const handleInstall = async () => {
-        if (!modal || !selectedBuild || !acceptEula) return;
+        if (!modal || !selectedBuild) return;
         setInstalling(true);
         try {
             const { data: res } = await http.post(
@@ -383,8 +383,9 @@ const BedrockVersionSection = () => {
                                         APAGAR ARQUIVOS DO SERVIDOR
                                     </div>
                                     <div className={'bv-option__desc'}>
-                                        Isso apaga todos os arquivos antes de instalar a nova
-                                        versão. Não pode ser desfeito.
+                                        Opcional. Apaga tudo antes de instalar. Desligado = só
+                                        substitui os arquivos da build baixada (mundo e configs
+                                        ficam).
                                     </div>
                                 </div>
                                 <button
@@ -400,13 +401,15 @@ const BedrockVersionSection = () => {
                                 <div>
                                     <div className={'bv-option__title'}>ACEITAR EULA</div>
                                     <div className={'bv-option__desc'}>
-                                        Ao ativar, você confirma que leu e aceita a Minecraft EULA.{' '}
+                                        Opcional. Grava <code>eula=true</code> no{' '}
+                                        <code>eula.txt</code> para o servidor subir. Sem isso, ele
+                                        liga e desliga pedindo o aceite.{' '}
                                         <a
-                                            href={'https://www.minecraft.net/eula'}
+                                            href={'https://aka.ms/MinecraftEULA'}
                                             target={'_blank'}
                                             rel={'noreferrer'}
                                         >
-                                            https://minecraft.net/eula
+                                            Minecraft EULA
                                         </a>
                                     </div>
                                 </div>
@@ -431,7 +434,7 @@ const BedrockVersionSection = () => {
                                 <button
                                     type={'button'}
                                     className={'bv-btn bv-btn--danger'}
-                                    disabled={installing || !acceptEula || !selectedBuild}
+                                    disabled={installing || !selectedBuild}
                                     onClick={handleInstall}
                                 >
                                     {installing ? 'Instalando...' : 'Instalar'}

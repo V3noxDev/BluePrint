@@ -91,13 +91,14 @@ class BedrockVersionController extends Controller
             'channel' => 'required|in:stable,preview',
             'version' => 'required|string|max:64',
             'wipe' => 'nullable|boolean',
-            'accept_eula' => 'required|accepted',
+            'accept_eula' => 'nullable|boolean',
             'restart' => 'nullable|boolean',
         ]);
 
         $version = $data['version'];
         $channel = $data['channel'];
         $wipe = (bool) ($data['wipe'] ?? false);
+        $acceptEula = (bool) ($data['accept_eula'] ?? false);
         $restart = (bool) ($data['restart'] ?? true);
 
         $record = $this->versions->findVersion($channel, $version);
@@ -117,8 +118,16 @@ class BedrockVersionController extends Controller
         }
 
         try {
+            // Wipe = limpa o disco inteiro. Sem wipe = o egg só dá replace nos
+            // arquivos da build baixada (mundo/configs permanecem).
             if ($wipe) {
                 $this->wipeServerFiles($server);
+            }
+
+            // EULA é só o arquivo eula.txt — não bloqueia a instalação.
+            // true = servidor sobe; false = sobe e desliga pedindo aceite.
+            if ($acceptEula) {
+                $this->writeEulaAccepted($server);
             }
 
             $this->updateBedrockVersionVariable($server, $version);
@@ -139,6 +148,7 @@ class BedrockVersionController extends Controller
                     'channel' => $channel,
                     'download_url' => $url,
                     'wiped' => $wipe,
+                    'eula_written' => $acceptEula,
                 ],
             ]);
         } catch (DaemonConnectionException $e) {
@@ -186,5 +196,13 @@ class BedrockVersionController extends Controller
         if (!empty($names)) {
             $this->files->setServer($server)->deleteFiles('/', $names);
         }
+    }
+
+    private function writeEulaAccepted(Server $server): void
+    {
+        $content = "#By changing the setting below to TRUE you are indicating your agreement to our EULA (https://aka.ms/MinecraftEULA).\n"
+            . 'eula=true' . "\n";
+
+        $this->files->setServer($server)->putContent('eula.txt', $content);
     }
 }

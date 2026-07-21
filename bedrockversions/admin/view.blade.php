@@ -13,7 +13,7 @@
                 Release, Preview, builds e variável <code>BEDROCK_VERSION</code>.
             </p>
         </div>
-        <span class="bv-admin__version">v1.4.0</span>
+        <span class="bv-admin__version">v1.4.1</span>
     </div>
 
     <div class="bv-admin__grid">

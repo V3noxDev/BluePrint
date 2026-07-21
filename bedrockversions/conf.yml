@@ -3,7 +3,7 @@ info:
   identifier: "bedrockversions"
   description: "Seletor profissional de versões do Minecraft Bedrock Dedicated Server — Release, Preview, builds hotfix e BEDROCK_VERSION."
   flags: ""
-  version: "1.4.0"
+  version: "1.4.1"
   target: "beta-2026-06"
   author: "BluePrint"
   icon: "data/icon.svg"
