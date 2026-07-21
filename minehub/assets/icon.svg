@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title">
+  <title id="title">MineHub</title>
+  <defs>
+    <linearGradient id="background" x1="14" y1="8" x2="116" y2="122" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#34d399"/>
+      <stop offset="1" stop-color="#059669"/>
+    </linearGradient>
+    <linearGradient id="cube" x1="38" y1="34" x2="93" y2="94" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#f0fdf4"/>
+      <stop offset="1" stop-color="#a7f3d0"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="30" fill="#071b16"/>
+  <rect x="7" y="7" width="114" height="114" rx="25" fill="url(#background)" opacity=".18"/>
+  <path d="m64 25 35 20v39L64 104 29 84V45l35-20Z" fill="url(#cube)"/>
+  <path d="m29 45 35 20 35-20M64 65v39" fill="none" stroke="#059669" stroke-width="7" stroke-linejoin="round"/>
+  <path d="m47 55 35-20" fill="none" stroke="#34d399" stroke-width="6" stroke-linecap="round"/>
+  <path d="M78 74v13M85 80H71" fill="none" stroke="#047857" stroke-width="6" stroke-linecap="round"/>
+</svg>

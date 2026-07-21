@@ -1,0 +1,37 @@
+info:
+  name: "MineHub"
+  identifier: "minehub"
+  description: "Gerencie plugins, mods e o server.properties do Minecraft em uma interface moderna."
+  flags: ""
+  version: "1.0.0"
+  target: "beta-2026-06"
+  author: "V3noxDev"
+  icon: "assets/icon.svg"
+  website: "https://github.com/V3noxDev/BluePrint"
+
+admin:
+  view: "admin/view.blade.php"
+  controller: "admin/controller.php"
+  css: "admin/admin.css"
+  wrapper: ""
+
+dashboard:
+  css: ""
+  wrapper: ""
+  components: "components"
+
+data:
+  directory: ""
+  public: ""
+  console: ""
+
+requests:
+  views: ""
+  app: "app"
+  routers:
+    application: ""
+    client: "routes/client.php"
+    web: ""
+
+database:
+  migrations: ""
