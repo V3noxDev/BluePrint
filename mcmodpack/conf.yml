@@ -22,7 +22,7 @@ dashboard:
 
 data:
   directory: "data"
-  public: "public"
+  public: ""
   console: ""
 
 requests:
