@@ -1,0 +1,19 @@
+info:
+  name: 'MC Server Properties Pro'
+  identifier: 'mcserverprops'
+  description: 'Admin addon Blueprint com editor visual e raw para server.properties de servidores Minecraft Java.'
+  version: '1.0.0'
+  target: 'beta-2026-05'
+  author: 'V3noxDev'
+  website: 'https://blueprint.zip'
+
+admin:
+  view: 'admin/view.blade.php'
+  controller: 'admin/Controller.php'
+  css: 'admin/admin.css'
+
+data:
+  directory: 'data'
+
+requests:
+  app: 'app'
