@@ -14,6 +14,7 @@ Blueprint addon para seleção profissional de versões do **Minecraft Bedrock D
 - Detecta builds novas pela API oficial da Mojang
 - Agrupa **versão Minecraft** (3 segmentos) e **builds** (4º segmento / hotfix)
 - Labels **RELEASE** e **PREVIEW**
+- **Baixa de verdade** o pacote `bedrock-server-{versão}.zip` (dispara o install script do egg)
 - Atualiza a variável de startup `BEDROCK_VERSION`
 - UI no estilo Versions (software → versão → modal de build)
 - Detecção automática de servidor Bedrock (egg / variável / imagem)
@@ -89,6 +90,19 @@ Body do install:
 
 `wipe` e `accept_eula` são opcionais. Sem wipe o egg só dá replace nos arquivos da build.
 Com `accept_eula: true` o addon grava `eula.txt` com `eula=true`.
+
+### Como o download funciona
+
+Bedrock **não usa `server.jar`** — o pacote oficial é `bedrock-server-{versão}.zip` (binário `bedrock_server`).
+
+A CDN da Mojang costuma bloquear o download remoto do Wings, então o addon:
+
+1. Define `BEDROCK_VERSION` na build escolhida
+2. Dispara o **reinstall/install do egg** (mesmo mecanismo do painel)
+3. O script do egg faz `curl` com User-Agent de browser + `unzip -o`
+
+Sem wipe: mundo e configs permanecem (o egg faz backup de `server.properties` / allowlist / permissions).
+Com wipe: limpa o disco antes e baixa limpo.
 
 ## Fontes de versões
 
