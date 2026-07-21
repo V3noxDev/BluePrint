@@ -98,6 +98,7 @@ class MinecraftPropertiesController extends Controller
     {
         $serverModel = $this->resolveServer($server);
         $this->authorizeFileAccess($request, $serverModel, ['file.update']);
+        $this->authorizeFileAccess($request, $serverModel, ['file.read', 'file.read-content']);
 
         $payload = $request->validate([
             'properties' => ['required', 'array'],
@@ -130,6 +131,7 @@ class MinecraftPropertiesController extends Controller
     {
         $serverModel = $this->resolveServer($server);
         $this->authorizeFileAccess($request, $serverModel, ['file.update']);
+        $this->authorizeFileAccess($request, $serverModel, ['file.read', 'file.read-content']);
 
         $payload = $request->validate([
             'content' => ['required', 'string', 'max:' . self::MAX_FILE_SIZE],
