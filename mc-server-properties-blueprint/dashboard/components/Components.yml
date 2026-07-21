@@ -1,0 +1,3 @@
+Navigation:
+  Routes:
+    - { Name: 'Properties Studio', Path: '/properties-studio', Type: 'server', Component: 'sections/MinecraftPropertiesStudio', AdminOnly: 'false', Permission: 'file.read' }

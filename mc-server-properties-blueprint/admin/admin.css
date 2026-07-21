@@ -1,0 +1,29 @@
+.mcps-admin-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1rem;
+}
+
+.mcps-card {
+  background: #ffffff;
+  border-radius: 14px;
+  border: 1px solid #e6e8ef;
+  padding: 1rem 1.25rem;
+  box-shadow: 0 8px 28px rgba(6, 24, 44, 0.08);
+}
+
+.mcps-card h2 {
+  margin: 0 0 0.5rem;
+  color: #0f172a;
+}
+
+.mcps-card p,
+.mcps-card li,
+.mcps-card ol {
+  color: #334155;
+}
+
+.mcps-muted {
+  color: #64748b;
+  margin-top: 0.75rem;
+}

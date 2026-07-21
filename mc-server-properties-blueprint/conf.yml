@@ -1,0 +1,37 @@
+info:
+  name: 'Minecraft Properties Studio'
+  identifier: 'mcproperties'
+  description: 'Editor visual para server.properties no Minecraft Java, direto no painel.'
+  flags: ''
+  version: '1.0.0'
+  target: 'stable-2025-04'
+  author: 'Cursor Cloud'
+  icon: 'assets/icon.svg'
+  website: ''
+
+admin:
+  view: 'admin/view.blade.php'
+  controller: ''
+  css: 'admin/admin.css'
+  wrapper: ''
+
+dashboard:
+  css: 'dashboard/styles/server-properties.css'
+  wrapper: ''
+  components: 'dashboard/components'
+
+data:
+  directory: 'data/private'
+  public: 'assets'
+  console: ''
+
+requests:
+  views: ''
+  app: ''
+  routers:
+    application: ''
+    client: ''
+    web: ''
+
+database:
+  migrations: ''
