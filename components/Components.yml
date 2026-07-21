@@ -1,0 +1,8 @@
+Navigation:
+  Routes:
+    - Name: 'Minecraft Properties'
+      Path: '/minecraft-properties'
+      Type: 'server'
+      Component: 'sections/PropertiesManager'
+      Permission: 'file.read-content'
+      AdminOnly: 'false'

@@ -1,0 +1,37 @@
+info:
+  name: 'Minecraft Properties'
+  identifier: 'serverproperties'
+  description: 'A polished visual editor for Minecraft Java server.properties with presets, search, validation, and an advanced raw mode.'
+  flags: ''
+  version: '1.0.0'
+  target: 'beta-2026-06'
+  author: 'V3noxDev'
+  icon: 'assets/icon.svg'
+  website: 'https://github.com/V3noxDev/BluePrint'
+
+admin:
+  view: 'admin/view.blade.php'
+  controller: ''
+  css: ''
+  wrapper: ''
+
+dashboard:
+  css: ''
+  wrapper: ''
+  components: 'components'
+
+data:
+  directory: ''
+  public: ''
+  console: ''
+
+requests:
+  views: ''
+  app: ''
+  routers:
+    application: ''
+    client: ''
+    web: ''
+
+database:
+  migrations: ''
