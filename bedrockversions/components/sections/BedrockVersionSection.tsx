@@ -342,9 +342,10 @@ const BedrockVersionSection = () => {
                             </div>
 
                             <p className={'bv-modal__hint'}>
-                                Builds são republicações da mesma versão Minecraft quando a Mojang
-                                corrige um erro (ex.: 1.26.33.1 → 1.26.33.2). Use a build recomendada
-                                salvo se precisar de uma específica.
+                                Ao instalar, o painel baixa o pacote oficial{' '}
+                                <code>bedrock-server-{'{versão}'}.zip</code> da Mojang e extrai no
+                                servidor (não é só mudar a variável). Builds são republicações da
+                                mesma versão Minecraft após hotfix (ex.: 1.26.33.1 → 1.26.33.2).
                             </p>
 
                             <label className={'bv-field-label'} htmlFor={'bv-build-select'}>
@@ -383,8 +384,8 @@ const BedrockVersionSection = () => {
                                         APAGAR ARQUIVOS DO SERVIDOR
                                     </div>
                                     <div className={'bv-option__desc'}>
-                                        Opcional. Apaga tudo antes de instalar. Desligado = só
-                                        substitui os arquivos da build baixada (mundo e configs
+                                        Opcional. Apaga tudo antes de baixar. Desligado = baixa e
+                                        dá replace só nos arquivos do pacote (mundo e configs
                                         ficam).
                                     </div>
                                 </div>
@@ -437,7 +438,7 @@ const BedrockVersionSection = () => {
                                     disabled={installing || !selectedBuild}
                                     onClick={handleInstall}
                                 >
-                                    {installing ? 'Instalando...' : 'Instalar'}
+                                    {installing ? 'Baixando e instalando...' : 'Instalar'}
                                 </button>
                             </div>
                         </div>

@@ -5,11 +5,7 @@ namespace Pterodactyl\BlueprintFramework\Extensions\bedrockversions;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Pterodactyl\Models\Server;
-use Pterodactyl\Models\EggVariable;
-use Pterodactyl\Models\ServerVariable;
 use Pterodactyl\Http\Controllers\Controller;
-use Pterodactyl\Repositories\Wings\DaemonFileRepository;
-use Pterodactyl\Repositories\Wings\DaemonPowerRepository;
 use Pterodactyl\Exceptions\Http\Connection\DaemonConnectionException;
 
 class BedrockVersionController extends Controller
@@ -17,8 +13,7 @@ class BedrockVersionController extends Controller
     public function __construct(
         private BedrockVersionService $versions,
         private BedrockServerDetector $detector,
-        private DaemonFileRepository $files,
-        private DaemonPowerRepository $power,
+        private BedrockInstallService $installer,
     ) {}
 
     public function index(Request $request, Server $server): JsonResponse
@@ -99,7 +94,6 @@ class BedrockVersionController extends Controller
         $channel = $data['channel'];
         $wipe = (bool) ($data['wipe'] ?? false);
         $acceptEula = (bool) ($data['accept_eula'] ?? false);
-        $restart = (bool) ($data['restart'] ?? true);
 
         $record = $this->versions->findVersion($channel, $version);
         if (!$record && !preg_match('/^[0-9]+(?:\.[0-9]+){2,}$/', $version)) {
@@ -118,39 +112,26 @@ class BedrockVersionController extends Controller
         }
 
         try {
-            // Wipe = limpa o disco inteiro. Sem wipe = o egg só dá replace nos
-            // arquivos da build baixada (mundo/configs permanecem).
-            if ($wipe) {
-                $this->wipeServerFiles($server);
-            }
-
-            // EULA é só o arquivo eula.txt — não bloqueia a instalação.
-            // true = servidor sobe; false = sobe e desliga pedindo aceite.
-            if ($acceptEula) {
-                $this->writeEulaAccepted($server);
-            }
-
-            $this->updateBedrockVersionVariable($server, $version);
-
-            if ($restart) {
-                try {
-                    $this->power->setServer($server)->send('restart');
-                } catch (\Throwable) {
-                    // ok se o servidor estiver offline
-                }
-            }
+            $result = $this->installer->install(
+                $server,
+                $version,
+                $url,
+                $wipe,
+                $acceptEula,
+            );
 
             return response()->json([
                 'success' => true,
-                'message' => "Bedrock {$version} instalado com sucesso!",
+                'message' => "Baixando Bedrock {$version}… acompanhe o progresso na aba Console / instalação do servidor.",
                 'data' => [
                     'version' => $version,
                     'channel' => $channel,
                     'download_url' => $url,
-                    'wiped' => $wipe,
-                    'eula_written' => $acceptEula,
+                    'method' => $result['method'],
+                    'wiped' => $result['wiped'],
+                    'eula_written' => $result['eula_written'],
                 ],
-            ]);
+            ], 202);
         } catch (DaemonConnectionException $e) {
             return response()->json([
                 'success' => false,
@@ -162,47 +143,5 @@ class BedrockVersionController extends Controller
                 'message' => 'Erro ao instalar a versão: ' . $e->getMessage(),
             ], 500);
         }
-    }
-
-    private function updateBedrockVersionVariable(Server $server, string $version): void
-    {
-        $eggVariable = EggVariable::query()
-            ->where('egg_id', $server->egg_id)
-            ->where('env_variable', 'BEDROCK_VERSION')
-            ->first();
-
-        if (!$eggVariable) {
-            throw new \RuntimeException(
-                'A variável BEDROCK_VERSION não existe neste egg. Adicione-a ao egg Bedrock.'
-            );
-        }
-
-        ServerVariable::query()->updateOrCreate(
-            [
-                'server_id' => $server->id,
-                'variable_id' => $eggVariable->id,
-            ],
-            [
-                'variable_value' => $version,
-            ]
-        );
-    }
-
-    private function wipeServerFiles(Server $server): void
-    {
-        $listing = $this->files->setServer($server)->getDirectory('/');
-        $names = collect($listing)->pluck('name')->filter()->values()->all();
-
-        if (!empty($names)) {
-            $this->files->setServer($server)->deleteFiles('/', $names);
-        }
-    }
-
-    private function writeEulaAccepted(Server $server): void
-    {
-        $content = "#By changing the setting below to TRUE you are indicating your agreement to our EULA (https://aka.ms/MinecraftEULA).\n"
-            . 'eula=true' . "\n";
-
-        $this->files->setServer($server)->putContent('eula.txt', $content);
     }
 }
