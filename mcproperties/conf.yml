@@ -1,0 +1,37 @@
+info:
+  name: "MC Properties"
+  identifier: "mcproperties"
+  description: "Editor visual e completo do server.properties para servidores Minecraft Java. Edite MOTD com preview em tempo real, gamemode, dificuldade, whitelist, view-distance e muito mais — direto do painel, sem tocar em arquivos."
+  flags: ""
+  version: "1.0.0"
+  target: "beta-2026-06"
+  author: "V3noxDev"
+  icon: "icon.svg"
+  website: "https://github.com/V3noxDev/BluePrint"
+
+admin:
+  view: "admin/view.blade.php"
+  controller: ""
+  css: ""
+  wrapper: ""
+
+dashboard:
+  css: ""
+  wrapper: ""
+  components: "components"
+
+data:
+  directory: ""
+  public: ""
+  console: ""
+
+requests:
+  views: ""
+  app: ""
+  routers:
+    application: ""
+    client: ""
+    web: ""
+
+database:
+  migrations: ""

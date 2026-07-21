@@ -1,0 +1,6 @@
+# Rotas e componentes do MC Properties
+# Docs: https://blueprint.zip/docs/configs/componentsyml
+
+Navigation:
+  Routes:
+    - { Name: 'Propriedades', Path: '/mcproperties', Type: 'server', Component: 'pages/PropertiesPage', AdminOnly: 'false' }
