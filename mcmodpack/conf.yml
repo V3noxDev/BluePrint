@@ -1,9 +1,9 @@
 info:
-  name: "Bedrock Version Manager"
-  identifier: "bedrockversions"
-  description: "Seletor profissional de versões do Minecraft Bedrock Dedicated Server — baixa o zip oficial, Release/Preview, builds hotfix e BEDROCK_VERSION."
+  name: "MC Modpacks"
+  identifier: "mcmodpack"
+  description: "Instalador de modpacks CurseForge para Forge/NeoForge — busca, detalhes, versões e instalação com server pack."
   flags: ""
-  version: "1.5.0"
+  version: "1.0.0"
   target: "beta-2026-06"
   author: "BluePrint"
   icon: "data/icon.svg"
@@ -23,7 +23,7 @@ dashboard:
 data:
   directory: "data"
   public: "public"
-  console: "console"
+  console: ""
 
 requests:
   views: ""
