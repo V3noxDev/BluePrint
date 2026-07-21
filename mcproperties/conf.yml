@@ -1,0 +1,21 @@
+info:
+  name: "MC Properties"
+  identifier: "mcproperties"
+  description: "Editor visual completo do server.properties para servidores Minecraft Java. Interface bonita, categorias, busca, editor raw e proteção de propriedades perigosas."
+  version: "1.0.0"
+  target: "beta-2026-06"
+  author: "V3noxDev"
+  icon: "assets/icon.svg"
+  website: "https://github.com/V3noxDev/BluePrint"
+
+admin:
+  view: "admin/view.blade.php"
+  controller: "admin/controller.php"
+
+dashboard:
+  components: "dashboard/components"
+
+requests:
+  app: "app"
+  routers:
+    client: "routes/client.php"

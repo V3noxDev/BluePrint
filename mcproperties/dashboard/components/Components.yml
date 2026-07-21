@@ -1,0 +1,8 @@
+Navigation:
+  Routes:
+    - Name: 'Properties'
+      Path: '/mcproperties'
+      Type: 'server'
+      Component: 'mcproperties/PropertiesPage'
+      Permission: 'file.read'
+      AdminOnly: 'false'
