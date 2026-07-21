@@ -1,0 +1,33 @@
+import React from 'react';
+import { NavLink } from 'react-router-dom';
+import { ServerContext } from '@/state/server';
+
+const PropertiesShortcut: React.FC = () => {
+    const id = ServerContext.useStoreState((state) => state.server.data!.id);
+
+    return (
+        <div className={'sp-root'}>
+            <div className={'sp-shortcut'}>
+                <div className={'sp-shortcut-text'}>
+                    <div className={'sp-shortcut-icon'} aria-hidden={true}>
+                        <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx={12} cy={12} r={3} />
+                            <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.6-1.1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <div className={'sp-shortcut-title'}>Editar server.properties com interface visual</div>
+                        <div className={'sp-shortcut-sub'}>
+                            Toggles, dropdowns, busca e categorias — sem editar o arquivo manualmente.
+                        </div>
+                    </div>
+                </div>
+                <NavLink to={`/server/${id}/properties`} className={'sp-btn sp-btn-primary'}>
+                    Abrir editor →
+                </NavLink>
+            </div>
+        </div>
+    );
+};
+
+export default PropertiesShortcut;

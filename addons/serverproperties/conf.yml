@@ -1,0 +1,27 @@
+info:
+  name: "Server Properties"
+  identifier: "serverproperties"
+  description: "Editor visual e completo do server.properties para servidores Minecraft: Java Edition. Interface moderna, com categorias, busca, validação, toggles, dropdowns e reinício rápido."
+  flags: ""
+  version: "1.0.0"
+  target: "stable-2025-04"
+  author: "BluePrint Store"
+  icon: "icon.svg"
+  website: "https://github.com/BluePrintStore/serverproperties"
+
+admin:
+  view: "admin/view.blade.php"
+  controller: "admin/controller.php"
+
+dashboard:
+  css: "dashboard/root.css"
+  components: "dashboard/components"
+
+data:
+  directory: "data/private"
+
+requests:
+  routers: {}
+
+database:
+  migrations: ""

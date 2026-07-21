@@ -1,0 +1,13 @@
+Navigation:
+  Routes:
+    - Name: "Properties"
+      Path: "/properties"
+      Type: "server"
+      Component: "sections/ServerPropertiesEditor"
+      Permission: "file.read"
+      AdminOnly: false
+
+Server:
+  Files:
+    Browse:
+      BeforeContent: "elements/PropertiesShortcut"
