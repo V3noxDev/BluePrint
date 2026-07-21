@@ -1,0 +1,36 @@
+name: Build Blueprint
+
+on:
+  push:
+    branches: ['main']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  blueprint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          coverage: none
+
+      - name: Validate extension
+        run: ./scripts/validate.sh
+
+      - name: Build package
+        run: ./scripts/build.sh
+
+      - name: Upload Blueprint
+        uses: actions/upload-artifact@v4
+        with:
+          name: mineflow-blueprint
+          path: dist/mineflow.blueprint
+          if-no-files-found: error

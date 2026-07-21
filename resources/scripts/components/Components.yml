@@ -1,0 +1,8 @@
+Navigation:
+  Routes:
+    - Name: 'MineFlow'
+      Path: '/mineflow'
+      Type: 'server'
+      Component: 'server/MineFlow'
+      Permission: "'file.read'"
+      AdminOnly: 'false'
