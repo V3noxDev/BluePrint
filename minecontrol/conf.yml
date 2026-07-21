@@ -1,0 +1,37 @@
+info:
+  name: 'MineControl'
+  identifier: 'minecontrol'
+  description: 'Minecraft Java toolkit for Pterodactyl — install & remove plugins with multi-select, and edit server.properties from a polished panel UI.'
+  flags: ''
+  version: '1.0.0'
+  target: 'beta-2026-01'
+  author: 'V3noxDev'
+  icon: 'icon.svg'
+  website: 'https://github.com/V3noxDev/BluePrint'
+
+admin:
+  view: 'admin/view.blade.php'
+  controller: 'admin/controller.php'
+  css: 'admin/admin.css'
+  wrapper: ''
+
+dashboard:
+  css: 'components/dashboard.css'
+  wrapper: ''
+  components: 'components'
+
+data:
+  directory: 'private'
+  public: 'public'
+  console: ''
+
+requests:
+  views: ''
+  app: 'app'
+  routers:
+    application: ''
+    client: ''
+    web: 'routes/web.php'
+
+database:
+  migrations: ''
