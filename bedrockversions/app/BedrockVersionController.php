@@ -58,7 +58,7 @@ class BedrockVersionController extends Controller
                 'latest_stable' => $catalog['latest_stable'],
                 'latest_preview' => $catalog['latest_preview'],
                 'last_sync' => $catalog['last_sync'],
-                'chest_icon' => '/extensions/bedrockversions/chest-face.svg',
+                'chest_icon' => '/extensions/bedrockversions/chest-face.png',
             ],
         ]);
     }
@@ -149,7 +149,7 @@ class BedrockVersionController extends Controller
         } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Erro ao instalar versão: ' . $e->getMessage(),
+                'message' => 'Erro ao instalar a versão: ' . $e->getMessage(),
             ], 500);
         }
     }

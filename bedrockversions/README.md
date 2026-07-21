@@ -83,17 +83,12 @@ Body do install:
 }
 ```
 
-## Fonte oficial
+## Fontes de versões
 
-```
-https://net-secondary.web.minecraft-services.net/api/v1.0/download/links
-```
+1. **Catálogo completo** — [Bedrock-OSS/BDS-Versions](https://github.com/Bedrock-OSS/BDS-Versions) (~180+ Stable + Preview)
+2. **Mojang (latest)** — API oficial para detectar versões novas imediatamente
 
-Download Stable:
-
-```
-https://www.minecraft.net/bedrockdedicatedserver/bin-linux/bedrock-server-{VERSION}.zip
-```
+A label exibida é sempre **RELEASE** (Stable) ou **PREVIEW**. A mais recente fica destacada e ordenada no topo.
 
 ## Estrutura
 

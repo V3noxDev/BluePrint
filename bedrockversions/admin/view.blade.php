@@ -13,7 +13,7 @@
                 variável <code>BEDROCK_VERSION</code>.
             </p>
         </div>
-        <span class="bv-admin__version">v1.2.0</span>
+        <span class="bv-admin__version">v1.3.0</span>
     </div>
 
     <div class="bv-admin__grid">
@@ -29,11 +29,11 @@
         <div class="bv-admin__card">
             <div class="bv-admin__card-title">Recursos</div>
             <ul class="bv-admin__list">
-                <li>Busca automática na API oficial da Mojang</li>
-                <li>Detecta versões novas e marca só a mais recente como <strong>Latest</strong></li>
-                <li>Mantém histórico e ordena do mais novo ao mais antigo</li>
-                <li>Stable + Preview (PocketMine em breve)</li>
+                <li>Importa o catálogo completo (~180+ Stable e Preview)</li>
+                <li>Detecta versões novas e ordena da mais recente à mais antiga</li>
+                <li>Label <strong>RELEASE</strong> / <strong>PREVIEW</strong></li>
                 <li>Atualiza a variável <code>BEDROCK_VERSION</code></li>
+                <li>PocketMine marcado como em breve</li>
             </ul>
         </div>
 
