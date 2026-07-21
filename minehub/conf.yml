@@ -1,9 +1,9 @@
 info:
   name: "MineHub"
   identifier: "minehub"
-  description: "Gerenciador premium de Minecraft para Pterodactyl — editor visual de server.properties, instalador automático de addons com seleção e remoção."
+  description: "Editor visual de server.properties para servidores Minecraft Java no Pterodactyl."
   flags: ""
-  version: "1.0.0"
+  version: "1.1.0"
   target: "beta-2026-06"
   author: "BluePrint"
   icon: "data/icon.svg"
@@ -31,7 +31,7 @@ requests:
   routers:
     application: ""
     client: "routes/client.php"
-    web: "routes/web.php"
+    web: ""
 
 database:
   migrations: ""
