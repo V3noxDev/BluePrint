@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "note": "This is a snapshot of the built-in catalog. The dashboard actually reads from components/lib/catalog.ts. Update both if you fork this file.",
+  "categories": [
+    { "id": "core", "label": "Essentials" },
+    { "id": "economy", "label": "Economy" },
+    { "id": "worldmgmt", "label": "World" },
+    { "id": "admin", "label": "Admin" },
+    { "id": "fun", "label": "Fun" },
+    { "id": "protection", "label": "Protection" },
+    { "id": "performance", "label": "Performance" }
+  ],
+  "branches": ["paper", "spigot", "purpur", "forge", "fabric", "neoforge"]
+}

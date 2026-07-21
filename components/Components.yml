@@ -1,0 +1,34 @@
+# =========================================================================
+#  MC Hub — Dashboard Components (Pterodactyl / Blueprint)
+#  Docs: https://blueprint.zip/docs/configs/componentsyml
+#
+#  Adds a "MC Hub" tab to every server's sub-navigation and mounts three
+#  routes: the overview, the server.properties editor, and the addon manager.
+# =========================================================================
+
+Navigation:
+  SubNavigation:
+    AdditionalServerItems: "elements/HubNavItem"
+
+  Routes:
+    - {
+        Name: "MC Hub",
+        Path: "/mchub",
+        Type: "server",
+        Component: "sections/McHubSection",
+        AdminOnly: "false",
+      }
+    - {
+        Name: "",
+        Path: "/mchub/properties",
+        Type: "server",
+        Component: "sections/PropertiesEditor",
+        AdminOnly: "false",
+      }
+    - {
+        Name: "",
+        Path: "/mchub/addons",
+        Type: "server",
+        Component: "sections/AddonManager",
+        AdminOnly: "false",
+      }

@@ -1,0 +1,45 @@
+# =========================================================================
+#  MC Hub — Addon Manager & Properties Editor for Pterodactyl
+#  A Blueprint extension for Minecraft: Java Edition servers.
+#
+#  Learn more about conf.yml:
+#  https://blueprint.zip/docs/configs/confyml
+# =========================================================================
+
+info:
+  name: "MC Hub"
+  identifier: "mchub"
+  description: "All-in-one Minecraft: Java toolkit for Pterodactyl. Beautiful server.properties editor and an auto-installer for plugins/mods with a curated catalog, category filters, one-click install, and one-click uninstall."
+  flags: ""
+  version: "1.0.0"
+  target: "beta-2025-09"
+  author: "MC Hub Team"
+  icon: "icon.svg"
+  website: "https://github.com/"
+
+admin:
+  view: "admin/view.blade.php"
+  controller: "admin/controller.php"
+  css: "admin/admin.css"
+  wrapper: ""
+
+dashboard:
+  css: "root.css"
+  wrapper: ""
+  components: "components"
+
+data:
+  directory: "private"
+  public: "public"
+  console: ""
+
+requests:
+  views: ""
+  app: ""
+  routers:
+    application: ""
+    client: ""
+    web: ""
+
+database:
+  migrations: ""
