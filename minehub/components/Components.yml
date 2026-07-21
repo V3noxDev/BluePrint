@@ -1,0 +1,4 @@
+Navigation:
+  Routes:
+    - { Name: 'Minecraft', Path: '/minecraft/properties', Type: 'server', Component: 'sections/MinecraftPropertiesSection', AdminOnly: 'false' }
+    - { Name: '', Path: '/minecraft/addons', Type: 'server', Component: 'sections/MinecraftAddonsSection', AdminOnly: 'false' }

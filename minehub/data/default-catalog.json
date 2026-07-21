@@ -1,0 +1,74 @@
+[
+  {
+    "id": "essentialsx",
+    "name": "EssentialsX",
+    "description": "Comandos essenciais para servidores Bukkit/Spigot/Paper.",
+    "version": "2.21.0",
+    "type": "plugin",
+    "loader": "paper",
+    "download_url": "https://github.com/EssentialsX/Essentials/releases/download/2.21.0/EssentialsX-2.21.0.jar",
+    "filename": "EssentialsX.jar",
+    "icon": "⚡",
+    "featured": true
+  },
+  {
+    "id": "luckperms",
+    "name": "LuckPerms",
+    "description": "Sistema de permissões avançado e flexível.",
+    "version": "5.4.140",
+    "type": "plugin",
+    "loader": "paper",
+    "download_url": "https://download.luckperms.net/1565/bukkit/loader/LuckPerms-Bukkit-5.4.140.jar",
+    "filename": "LuckPerms.jar",
+    "icon": "🔐",
+    "featured": true
+  },
+  {
+    "id": "vault",
+    "name": "Vault",
+    "description": "API de economia e permissões usada por centenas de plugins.",
+    "version": "1.7.3",
+    "type": "plugin",
+    "loader": "paper",
+    "download_url": "https://github.com/MilkBowl/Vault/releases/download/1.7.3/Vault.jar",
+    "filename": "Vault.jar",
+    "icon": "💰",
+    "featured": false
+  },
+  {
+    "id": "worldedit",
+    "name": "WorldEdit",
+    "description": "Edição de mundo em escala com comandos e pincéis.",
+    "version": "7.3.9",
+    "type": "plugin",
+    "loader": "paper",
+    "download_url": "https://dev.bukkit.org/projects/worldedit/files/4586220/download",
+    "filename": "WorldEdit.jar",
+    "icon": "🌍",
+    "featured": true
+  },
+  {
+    "id": "coreprotect",
+    "name": "CoreProtect",
+    "description": "Registro e rollback de alterações no mundo.",
+    "version": "22.4",
+    "type": "plugin",
+    "loader": "paper",
+    "download_url": "https://github.com/PlayPro/CoreProtect/releases/download/v22.4/CoreProtect-22.4.jar",
+    "filename": "CoreProtect.jar",
+    "icon": "📋",
+    "featured": false
+  },
+  {
+    "id": "viaversion",
+    "name": "ViaVersion",
+    "description": "Permite que jogadores de versões diferentes se conectem.",
+    "version": "5.2.1",
+    "type": "plugin",
+    "loader": "paper",
+    "download_url": "https://github.com/ViaVersion/ViaVersion/releases/download/5.2.1/ViaVersion-5.2.1.jar",
+    "filename": "ViaVersion.jar",
+    "icon": "🔗",
+    "featured": false
+  }
+]
