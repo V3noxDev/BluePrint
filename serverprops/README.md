@@ -1,4 +1,4 @@
-# MineHub — Blueprint Extension
+# Server Properties — Blueprint Extension
 
 Editor visual de `server.properties` para Minecraft Java no Pterodactyl.
 
@@ -20,14 +20,14 @@ Editor visual de `server.properties` para Minecraft Java no Pterodactyl.
 ## Instalação
 
 ```bash
-cp -r minehub /var/www/pterodactyl/.blueprint/dev/
+cp -r serverprops /var/www/pterodactyl/.blueprint/dev/
 cd /var/www/pterodactyl
 blueprint -build
 ```
 
 ## Configurar eggs
 
-1. Admin → Extensions → **MineHub**
+1. Admin → Extensions → **Server Properties**
 2. Clique na **engrenagem** (configurações do Blueprint)
 3. Selecione os eggs (Paper, Spigot, Vanilla, etc.)
 
@@ -35,8 +35,8 @@ blueprint -build
 
 | Método | Endpoint |
 |--------|----------|
-| `GET` | `/api/client/extensions/minehub/servers/{server}/properties` |
-| `POST` | `/api/client/extensions/minehub/servers/{server}/properties` |
+| `GET` | `/api/client/extensions/serverprops/servers/{server}/properties` |
+| `POST` | `/api/client/extensions/serverprops/servers/{server}/properties` |
 
 ## Licença
 

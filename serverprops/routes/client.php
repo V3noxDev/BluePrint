@@ -1,7 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use Pterodactyl\BlueprintFramework\Extensions\minehub\ServerPropertiesController;
+use Pterodactyl\BlueprintFramework\Extensions\serverprops\ServerPropertiesController;
 
 Route::group(['prefix' => '/servers/{server}'], function () {
     Route::get('/properties', [ServerPropertiesController::class, 'show']);

@@ -112,7 +112,7 @@ const ServerPropertiesEditor = () => {
 
         try {
             const { data } = await http.get<PropertiesResponse>(
-                `/api/client/extensions/minehub/servers/${uuid}/properties`
+                `/api/client/extensions/serverprops/servers/${uuid}/properties`
             );
 
             if (data.success && data.data) {
@@ -146,7 +146,7 @@ const ServerPropertiesEditor = () => {
 
         try {
             const { data } = await http.post(
-                `/api/client/extensions/minehub/servers/${uuid}/properties`,
+                `/api/client/extensions/serverprops/servers/${uuid}/properties`,
                 { properties }
             );
 

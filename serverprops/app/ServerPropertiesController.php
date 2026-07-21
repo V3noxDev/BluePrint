@@ -1,6 +1,6 @@
 <?php
 
-namespace Pterodactyl\BlueprintFramework\Extensions\minehub;
+namespace Pterodactyl\BlueprintFramework\Extensions\serverprops;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;

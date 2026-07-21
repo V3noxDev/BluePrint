@@ -1,6 +1,6 @@
-/* MineHub Admin — conteúdo limpo (compatível com overlay/engrenagem do Blueprint) */
+/* Server Properties Admin — conteúdo limpo (compatível com overlay/engrenagem do Blueprint) */
 
-.minehub-admin {
+.serverprops-admin {
     --mh-text: #e5e7eb;
     --mh-muted: #94a3b8;
     --mh-card: #1e293b;
@@ -12,7 +12,7 @@
     font-family: inherit;
 }
 
-.minehub-admin__header {
+.serverprops-admin__header {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
@@ -22,21 +22,21 @@
     border-bottom: 1px solid var(--mh-border);
 }
 
-.minehub-admin__title {
+.serverprops-admin__title {
     margin: 0 0 6px;
     font-size: 22px;
     font-weight: 700;
     color: var(--mh-text);
 }
 
-.minehub-admin__subtitle {
+.serverprops-admin__subtitle {
     margin: 0;
     color: var(--mh-muted);
     font-size: 14px;
     line-height: 1.5;
 }
 
-.minehub-admin__subtitle code {
+.serverprops-admin__subtitle code {
     background: rgba(59, 130, 246, 0.12);
     color: #93c5fd;
     padding: 1px 6px;
@@ -44,7 +44,7 @@
     font-size: 12px;
 }
 
-.minehub-admin__version {
+.serverprops-admin__version {
     flex-shrink: 0;
     background: rgba(34, 197, 94, 0.12);
     color: var(--mh-green);
@@ -55,24 +55,24 @@
     font-weight: 600;
 }
 
-.minehub-admin__grid {
+.serverprops-admin__grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 14px;
 }
 
-.minehub-admin__card {
+.serverprops-admin__card {
     background: var(--mh-card);
     border: 1px solid var(--mh-border);
     border-radius: 10px;
     padding: 18px;
 }
 
-.minehub-admin__card--wide {
+.serverprops-admin__card--wide {
     grid-column: 1 / -1;
 }
 
-.minehub-admin__card-title {
+.serverprops-admin__card-title {
     font-size: 13px;
     font-weight: 700;
     text-transform: uppercase;
@@ -81,8 +81,8 @@
     margin-bottom: 12px;
 }
 
-.minehub-admin__steps,
-.minehub-admin__list {
+.serverprops-admin__steps,
+.serverprops-admin__list {
     margin: 0;
     padding-left: 18px;
     color: var(--mh-text);
@@ -90,8 +90,8 @@
     line-height: 1.7;
 }
 
-.minehub-admin__steps code,
-.minehub-admin__route code {
+.serverprops-admin__steps code,
+.serverprops-admin__route code {
     background: #0f172a;
     border: 1px solid var(--mh-border);
     color: #93c5fd;
@@ -100,11 +100,11 @@
     font-size: 12px;
 }
 
-.minehub-admin__route {
+.serverprops-admin__route {
     margin-bottom: 10px;
 }
 
-.minehub-admin__hint {
+.serverprops-admin__hint {
     margin: 0;
     color: var(--mh-muted);
     font-size: 13px;
@@ -112,11 +112,11 @@
 }
 
 @media (max-width: 768px) {
-    .minehub-admin__grid {
+    .serverprops-admin__grid {
         grid-template-columns: 1fr;
     }
 
-    .minehub-admin__header {
+    .serverprops-admin__header {
         flex-direction: column;
     }
 }

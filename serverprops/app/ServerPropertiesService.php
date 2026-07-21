@@ -1,6 +1,6 @@
 <?php
 
-namespace Pterodactyl\BlueprintFramework\Extensions\minehub;
+namespace Pterodactyl\BlueprintFramework\Extensions\serverprops;
 
 class ServerPropertiesService
 {

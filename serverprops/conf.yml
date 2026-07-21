@@ -1,9 +1,9 @@
 info:
-  name: "MineHub"
-  identifier: "minehub"
-  description: "Editor visual de server.properties para Minecraft Java — interface Configs com busca e salvamento."
+  name: "Server Properties"
+  identifier: "serverprops"
+  description: "Editor visual do server.properties — busca, toggles e salvamento rápido."
   flags: ""
-  version: "1.2.0"
+  version: "1.3.0"
   target: "beta-2026-06"
   author: "BluePrint"
   icon: "data/icon.svg"
