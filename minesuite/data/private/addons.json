@@ -1,0 +1,124 @@
+{
+  "addons": [
+    {
+      "id": "luckperms",
+      "name": "LuckPerms",
+      "description": "Sistema avançado de permissões para servidores Paper/Spigot.",
+      "category": "Management",
+      "source": "modrinth",
+      "project": "Vebn0bfa",
+      "destination": "plugins",
+      "filename_hint": "LuckPerms"
+    },
+    {
+      "id": "essentialsx",
+      "name": "EssentialsX",
+      "description": "Comandos essenciais: spawn, home, tpa, kits e economia básica.",
+      "category": "Utility",
+      "source": "modrinth",
+      "project": "L5Y9iq5v",
+      "destination": "plugins",
+      "filename_hint": "EssentialsX"
+    },
+    {
+      "id": "vault",
+      "name": "Vault",
+      "description": "API de economia e permissões usada por dezenas de plugins.",
+      "category": "Library",
+      "source": "modrinth",
+      "project": "jFVZ3Pbr",
+      "destination": "plugins",
+      "filename_hint": "Vault"
+    },
+    {
+      "id": "worldedit",
+      "name": "WorldEdit",
+      "description": "Edição em massa de terrenos, esquemas e ferramentas de construção.",
+      "category": "World",
+      "source": "modrinth",
+      "project": "1u6JkXhH",
+      "destination": "plugins",
+      "filename_hint": "worldedit"
+    },
+    {
+      "id": "worldguard",
+      "name": "WorldGuard",
+      "description": "Proteção de regiões, flags e controle de PvP por área.",
+      "category": "World",
+      "source": "modrinth",
+      "project": "KkYqNb10",
+      "destination": "plugins",
+      "filename_hint": "worldguard"
+    },
+    {
+      "id": "coreprotect",
+      "name": "CoreProtect",
+      "description": "Logs de blocos e rollback anti-griefing.",
+      "category": "Management",
+      "source": "modrinth",
+      "project": "Lu3KuzdV",
+      "destination": "plugins",
+      "filename_hint": "CoreProtect"
+    },
+    {
+      "id": "viaversion",
+      "name": "ViaVersion",
+      "description": "Permite que clientes de versões novas entrem no seu servidor.",
+      "category": "Compatibility",
+      "source": "modrinth",
+      "project": "P1OZGk5k",
+      "destination": "plugins",
+      "filename_hint": "ViaVersion"
+    },
+    {
+      "id": "spark",
+      "name": "spark",
+      "description": "Profiler de performance e diagnóstico de lag.",
+      "category": "Performance",
+      "source": "modrinth",
+      "project": "l6YH9Als",
+      "destination": "plugins",
+      "filename_hint": "spark"
+    },
+    {
+      "id": "chunky",
+      "name": "Chunky",
+      "description": "Pré-geração de chunks para reduzir lag de exploração.",
+      "category": "Performance",
+      "source": "modrinth",
+      "project": "fA2wuVmR",
+      "destination": "plugins",
+      "filename_hint": "Chunky"
+    },
+    {
+      "id": "geyser",
+      "name": "Geyser",
+      "description": "Bridge Bedrock ↔ Java para jogadores de console/mobile.",
+      "category": "Compatibility",
+      "source": "modrinth",
+      "project": "wKkoqHrH",
+      "destination": "plugins",
+      "filename_hint": "Geyser"
+    },
+    {
+      "id": "floodgate",
+      "name": "Floodgate",
+      "description": "Autenticação de jogadores Bedrock com Geyser (recomendado).",
+      "category": "Compatibility",
+      "source": "modrinth",
+      "project": "bWrNJAZG",
+      "destination": "plugins",
+      "filename_hint": "floodgate"
+    },
+    {
+      "id": "placeholderapi",
+      "name": "PlaceholderAPI",
+      "description": "Placeholders compartilhados entre plugins (scoreboards, chat, etc).",
+      "category": "Library",
+      "source": "modrinth",
+      "project": "2uJ5hH7J",
+      "destination": "plugins",
+      "filename_hint": "PlaceholderAPI"
+    }
+  ]
+}

@@ -1,0 +1,3 @@
+Navigation:
+  Routes:
+    - { Name: 'MineSuite', Path: '/minesuite', Type: 'server', Component: 'server/minesuite/MineSuiteContainer', AdminOnly: 'false' }

@@ -1,0 +1,61 @@
+.minesuite-admin .minesuite-hero {
+  border-top-color: #10b981;
+  background: linear-gradient(135deg, #0f1f18 0%, #163528 55%, #1b3d2f 100%);
+  color: #e7fff4;
+}
+
+.minesuite-admin .minesuite-hero .box-header {
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+.minesuite-admin .minesuite-hero .box-title,
+.minesuite-admin .minesuite-hero .help-block,
+.minesuite-admin .minesuite-lead {
+  color: #e7fff4;
+}
+
+.minesuite-admin .minesuite-lead {
+  font-size: 15px;
+  line-height: 1.55;
+  margin-bottom: 12px;
+}
+
+.minesuite-admin .minesuite-points {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.minesuite-admin .minesuite-points li {
+  margin-bottom: 6px;
+}
+
+.minesuite-admin .minesuite-steps {
+  padding-left: 18px;
+  margin: 0;
+}
+
+.minesuite-admin .minesuite-steps li {
+  margin-bottom: 8px;
+}
+
+.minesuite-admin .minesuite-json {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.45;
+  background: #0b1220;
+  color: #d1fae5;
+  border: 1px solid #234;
+  resize: vertical;
+}
+
+.minesuite-admin code {
+  background: rgba(16, 185, 129, 0.12);
+  color: #065f46;
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+
+.minesuite-admin .minesuite-hero code {
+  background: rgba(255, 255, 255, 0.12);
+  color: #a7f3d0;
+}

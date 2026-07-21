@@ -1,0 +1,37 @@
+info:
+  name: 'MineSuite'
+  identifier: 'minesuite'
+  description: 'Editor visual de server.properties e instalador de addons para Minecraft Java — instale, remova e configure tudo pelo painel.'
+  flags: ''
+  version: '1.0.0'
+  target: 'beta-2026-01'
+  author: 'MineSuite'
+  icon: 'resources/icon.svg'
+  website: 'https://github.com'
+
+admin:
+  view: 'admin/view.blade.php'
+  controller: 'admin/controller.php'
+  css: 'admin/admin.css'
+  wrapper: ''
+
+dashboard:
+  css: 'dashboard/dashboard.css'
+  wrapper: ''
+  components: 'dashboard/components'
+
+data:
+  directory: 'data/private'
+  public: 'data/public'
+  console: ''
+
+requests:
+  views: ''
+  app: 'app'
+  routers:
+    application: ''
+    client: ''
+    web: 'routes/web.php'
+
+database:
+  migrations: ''
