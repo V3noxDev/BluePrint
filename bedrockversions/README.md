@@ -55,7 +55,15 @@ php artisan bedrockversions:sync
 blueprint -remove bedrockversions
 ```
 
-## API do addon
+## API do addon (própria)
+
+A extensão expõe uma API client que:
+
+1. Consulta a API oficial Mojang
+2. Extrai versões das URLs
+3. Verifica disponibilidade do download
+4. Agrupa em `RELEASE` / `PREVIEW` com builds
+5. Cacheia no banco (mantém histórico)
 
 | Método | Endpoint |
 |--------|----------|

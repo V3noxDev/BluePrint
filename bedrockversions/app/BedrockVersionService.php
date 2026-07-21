@@ -2,6 +2,7 @@
 
 namespace Pterodactyl\BlueprintFramework\Extensions\bedrockversions;
 
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Pterodactyl\BlueprintFramework\Libraries\ExtensionLibrary\Admin\BlueprintAdminLibrary as BlueprintExtensionLibrary;
@@ -12,12 +13,17 @@ class BedrockVersionService
     public const TYPE_STABLE = 'serverBedrockLinux';
     public const TYPE_PREVIEW = 'serverBedrockPreviewLinux';
 
+    /** Minutes between automatic background syncs */
+    public const SYNC_TTL_MINUTES = 30;
+
     public function __construct(private BlueprintExtensionLibrary $blueprint) {}
 
+    /**
+     * Auto-sync when cache is stale. No manual refresh needed.
+     */
     public function syncFromApi(bool $force = false): array
     {
-        $auto = ($this->blueprint->dbGet('bedrockversions', 'auto_sync') ?: 'true') === 'true';
-        if (!$force && !$auto) {
+        if (!$force && !$this->shouldSync()) {
             return $this->getCatalog();
         }
 
@@ -26,6 +32,8 @@ class BedrockVersionService
 
             if (!$response->successful()) {
                 Log::warning('[bedrockversions] API Mojang indisponível', ['status' => $response->status()]);
+                $this->recomputeLatestFlags();
+
                 return $this->getCatalog();
             }
 
@@ -51,53 +59,100 @@ class BedrockVersionService
                     continue;
                 }
 
+                // Always upsert discovered versions; availability probe is best-effort
                 $available = $this->isDownloadAvailable($url);
-
-                BedrockVersion::query()
-                    ->where('channel', $channel)
-                    ->update(['is_latest' => false]);
+                if (!$available) {
+                    // Still store URL so catalog grows; install will re-check
+                }
 
                 $existing = BedrockVersion::query()
                     ->where('channel', $channel)
                     ->where('version', $version)
                     ->first();
 
-                $payload = [
-                    'download_url' => $url,
-                    'download_type' => $type,
-                    'is_latest' => true,
-                    'last_seen_at' => $now,
-                ];
-
-                // Store availability in download_type suffix? Better add column - for now use is_latest and skip unavailable
                 if ($existing) {
-                    if ($available) {
-                        $existing->fill($payload)->save();
-                    }
-                } elseif ($available) {
-                    BedrockVersion::query()->create(array_merge($payload, [
+                    $existing->fill([
+                        'download_url' => $url,
+                        'download_type' => $type,
+                        'last_seen_at' => $now,
+                    ])->save();
+                } else {
+                    BedrockVersion::query()->create([
                         'channel' => $channel,
                         'version' => $version,
+                        'download_url' => $url,
+                        'download_type' => $type,
+                        'is_latest' => false,
                         'first_seen_at' => $now,
-                    ]));
+                        'last_seen_at' => $now,
+                    ]);
                 }
             }
 
             $this->mergeSeedVersions();
+            $this->recomputeLatestFlags();
             $this->blueprint->dbSet('bedrockversions', 'last_sync', $now->toDateTimeString());
         } catch (\Throwable $e) {
             Log::warning('[bedrockversions] sync failed: ' . $e->getMessage());
+            $this->recomputeLatestFlags();
         }
 
         return $this->getCatalog();
     }
 
+    public function shouldSync(): bool
+    {
+        $auto = ($this->blueprint->dbGet('bedrockversions', 'auto_sync') ?: 'true') === 'true';
+        if (!$auto) {
+            return false;
+        }
+
+        $last = $this->blueprint->dbGet('bedrockversions', 'last_sync');
+        if (!$last) {
+            return true;
+        }
+
+        try {
+            return Carbon::parse($last)->diffInMinutes(now()) >= self::SYNC_TTL_MINUTES;
+        } catch (\Throwable) {
+            return true;
+        }
+    }
+
     /**
-     * Catalog shaped like commercial Versions UI.
+     * Only the highest version per channel is Latest.
+     * Older ones lose the flag automatically.
      */
+    public function recomputeLatestFlags(): void
+    {
+        foreach (['stable', 'preview'] as $channel) {
+            $versions = BedrockVersion::query()
+                ->where('channel', $channel)
+                ->pluck('version')
+                ->all();
+
+            if (empty($versions)) {
+                continue;
+            }
+
+            usort($versions, fn ($a, $b) => version_compare($b, $a));
+            $latest = $versions[0];
+
+            BedrockVersion::query()
+                ->where('channel', $channel)
+                ->update(['is_latest' => false]);
+
+            BedrockVersion::query()
+                ->where('channel', $channel)
+                ->where('version', $latest)
+                ->update(['is_latest' => true]);
+        }
+    }
+
     public function getCatalog(): array
     {
         $this->mergeSeedVersions();
+        $this->recomputeLatestFlags();
 
         $rows = BedrockVersion::query()->get();
 
@@ -145,18 +200,19 @@ class BedrockVersionService
 
         foreach ([&$stable, &$preview] as &$list) {
             foreach ($list as &$group) {
-                usort($group['builds'], function ($a, $b) {
-                    return version_compare($b['full_version'], $a['full_version']);
-                });
+                usort($group['builds'], fn ($a, $b) => version_compare($b['full_version'], $a['full_version']));
                 $group['builds_count'] = count($group['builds']);
+
+                // Label: LATEST only on the true newest group
+                if ($group['is_latest_group']) {
+                    $group['type'] = 'LATEST';
+                }
             }
         }
         unset($list, $group);
 
-        $latestStable = collect($stable)->firstWhere('is_latest_group')['builds'][0]['full_version']
-            ?? ($stable[0]['builds'][0]['full_version'] ?? null);
-        $latestPreview = collect($preview)->firstWhere('is_latest_group')['builds'][0]['full_version']
-            ?? ($preview[0]['builds'][0]['full_version'] ?? null);
+        $latestStable = $this->findLatestFullVersion($stable);
+        $latestPreview = $this->findLatestFullVersion($preview);
 
         $stableBuilds = array_sum(array_column($stable, 'builds_count'));
         $previewBuilds = array_sum(array_column($preview, 'builds_count'));
@@ -166,7 +222,7 @@ class BedrockVersionService
                 [
                     'id' => 'bedrock',
                     'name' => 'Bedrock',
-                    'icon' => '/extensions/bedrockversions/chest-face.png',
+                    'icon' => '/extensions/bedrockversions/chest-face.svg',
                     'status' => 'available',
                     'minecraft_versions' => count($stable) + count($preview),
                     'builds' => $stableBuilds + $previewBuilds,
@@ -192,9 +248,21 @@ class BedrockVersionService
 
     public function getStats(): array
     {
+        $latestStable = BedrockVersion::query()
+            ->where('channel', 'stable')
+            ->where('is_latest', true)
+            ->value('version');
+
+        $latestPreview = BedrockVersion::query()
+            ->where('channel', 'preview')
+            ->where('is_latest', true)
+            ->value('version');
+
         return [
             'stable' => BedrockVersion::query()->where('channel', 'stable')->count(),
             'preview' => BedrockVersion::query()->where('channel', 'preview')->count(),
+            'latest_stable' => $latestStable,
+            'latest_preview' => $latestPreview,
         ];
     }
 
@@ -233,17 +301,16 @@ class BedrockVersionService
     {
         try {
             $response = Http::timeout(10)
-                ->withHeaders(['User-Agent' => 'BedrockVersionManager/1.0'])
+                ->withHeaders(['User-Agent' => 'BedrockVersionManager/1.1'])
                 ->head($url);
 
             if ($response->successful()) {
                 return true;
             }
 
-            // Some CDNs block HEAD — try a ranged GET
             $get = Http::timeout(10)
                 ->withHeaders([
-                    'User-Agent' => 'BedrockVersionManager/1.0',
+                    'User-Agent' => 'BedrockVersionManager/1.1',
                     'Range' => 'bytes=0-0',
                 ])
                 ->get($url);
@@ -251,12 +318,11 @@ class BedrockVersionService
             return $get->successful() || $get->status() === 206;
         } catch (\Throwable $e) {
             Log::debug('[bedrockversions] availability check failed: ' . $e->getMessage());
-            // Don't drop newly discovered versions if CDN blocks probes
+
             return true;
         }
     }
 
-    /** Group 1.26.33.2 → 1.26.33 */
     public function versionGroupKey(string $version): string
     {
         $parts = explode('.', $version);
@@ -267,12 +333,22 @@ class BedrockVersionService
         return $version;
     }
 
-    /** Build id from 1.26.33.2 → 2 */
     public function versionBuildId(string $version): string
     {
         $parts = explode('.', $version);
 
         return (string) (end($parts) ?: '1');
+    }
+
+    private function findLatestFullVersion(array $groups): ?string
+    {
+        foreach ($groups as $group) {
+            if (!empty($group['is_latest_group']) && !empty($group['builds'][0]['full_version'])) {
+                return $group['builds'][0]['full_version'];
+            }
+        }
+
+        return $groups[0]['builds'][0]['full_version'] ?? null;
     }
 
     private function sortGroups(array $groups): array
@@ -311,7 +387,7 @@ class BedrockVersionService
                 'version' => $row['version'],
                 'download_url' => $row['download_url'],
                 'download_type' => $row['download_type'],
-                'is_latest' => false,
+                'is_latest' => false, // never force latest from seed
                 'first_seen_at' => $now,
                 'last_seen_at' => $now,
             ]);

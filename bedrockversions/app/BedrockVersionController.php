@@ -58,7 +58,7 @@ class BedrockVersionController extends Controller
                 'latest_stable' => $catalog['latest_stable'],
                 'latest_preview' => $catalog['latest_preview'],
                 'last_sync' => $catalog['last_sync'],
-                'chest_icon' => '/extensions/bedrockversions/chest-face.png',
+                'chest_icon' => '/extensions/bedrockversions/chest-face.svg',
             ],
         ]);
     }

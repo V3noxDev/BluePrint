@@ -54,7 +54,6 @@ const BedrockVersionSection = () => {
     const uuid = ServerContext.useStoreState((state) => state.server.data!.uuid);
 
     const [loading, setLoading] = useState(true);
-    const [syncing, setSyncing] = useState(false);
     const [installing, setInstalling] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [data, setData] = useState<IndexData | null>(null);
@@ -96,19 +95,6 @@ const BedrockVersionSection = () => {
     useEffect(() => {
         load();
     }, [load]);
-
-    const handleSync = async () => {
-        setSyncing(true);
-        try {
-            await http.post(`/api/client/extensions/bedrockversions/servers/${uuid}/versions/sync`);
-            await load();
-            showToast('success', 'Versões atualizadas pela API.');
-        } catch (err: any) {
-            showToast('error', err?.response?.data?.message || 'Falha ao sincronizar API.');
-        } finally {
-            setSyncing(false);
-        }
-    };
 
     const openInstall = (group: VersionGroup) => {
         const preferred =
@@ -154,7 +140,7 @@ const BedrockVersionSection = () => {
         return showPreview ? data.preview : data.release;
     }, [data, showPreview]);
 
-    const chest = data?.chest_icon || '/extensions/bedrockversions/chest-face.png';
+    const chest = data?.chest_icon || '/extensions/bedrockversions/chest-face.svg';
 
     if (loading) {
         return (

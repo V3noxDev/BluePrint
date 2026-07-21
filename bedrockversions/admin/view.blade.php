@@ -1,53 +1,68 @@
-{{-- Admin page fragment — do NOT @extends layouts.admin (Blueprint gear overlay) --}}
+{{--
+  Conteúdo da página admin do Bedrock Version Manager.
+  NÃO usar @extends — o Blueprint envolve esta view e inclui a engrenagem
+  de permissões/eggs automaticamente.
+--}}
 
 <div class="bv-admin">
     <div class="bv-admin__header">
         <div>
             <h3 class="bv-admin__title">Bedrock Version Manager</h3>
             <p class="bv-admin__subtitle">
-                Gerencia versões Stable e Preview do Bedrock Dedicated Server e atualiza a variável
-                <code>BEDROCK_VERSION</code>.
+                Seletor de versões do <code>Bedrock Dedicated Server</code> — Stable, Preview e
+                variável <code>BEDROCK_VERSION</code>.
             </p>
         </div>
-        <span class="bv-admin__badge">v1.1.0</span>
+        <span class="bv-admin__version">v1.2.0</span>
     </div>
 
     <div class="bv-admin__grid">
         <div class="bv-admin__card">
-            <div class="bv-admin__label">Stable em cache</div>
-            <div class="bv-admin__value">{{ $stats['stable'] ?? 0 }}</div>
+            <div class="bv-admin__card-title">Como usar</div>
+            <ol class="bv-admin__steps">
+                <li>Clique na <strong>engrenagem</strong> no canto desta página (configurações do Blueprint).</li>
+                <li>Selecione os <strong>eggs Bedrock</strong> em que a aba Versions deve aparecer.</li>
+                <li>No servidor, acesse <code>/server/{id}/minecraft/bedrock-version</code>.</li>
+            </ol>
         </div>
-        <div class="bv-admin__card">
-            <div class="bv-admin__label">Preview em cache</div>
-            <div class="bv-admin__value">{{ $stats['preview'] ?? 0 }}</div>
-        </div>
-        <div class="bv-admin__card">
-            <div class="bv-admin__label">Última sincronização</div>
-            <div class="bv-admin__value bv-admin__value--sm">{{ $last_sync }}</div>
-        </div>
-    </div>
 
-    <form action="{{ $root }}" method="POST" class="bv-admin__form">
-        {{ csrf_field() }}
-        <input type="hidden" name="_method" value="PATCH">
+        <div class="bv-admin__card">
+            <div class="bv-admin__card-title">Recursos</div>
+            <ul class="bv-admin__list">
+                <li>Busca automática na API oficial da Mojang</li>
+                <li>Detecta versões novas e marca só a mais recente como <strong>Latest</strong></li>
+                <li>Mantém histórico e ordena do mais novo ao mais antigo</li>
+                <li>Stable + Preview (PocketMine em breve)</li>
+                <li>Atualiza a variável <code>BEDROCK_VERSION</code></li>
+            </ul>
+        </div>
+
+        <div class="bv-admin__card">
+            <div class="bv-admin__card-title">Stable em cache</div>
+            <div class="bv-admin__stat">{{ $stats['stable'] ?? 0 }}</div>
+            <div class="bv-admin__stat-sub">
+                Latest: <code>{{ $stats['latest_stable'] ?? '—' }}</code>
+            </div>
+        </div>
+
+        <div class="bv-admin__card">
+            <div class="bv-admin__card-title">Preview em cache</div>
+            <div class="bv-admin__stat">{{ $stats['preview'] ?? 0 }}</div>
+            <div class="bv-admin__stat-sub">
+                Latest: <code>{{ $stats['latest_preview'] ?? '—' }}</code>
+            </div>
+        </div>
 
         <div class="bv-admin__card bv-admin__card--wide">
-            <label class="bv-admin__toggle">
-                <input type="checkbox" name="auto_sync" value="1" {{ $auto_sync ? 'checked' : '' }}>
-                <span>Sincronização automática pela API oficial</span>
-            </label>
-
-            <label class="bv-admin__toggle" style="margin-top:12px;">
-                <input type="checkbox" name="force_sync" value="1">
-                <span>Sincronizar agora (ao salvar)</span>
-            </label>
-
+            <div class="bv-admin__card-title">Rota do painel</div>
+            <div class="bv-admin__route">
+                <code>/server/{id}/minecraft/bedrock-version</code>
+            </div>
             <p class="bv-admin__hint">
-                Use a <strong>engrenagem do Blueprint</strong> nesta página para liberar a rota apenas nos eggs Bedrock.
-                Rota: <code>/server/{id}/minecraft/bedrock-version</code>
+                A lista atualiza sozinha (a cada ~30 min). Não precisa de botão de refresh.
+                Última sincronização: <strong>{{ $last_sync }}</strong>.
+                Para limitar a eggs Bedrock, use a <strong>engrenagem do Blueprint</strong> nesta página.
             </p>
-
-            <button type="submit" class="bv-admin__btn">Salvar</button>
         </div>
-    </form>
+    </div>
 </div>
