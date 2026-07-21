@@ -1,0 +1,13 @@
+Navigation:
+  Routes:
+    - Name: "Properties"
+      Path: "/properties"
+      Type: "server"
+      Component: ServerProperties
+      Permission: "file.read-content"
+      AdminOnly: false
+
+Server:
+  Files:
+    Browse:
+      FileButtons: PropertiesFileButton

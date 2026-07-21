@@ -1,0 +1,8 @@
+# Packaged extension artifacts
+*.blueprint
+
+# Node / tooling
+node_modules/
+
+# OS
+.DS_Store

@@ -1,0 +1,21 @@
+info:
+  name: "Properties Editor"
+  identifier: "propertieseditor"
+  description: "A beautiful editor for the Minecraft: Java Edition server.properties file, right inside your server's panel page. Toggle gamerules, pick gamemodes & difficulty, tune performance and edit the raw file."
+  version: "1.0.0"
+  target: "stable-2025-04"
+  author: "Cursor Cloud Agent"
+  icon: "assets/icon.svg"
+  website: "https://github.com/blueprintframework/framework"
+
+admin:
+  view: "admin/index.blade.php"
+  controller: "admin/Controller.php"
+  css: "admin/admin.css"
+
+dashboard:
+  css: "dashboard/dashboard.css"
+  components: "dashboard/components"
+
+data:
+  directory: "data/private"
