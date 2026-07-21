@@ -195,14 +195,6 @@ const BedrockVersionSection = () => {
                             )}
                         </div>
                     </div>
-                    <button
-                        type={'button'}
-                        className={'bv-btn bv-btn--ghost'}
-                        onClick={handleSync}
-                        disabled={syncing}
-                    >
-                        {syncing ? 'Syncing...' : 'Refresh API'}
-                    </button>
                 </div>
 
                 {data.outdated && data.latest_for_channel && (
@@ -309,9 +301,14 @@ const BedrockVersionSection = () => {
                                             <div>
                                                 <div className={'bv-version-card__version'}>
                                                     {group.version}
+                                                    {group.is_latest_group && (
+                                                        <span className={'bv-pill bv-pill--gold'}>
+                                                            Latest
+                                                        </span>
+                                                    )}
                                                 </div>
                                                 <div className={'bv-version-card__type'}>
-                                                    {group.type}
+                                                    {group.is_latest_group ? 'LATEST' : group.type}
                                                 </div>
                                             </div>
                                         </div>
@@ -326,7 +323,7 @@ const BedrockVersionSection = () => {
 
                         {versionCards.length === 0 && (
                             <div className={'bv-empty'}>
-                                Nenhuma versão disponível neste canal. Clique em Refresh API.
+                                Nenhuma versão disponível neste canal ainda.
                             </div>
                         )}
                     </>

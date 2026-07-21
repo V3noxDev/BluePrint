@@ -172,6 +172,17 @@
     gap: 12px;
 }
 
+.bv-pill {
+    display: inline-flex;
+    background: rgba(148, 163, 184, 0.15);
+    color: var(--bv-muted);
+    border-radius: 999px;
+    padding: 2px 8px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
 .bv-pill--gold {
     background: rgba(240, 180, 41, 0.18);
     color: var(--bv-gold);

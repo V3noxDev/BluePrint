@@ -3,7 +3,7 @@ info:
   identifier: "bedrockversions"
   description: "Seletor de versões do Minecraft Bedrock Dedicated Server (Stable e Preview) com cache e integração BEDROCK_VERSION."
   flags: ""
-  version: "1.1.0"
+  version: "1.2.0"
   target: "beta-2026-06"
   author: "BluePrint"
   icon: "data/icon.svg"
