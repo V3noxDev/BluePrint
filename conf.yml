@@ -1,0 +1,19 @@
+info:
+  name: 'MC Properties Manager'
+  identifier: 'mcproperties'
+  description: 'Gerencie o server.properties do seu servidor Minecraft Java com uma interface bonita e organizada direto no painel Pterodactyl. Suporta todos os tipos de propriedades: toggles, dropdowns e inputs.'
+  version: '1.0.0'
+  target: 'beta-2026-01'
+  author: 'Blueprint Developer'
+  icon: 'icon.svg'
+  website: 'https://blueprint.zip'
+
+admin:
+  view: 'admin/view.blade.php'
+  controller: 'admin/controller.php'
+
+dashboard:
+  components: 'dashboard/components'
+
+data:
+  directory: 'data/private'

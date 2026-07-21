@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a1a2e;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#16213e;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="topGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#5db85d;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#388e3c;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="sideGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#8b5e3c;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#5d3e28;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="gearGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:0.95" />
+      <stop offset="100%" style="stop-color:#e0e0e0;stop-opacity:0.85" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background circle -->
+  <circle cx="32" cy="32" r="30" fill="url(#bgGrad)" />
+
+  <!-- Grass block - top face (isometric-ish) -->
+  <rect x="14" y="18" width="36" height="14" rx="2" fill="url(#topGrad)" />
+
+  <!-- Dark green pixel detail on top -->
+  <rect x="16" y="20" width="4" height="4" fill="#2e7d32" opacity="0.5"/>
+  <rect x="26" y="19" width="3" height="3" fill="#2e7d32" opacity="0.5"/>
+  <rect x="38" y="21" width="4" height="3" fill="#2e7d32" opacity="0.5"/>
+  <rect x="20" y="24" width="3" height="3" fill="#2e7d32" opacity="0.5"/>
+  <rect x="33" y="22" width="4" height="4" fill="#2e7d32" opacity="0.5"/>
+  <rect x="44" y="19" width="4" height="4" fill="#2e7d32" opacity="0.5"/>
+
+  <!-- Grass block - front face -->
+  <rect x="14" y="32" width="36" height="16" rx="0" fill="url(#sideGrad)" />
+  <rect x="14" y="32" width="36" height="3" fill="#5db85d" opacity="0.9"/>
+
+  <!-- Dirt pixel details -->
+  <rect x="18" y="37" width="4" height="4" fill="#4a2f1a" opacity="0.4"/>
+  <rect x="28" y="38" width="3" height="3" fill="#4a2f1a" opacity="0.4"/>
+  <rect x="40" y="36" width="4" height="4" fill="#4a2f1a" opacity="0.4"/>
+  <rect x="22" y="43" width="3" height="3" fill="#4a2f1a" opacity="0.3"/>
+  <rect x="36" y="42" width="4" height="4" fill="#4a2f1a" opacity="0.3"/>
+
+  <!-- Bottom border -->
+  <rect x="14" y="46" width="36" height="2" rx="1" fill="#3e2314" opacity="0.7"/>
+
+  <!-- Settings gear overlay (white) centered -->
+  <g transform="translate(32, 32) scale(0.45)">
+    <!-- Gear shape -->
+    <circle cx="0" cy="0" r="7" fill="url(#gearGrad)" />
+    <circle cx="0" cy="0" r="3" fill="#1a1a2e" />
+    <!-- Gear teeth -->
+    <rect x="-3" y="-13" width="6" height="7" rx="2" fill="url(#gearGrad)" />
+    <rect x="-3" y="6" width="6" height="7" rx="2" fill="url(#gearGrad)" />
+    <rect x="-13" y="-3" width="7" height="6" rx="2" fill="url(#gearGrad)" />
+    <rect x="6" y="-3" width="7" height="6" rx="2" fill="url(#gearGrad)" />
+    <rect x="-10.5" y="-10.5" width="6" height="6" rx="2" fill="url(#gearGrad)" transform="rotate(45)"/>
+    <rect x="7.5" y="-10.5" width="6" height="6" rx="2" fill="url(#gearGrad)" transform="rotate(45)"/>
+  </g>
+
+  <!-- Border ring -->
+  <circle cx="32" cy="32" r="30" fill="none" stroke="#4CAF50" stroke-width="1.5" opacity="0.4"/>
+</svg>
