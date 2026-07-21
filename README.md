@@ -12,4 +12,11 @@ Editor visual de `server.properties` (PT-BR):
 - Só mostra propriedades existentes no arquivo
 - Eggs configuráveis na engrenagem do Blueprint
 
-Veja o [README do Server Properties](./serverprops/README.md).
+### [Bedrock Version Manager](./bedrockversions/)
+
+Seletor de versões do Bedrock Dedicated Server:
+
+- URL: `/server/{id}/minecraft/bedrock-version`
+- Stable + Preview via API oficial
+- PocketMine marcado como “Em breve”
+- Atualiza `BEDROCK_VERSION`
