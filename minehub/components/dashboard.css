@@ -1,0 +1,487 @@
+/* MineHub Dashboard Styles */
+
+.minehub-container {
+    --mh-green: #4ade80;
+    --mh-green-dark: #16a34a;
+    --mh-bg: #0b1120;
+    --mh-surface: #151d2e;
+    --mh-surface-hover: #1a2438;
+    --mh-border: #2a3548;
+    --mh-text: #e2e8f0;
+    --mh-muted: #8896ab;
+    --mh-accent: #818cf8;
+    --mh-danger: #ef4444;
+    --mh-warning: #f59e0b;
+    --mh-radius: 12px;
+}
+
+.minehub-container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.minehub-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.minehub-header__title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.minehub-header__title h2 {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--mh-text);
+    margin: 0;
+}
+
+.minehub-header__icon {
+    width: 44px;
+    height: 44px;
+    background: linear-gradient(135deg, var(--mh-green), var(--mh-green-dark));
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+}
+
+.minehub-tabs {
+    display: flex;
+    gap: 4px;
+    background: var(--mh-surface);
+    border: 1px solid var(--mh-border);
+    border-radius: 10px;
+    padding: 4px;
+}
+
+.minehub-tab {
+    padding: 8px 20px;
+    border: none;
+    background: transparent;
+    color: var(--mh-muted);
+    font-size: 13px;
+    font-weight: 500;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.minehub-tab:hover {
+    color: var(--mh-text);
+    background: var(--mh-surface-hover);
+}
+
+.minehub-tab.active {
+    background: var(--mh-green);
+    color: #0b1120;
+    font-weight: 600;
+}
+
+.minehub-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+}
+
+.minehub-card {
+    background: var(--mh-surface);
+    border: 1px solid var(--mh-border);
+    border-radius: var(--mh-radius);
+    padding: 20px;
+    transition: border-color 0.2s, transform 0.2s;
+}
+
+.minehub-card:hover {
+    border-color: rgba(74, 222, 128, 0.3);
+}
+
+.minehub-card--featured {
+    border-color: rgba(74, 222, 128, 0.4);
+    background: linear-gradient(135deg, var(--mh-surface) 0%, rgba(74, 222, 128, 0.05) 100%);
+}
+
+.minehub-card__header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.minehub-card__icon {
+    font-size: 32px;
+}
+
+.minehub-card__name {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--mh-text);
+    margin: 0;
+}
+
+.minehub-card__version {
+    font-size: 11px;
+    color: var(--mh-green);
+    background: rgba(74, 222, 128, 0.1);
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 500;
+}
+
+.minehub-card__desc {
+    color: var(--mh-muted);
+    font-size: 13px;
+    line-height: 1.5;
+    margin: 0 0 16px;
+}
+
+.minehub-card__actions {
+    display: flex;
+    gap: 8px;
+}
+
+.minehub-btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.minehub-btn--primary {
+    background: linear-gradient(135deg, var(--mh-green), var(--mh-green-dark));
+    color: #0b1120;
+}
+
+.minehub-btn--primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(74, 222, 128, 0.25);
+}
+
+.minehub-btn--primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.minehub-btn--danger {
+    background: rgba(239, 68, 68, 0.15);
+    color: var(--mh-danger);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.minehub-btn--danger:hover {
+    background: rgba(239, 68, 68, 0.25);
+}
+
+.minehub-btn--ghost {
+    background: transparent;
+    color: var(--mh-muted);
+    border: 1px solid var(--mh-border);
+}
+
+.minehub-btn--ghost:hover {
+    color: var(--mh-text);
+    border-color: var(--mh-muted);
+}
+
+.minehub-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 20px;
+}
+
+.minehub-badge--installed {
+    background: rgba(74, 222, 128, 0.15);
+    color: var(--mh-green);
+}
+
+.minehub-badge--loading {
+    background: rgba(129, 140, 248, 0.15);
+    color: var(--mh-accent);
+}
+
+.minehub-props-section {
+    margin-bottom: 24px;
+}
+
+.minehub-props-section__header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--mh-border);
+}
+
+.minehub-props-section__header h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--mh-text);
+    margin: 0;
+}
+
+.minehub-props-section__icon {
+    font-size: 20px;
+}
+
+.minehub-field {
+    margin-bottom: 16px;
+}
+
+.minehub-field__label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--mh-text);
+    margin-bottom: 6px;
+}
+
+.minehub-field__desc {
+    font-size: 11px;
+    color: var(--mh-muted);
+    margin-top: 4px;
+}
+
+.minehub-field input,
+.minehub-field select {
+    width: 100%;
+    padding: 10px 14px;
+    background: var(--mh-bg);
+    border: 1px solid var(--mh-border);
+    border-radius: 8px;
+    color: var(--mh-text);
+    font-size: 13px;
+    transition: border-color 0.2s;
+}
+
+.minehub-field input:focus,
+.minehub-field select:focus {
+    outline: none;
+    border-color: var(--mh-green);
+}
+
+.minehub-switch {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: var(--mh-bg);
+    border: 1px solid var(--mh-border);
+    border-radius: 8px;
+    margin-bottom: 8px;
+}
+
+.minehub-switch__info {
+    flex: 1;
+}
+
+.minehub-switch__label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--mh-text);
+}
+
+.minehub-switch__desc {
+    font-size: 11px;
+    color: var(--mh-muted);
+    margin-top: 2px;
+}
+
+.minehub-switch__toggle {
+    width: 44px;
+    height: 24px;
+    background: var(--mh-border);
+    border-radius: 12px;
+    position: relative;
+    cursor: pointer;
+    transition: background 0.3s;
+    border: none;
+    flex-shrink: 0;
+}
+
+.minehub-switch__toggle.active {
+    background: var(--mh-green);
+}
+
+.minehub-switch__toggle::after {
+    content: '';
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    background: white;
+    border-radius: 50%;
+    top: 3px;
+    left: 3px;
+    transition: transform 0.3s;
+}
+
+.minehub-switch__toggle.active::after {
+    transform: translateX(20px);
+}
+
+.minehub-save-bar {
+    position: sticky;
+    bottom: 16px;
+    display: flex;
+    justify-content: center;
+    padding: 12px;
+    z-index: 10;
+}
+
+.minehub-save-bar__inner {
+    background: var(--mh-surface);
+    border: 1px solid var(--mh-border);
+    border-radius: 12px;
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.minehub-save-bar__text {
+    font-size: 13px;
+    color: var(--mh-muted);
+}
+
+.minehub-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px;
+    color: var(--mh-muted);
+    gap: 16px;
+}
+
+.minehub-spinner {
+    width: 36px;
+    height: 36px;
+    border: 3px solid var(--mh-border);
+    border-top-color: var(--mh-green);
+    border-radius: 50%;
+    animation: minehub-spin 0.8s linear infinite;
+}
+
+@keyframes minehub-spin {
+    to { transform: rotate(360deg); }
+}
+
+.minehub-empty {
+    text-align: center;
+    padding: 48px;
+    color: var(--mh-muted);
+}
+
+.minehub-empty__icon {
+    font-size: 48px;
+    margin-bottom: 12px;
+}
+
+.minehub-search {
+    margin-bottom: 20px;
+}
+
+.minehub-search input {
+    width: 100%;
+    max-width: 400px;
+    padding: 10px 16px 10px 40px;
+    background: var(--mh-surface);
+    border: 1px solid var(--mh-border);
+    border-radius: 10px;
+    color: var(--mh-text);
+    font-size: 13px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%238896ab' viewBox='0 0 16 16'%3E%3Cpath d='M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85zm-5.242 1.156a5 5 0 1 1 0-10 5 5 0 0 1 0 10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: 14px center;
+}
+
+.minehub-search input:focus {
+    outline: none;
+    border-color: var(--mh-green);
+}
+
+.minehub-installed-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 24px;
+}
+
+.minehub-installed-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: var(--mh-surface);
+    border: 1px solid var(--mh-border);
+    border-radius: 8px;
+}
+
+.minehub-installed-item__name {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--mh-text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.minehub-alert {
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    margin-bottom: 16px;
+}
+
+.minehub-alert--error {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: var(--mh-danger);
+}
+
+.minehub-alert--success {
+    background: rgba(74, 222, 128, 0.1);
+    border: 1px solid rgba(74, 222, 128, 0.3);
+    color: var(--mh-green);
+}
+
+.minehub-props-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 12px;
+}
+
+@media (max-width: 768px) {
+    .minehub-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .minehub-tabs {
+        width: 100%;
+        overflow-x: auto;
+    }
+
+    .minehub-grid {
+        grid-template-columns: 1fr;
+    }
+}
