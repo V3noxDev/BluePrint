@@ -260,7 +260,7 @@ const AdvancedRenameFileModal = ({ files, useMoveTerminology, visible, onDismiss
                                 type="button"
                                 className="amf-list__item"
                                 disabled={submitting}
-                                onClick={() => setBrowsePath(join(browsePath, entry.name))}
+                                onClick={() => setBrowsePath(normalizePath(join(browsePath, entry.name)))}
                             >
                                 <FontAwesomeIcon icon={faFolder} className="amf-list__folder" />
                                 <span>{entry.name}</span>

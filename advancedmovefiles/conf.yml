@@ -3,16 +3,16 @@ info:
   identifier: "advancedmovefiles"
   description: "Interface avançada para mover e renomear arquivos — navegação por pastas, preview do destino e criar pasta durante a movimentação."
   flags: ""
-  version: "1.0.0"
+  version: "1.0.1"
   target: "beta-2026-06"
   author: "BluePrint"
   icon: "data/icon.svg"
   website: ""
 
 admin:
-  view: ""
-  controller: ""
-  css: ""
+  view: "admin/view.blade.php"
+  controller: "admin/controller.php"
+  css: "admin/admin.css"
   wrapper: ""
 
 dashboard:
