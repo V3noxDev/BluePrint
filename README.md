@@ -52,3 +52,11 @@ Instalador de templates com variáveis e steps automáticos:
 - URL: `/server/{id}/minecraft/templates`
 - Admin: criar templates, variáveis, steps (pull/write/unzip/power)
 - Importar/exportar JSON
+
+### [Advanced Move Files](./advancedmovefiles/)
+
+Interface avançada para mover/renomear no gerenciador de arquivos:
+
+- Navegação por pastas no modal
+- Preview do destino + criar pasta durante a movimentação
+- Substitui o modal padrão de mover/renomear do Pterodactyl
