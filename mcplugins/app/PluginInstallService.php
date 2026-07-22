@@ -14,33 +14,47 @@ class PluginInstallService
 
     public function __construct(
         private CurseForgeClient $curse,
+        private ModrinthClient $modrinth,
         private DaemonFileRepository $files,
         private DaemonPowerRepository $power,
         private BlueprintExtensionLibrary $blueprint,
     ) {}
 
-    public function install(Server $server, int $pluginId, int $fileId): array
+    public function install(Server $server, string $provider, string|int $pluginId, string|int $fileId): array
     {
-        if (!$this->curse->hasApiKey()) {
-            throw new \RuntimeException('API Key do CurseForge não configurada.');
-        }
+        $provider = strtolower($provider);
 
-        $plugin = $this->curse->getPlugin($pluginId);
+        $plugin = $provider === 'modrinth'
+            ? $this->modrinth->getPlugin((string) $pluginId)
+            : $this->curse->getPlugin((int) $pluginId);
+
         if (!$plugin) {
-            throw new \RuntimeException('Plugin não encontrado na CurseForge.');
+            throw new \RuntimeException('Plugin não encontrado.');
         }
 
-        $file = $this->curse->getFile($pluginId, $fileId);
-        if (!$file) {
-            throw new \RuntimeException('Versão do plugin não encontrada.');
+        if ($provider === 'modrinth') {
+            $file = $this->modrinth->getVersion((string) $fileId);
+            if (!$file) {
+                throw new \RuntimeException('Versão do plugin não encontrada no Modrinth.');
+            }
+            $url = $file['download_url'] ?? null;
+            $filename = basename($file['file_name'] ?: 'plugin.jar');
+        } else {
+            if (!$this->curse->hasApiKey()) {
+                throw new \RuntimeException('API Key do CurseForge não configurada.');
+            }
+            $file = $this->curse->getFile((int) $pluginId, (int) $fileId);
+            if (!$file) {
+                throw new \RuntimeException('Versão do plugin não encontrada no CurseForge.');
+            }
+            $url = $this->curse->getDownloadUrl((int) $pluginId, (int) $fileId) ?: ($file['download_url'] ?? null);
+            $filename = basename($file['file_name'] ?: 'plugin-' . $fileId . '.jar');
         }
 
-        $url = $this->curse->getDownloadUrl($pluginId, $fileId) ?: ($file['download_url'] ?? null);
         if (!$url) {
-            throw new \RuntimeException('CurseForge não retornou URL de download.');
+            throw new \RuntimeException('Não foi possível obter a URL de download.');
         }
 
-        $filename = basename($file['file_name'] ?: 'plugin-' . $fileId . '.jar');
         if (!str_ends_with(strtolower($filename), '.jar')) {
             $filename .= '.jar';
         }
@@ -48,8 +62,7 @@ class PluginInstallService
         $this->ensurePluginsDir($server);
         $this->stopServer($server);
 
-        // Remove jar antigo do mesmo plugin se existir
-        $existing = $this->findInstalledByPluginId($server, $pluginId);
+        $existing = $this->findInstalledByPluginId($server, $provider, $pluginId);
         if ($existing && ($existing['file_name'] ?? '') !== $filename) {
             $this->deletePluginFile($server, $existing['file_name']);
         }
@@ -60,6 +73,7 @@ class PluginInstallService
         ]);
 
         $record = [
+            'provider' => $provider,
             'plugin_id' => $pluginId,
             'file_id' => $fileId,
             'name' => $plugin['name'],
@@ -70,7 +84,6 @@ class PluginInstallService
             'summary' => $plugin['summary'],
             'loaders' => $file['loaders'] ?: $plugin['loaders'],
             'game_versions' => $file['game_versions'] ?: $plugin['game_versions'],
-            'provider' => 'curseforge',
             'installed_at' => now()->toIso8601String(),
         ];
 
@@ -80,9 +93,9 @@ class PluginInstallService
         return $record;
     }
 
-    public function update(Server $server, int $pluginId, int $fileId): array
+    public function update(Server $server, string $provider, string|int $pluginId, string|int $fileId): array
     {
-        return $this->install($server, $pluginId, $fileId);
+        return $this->install($server, $provider, $pluginId, $fileId);
     }
 
     public function remove(Server $server, string $fileName): void
@@ -105,10 +118,11 @@ class PluginInstallService
             $updateAvailable = false;
 
             if ($record && !empty($record['plugin_id'])) {
-                $plugin = $this->curse->getPlugin((int) $record['plugin_id']);
-                if ($plugin && !empty($plugin['main_file_id'])) {
-                    $latestFileId = (int) $plugin['main_file_id'];
-                    $updateAvailable = $latestFileId > 0 && $latestFileId !== (int) ($record['file_id'] ?? 0);
+                $provider = (string) ($record['provider'] ?? 'curseforge');
+                $update = $this->checkUpdate($provider, $record['plugin_id'], $record['file_id'] ?? null);
+                if ($update) {
+                    $updateAvailable = (bool) ($update['available'] ?? false);
+                    $latestFileId = $update['latest_file_id'] ?? null;
                 }
             }
 
@@ -116,6 +130,7 @@ class PluginInstallService
                 'file_name' => $fileName,
                 'name' => $record['name'] ?? $this->guessNameFromFile($fileName),
                 'version' => $record['version'] ?? null,
+                'provider' => $record['provider'] ?? null,
                 'plugin_id' => $record['plugin_id'] ?? null,
                 'file_id' => $record['file_id'] ?? null,
                 'logo' => $record['logo'] ?? null,
@@ -129,6 +144,48 @@ class PluginInstallService
         usort($items, fn ($a, $b) => strcasecmp($a['name'], $b['name']));
 
         return $items;
+    }
+
+  /**
+   * @return array{available: bool, latest_file_id?: string|int}|null
+   */
+    private function checkUpdate(string $provider, string|int $pluginId, string|int|null $currentFileId): ?array
+    {
+        try {
+            if ($provider === 'modrinth') {
+                $versions = $this->modrinth->getVersions((string) $pluginId);
+                $latest = $versions['data'][0] ?? null;
+                if (!$latest) {
+                    return null;
+                }
+                if ((string) $latest['id'] === (string) $currentFileId) {
+                    return ['available' => false];
+                }
+
+                return [
+                    'available' => true,
+                    'latest_file_id' => $latest['id'],
+                ];
+            }
+
+            if (!$this->curse->hasApiKey()) {
+                return null;
+            }
+
+            $plugin = $this->curse->getPlugin((int) $pluginId);
+            if ($plugin && !empty($plugin['main_file_id'])) {
+                $latestFileId = (int) $plugin['main_file_id'];
+                if ($latestFileId > 0 && (string) $latestFileId !== (string) $currentFileId) {
+                    return ['available' => true, 'latest_file_id' => $latestFileId];
+                }
+
+                return ['available' => false];
+            }
+        } catch (\Throwable $e) {
+            Log::debug('[mcplugins] checkUpdate: ' . $e->getMessage());
+        }
+
+        return null;
     }
 
     private function listPluginJars(Server $server): array
@@ -191,11 +248,13 @@ class PluginInstallService
         $this->blueprint->dbSet('mcplugins', $this->metaKey($server), json_encode($map));
     }
 
-    private function findInstalledByPluginId(Server $server, int $pluginId): ?array
+    private function findInstalledByPluginId(Server $server, string $provider, string|int $pluginId): ?array
     {
         foreach ($this->getAllInstalledMeta($server) as $fileName => $record) {
-            if ((int) ($record['plugin_id'] ?? 0) === $pluginId) {
+            $sameProvider = ($record['provider'] ?? 'curseforge') === $provider;
+            if ($sameProvider && (string) ($record['plugin_id'] ?? '') === (string) $pluginId) {
                 $record['file_name'] = $fileName;
+
                 return $record;
             }
         }

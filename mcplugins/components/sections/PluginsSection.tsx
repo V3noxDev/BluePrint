@@ -8,8 +8,10 @@ type TopMode = 'browse' | 'manage';
 type View = 'home' | 'details';
 type DetailsTab = 'description' | 'versions';
 
+type Provider = 'modrinth' | 'curseforge';
+
 interface PluginCard {
-    id: number;
+    id: string | number;
     name: string;
     slug: string;
     summary: string;
@@ -26,10 +28,11 @@ interface PluginCard {
     date_modified: string | null;
     description_html?: string;
     main_file_id?: number;
+    provider?: Provider;
 }
 
 interface PluginFile {
-    id: number;
+    id: string | number;
     display_name: string;
     file_name: string;
     download_count: number;
@@ -42,20 +45,23 @@ interface InstalledPlugin {
     file_name: string;
     name: string;
     version: string | null;
-    plugin_id: number | null;
-    file_id: number | null;
+    provider: Provider | null;
+    plugin_id: string | number | null;
+    file_id: string | number | null;
     logo: string | null;
     installed_at: string | null;
     tracked: boolean;
     update_available: boolean;
-    latest_file_id: number | null;
+    latest_file_id: string | number | null;
 }
 
 interface FiltersMeta {
     loaders: Record<string, string>;
     sorts: Record<string, string>;
     page_sizes: number[];
-    provider: string;
+    providers: Record<string, string>;
+    provider: Provider;
+    curseforge_configured?: boolean;
 }
 
 const formatCount = (n: number) =>
@@ -78,7 +84,7 @@ const timeAgo = (iso?: string | null) => {
 };
 
 const cardFromInstalled = (item: InstalledPlugin): PluginCard => ({
-    id: item.plugin_id ?? 0,
+    id: item.plugin_id ?? '',
     name: item.name,
     slug: '',
     summary: '',
@@ -93,6 +99,7 @@ const cardFromInstalled = (item: InstalledPlugin): PluginCard => ({
     game_versions: [],
     date_created: null,
     date_modified: null,
+    provider: item.provider ?? undefined,
 });
 
 const PluginsSection = () => {
@@ -108,10 +115,11 @@ const PluginsSection = () => {
     const [filtersMeta, setFiltersMeta] = useState<FiltersMeta | null>(null);
     const [pagination, setPagination] = useState({ index: 0, pageSize: 48, totalCount: 0 });
 
+    const [provider, setProvider] = useState<Provider>('modrinth');
     const [search, setSearch] = useState('');
     const [searchDraft, setSearchDraft] = useState('');
     const [loader, setLoader] = useState('');
-    const [sort, setSort] = useState('2');
+    const [sort, setSort] = useState('downloads');
     const [pageSize, setPageSize] = useState('48');
     const [gameVersion, setGameVersion] = useState('');
 
@@ -136,7 +144,7 @@ const PluginsSection = () => {
     } | null>(null);
     const [deleteModal, setDeleteModal] = useState<InstalledPlugin | null>(null);
 
-    const [selectedFileId, setSelectedFileId] = useState<number | null>(null);
+    const [selectedFileId, setSelectedFileId] = useState<string | number | null>(null);
     const [installing, setInstalling] = useState(false);
     const [updating, setUpdating] = useState(false);
     const [removing, setRemoving] = useState(false);
@@ -149,6 +157,8 @@ const PluginsSection = () => {
         window.setTimeout(() => setToast(null), 4500);
     };
 
+    const providerQuery = (p: Provider = provider) => `provider=${encodeURIComponent(p)}`;
+
     const loadList = useCallback(async () => {
         setLoading(true);
         setError(null);
@@ -159,6 +169,7 @@ const PluginsSection = () => {
                 sort,
                 page_size: pageSize,
                 index: String(pagination.index),
+                provider,
             });
             if (gameVersion.trim()) params.set('game_version', gameVersion.trim());
 
@@ -167,7 +178,9 @@ const PluginsSection = () => {
                 setError(res.message || 'Falha ao carregar plugins.');
                 return;
             }
-            setApiConfigured(!!res.data.api_configured);
+            const configured =
+                provider === 'modrinth' ? true : !!res.data.api_configured;
+            setApiConfigured(configured);
             setEmptyMessage(res.data.message || null);
             setPlugins(res.data.plugins || []);
             setFiltersMeta(res.data.filters || null);
@@ -181,7 +194,7 @@ const PluginsSection = () => {
         } finally {
             setLoading(false);
         }
-    }, [apiBase, search, loader, sort, pageSize, gameVersion, pagination.index]);
+    }, [apiBase, search, loader, sort, pageSize, gameVersion, pagination.index, provider]);
 
     const loadInstalled = useCallback(async () => {
         setInstalledLoading(true);
@@ -192,7 +205,7 @@ const PluginsSection = () => {
                 setInstalledError(res.message || 'Falha ao carregar plugins instalados.');
                 return;
             }
-            setApiConfigured(!!res.data.api_configured);
+            setApiConfigured(true);
             setInstalled(res.data.plugins || []);
         } catch (err: any) {
             setInstalledError(err?.response?.data?.message || 'Erro ao carregar plugins instalados.');
@@ -206,7 +219,7 @@ const PluginsSection = () => {
             loadList();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [topMode, view, uuid, search, loader, sort, pageSize, gameVersion, pagination.index]);
+    }, [topMode, view, uuid, search, loader, sort, pageSize, gameVersion, pagination.index, provider]);
 
     useEffect(() => {
         if (topMode === 'manage') {
@@ -214,25 +227,33 @@ const PluginsSection = () => {
         }
     }, [topMode, loadInstalled]);
 
+    const resolveProvider = (plugin?: PluginCard | null, item?: InstalledPlugin | null): Provider =>
+        plugin?.provider || item?.provider || provider;
+
     const openDetails = async (plugin: PluginCard, from: TopMode = 'browse') => {
+        const itemProvider = resolveProvider(plugin);
         setDetailsReturn(from);
         setView('details');
         setDetailsTab('description');
-        setSelected(plugin);
+        setSelected({ ...plugin, provider: itemProvider });
         setFiles([]);
         if (!plugin.id) return;
         try {
-            const { data: res } = await http.get(`${apiBase}/${plugin.id}`);
-            if (res.success) setSelected(res.data);
+            const { data: res } = await http.get(
+                `${apiBase}/${encodeURIComponent(String(plugin.id))}?${providerQuery(itemProvider)}`
+            );
+            if (res.success) setSelected({ ...res.data, provider: itemProvider });
         } catch {
             // keep card data
         }
     };
 
-    const loadFiles = async (pluginId: number) => {
+    const loadFiles = async (pluginId: string | number, itemProvider: Provider = provider) => {
         setFilesLoading(true);
         try {
-            const { data: res } = await http.get(`${apiBase}/${pluginId}/files`);
+            const { data: res } = await http.get(
+                `${apiBase}/${encodeURIComponent(String(pluginId))}/files?${providerQuery(itemProvider)}`
+            );
             if (res.success) setFiles(res.data.data || []);
         } catch {
             setFiles([]);
@@ -243,14 +264,19 @@ const PluginsSection = () => {
 
     useEffect(() => {
         if (view === 'details' && detailsTab === 'versions' && selected?.id) {
-            loadFiles(selected.id);
+            loadFiles(selected.id, resolveProvider(selected));
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [view, detailsTab, selected?.id]);
+    }, [view, detailsTab, selected?.id, selected?.provider]);
 
-    const fetchPluginFiles = async (pluginId: number): Promise<PluginFile[]> => {
+    const fetchPluginFiles = async (
+        pluginId: string | number,
+        itemProvider: Provider = provider
+    ): Promise<PluginFile[]> => {
         try {
-            const { data: res } = await http.get(`${apiBase}/${pluginId}/files`);
+            const { data: res } = await http.get(
+                `${apiBase}/${encodeURIComponent(String(pluginId))}/files?${providerQuery(itemProvider)}`
+            );
             return res.data?.data || [];
         } catch {
             return [];
@@ -258,16 +284,19 @@ const PluginsSection = () => {
     };
 
     const openInstall = async (plugin: PluginCard, presetFiles?: PluginFile[]) => {
-        const list = presetFiles ?? (await fetchPluginFiles(plugin.id));
+        const itemProvider = resolveProvider(plugin);
+        const list = presetFiles ?? (await fetchPluginFiles(plugin.id, itemProvider));
         setSelectedFileId(list?.[0]?.id ?? null);
-        setInstallModal({ plugin, files: list || [] });
+        setInstallModal({ plugin: { ...plugin, provider: itemProvider }, files: list || [] });
     };
 
     const handleInstall = async () => {
-        if (!installModal || !selectedFileId) return;
+        if (!installModal || selectedFileId === null || selectedFileId === '') return;
+        const itemProvider = resolveProvider(installModal.plugin);
         setInstalling(true);
         try {
             const { data: res } = await http.post(`${apiBase}/install`, {
+                provider: itemProvider,
                 plugin_id: installModal.plugin.id,
                 file_id: selectedFileId,
             });
@@ -291,16 +320,19 @@ const PluginsSection = () => {
             showToast('error', 'Este plugin não foi instalado pelo gerenciador e não pode ser atualizado.');
             return;
         }
-        let plugin: PluginCard | null = cardFromInstalled(item);
+        const itemProvider = item.provider || 'curseforge';
+        let plugin: PluginCard | null = { ...cardFromInstalled(item), provider: itemProvider };
         try {
-            const { data: res } = await http.get(`${apiBase}/${item.plugin_id}`);
-            if (res.success) plugin = res.data;
+            const { data: res } = await http.get(
+                `${apiBase}/${encodeURIComponent(String(item.plugin_id))}?${providerQuery(itemProvider)}`
+            );
+            if (res.success) plugin = { ...res.data, provider: itemProvider };
         } catch {
             // keep minimal data
         }
-        const list = await fetchPluginFiles(item.plugin_id);
+        const list = await fetchPluginFiles(item.plugin_id, itemProvider);
         const defaultId =
-            item.latest_file_id && list.some((f) => f.id === item.latest_file_id)
+            item.latest_file_id && list.some((f) => String(f.id) === String(item.latest_file_id))
                 ? item.latest_file_id
                 : list[0]?.id ?? null;
         setSelectedFileId(defaultId);
@@ -308,10 +340,12 @@ const PluginsSection = () => {
     };
 
     const handleUpdate = async () => {
-        if (!updateModal?.item.plugin_id || !selectedFileId) return;
+        if (!updateModal?.item.plugin_id || selectedFileId === null || selectedFileId === '') return;
+        const itemProvider = updateModal.item.provider || 'curseforge';
         setUpdating(true);
         try {
             const { data: res } = await http.post(`${apiBase}/update`, {
+                provider: itemProvider,
                 plugin_id: updateModal.item.plugin_id,
                 file_id: selectedFileId,
             });
@@ -351,14 +385,17 @@ const PluginsSection = () => {
     };
 
     const installSelectedFile = useMemo(
-        () => installModal?.files.find((f) => f.id === selectedFileId) || null,
+        () => installModal?.files.find((f) => String(f.id) === String(selectedFileId)) || null,
         [installModal, selectedFileId]
     );
 
     const updateSelectedFile = useMemo(
-        () => updateModal?.files.find((f) => f.id === selectedFileId) || null,
+        () => updateModal?.files.find((f) => String(f.id) === String(selectedFileId)) || null,
         [updateModal, selectedFileId]
     );
+
+    const providerLabel = (p: Provider) =>
+        p === 'modrinth' ? 'Modrinth' : 'CurseForge';
 
     const totalPages = Math.max(1, Math.ceil(pagination.totalCount / pagination.pageSize));
     const currentPage = Math.floor(pagination.index / pagination.pageSize) + 1;
@@ -444,7 +481,7 @@ const PluginsSection = () => {
                                         ↗
                                     </a>
                                 )}
-                                {selected.id > 0 && (
+                                {selected.id && (
                                     <button
                                         type={'button'}
                                         className={'pl-btn pl-btn--primary'}
@@ -643,6 +680,9 @@ const PluginsSection = () => {
                                             </div>
                                             <div className={'pl-manage-card__meta'}>
                                                 {item.file_name}
+                                                {item.provider && (
+                                                    <> · {providerLabel(item.provider)}</>
+                                                )}
                                                 {item.installed_at && (
                                                     <> · Instalado {timeAgo(item.installed_at)}</>
                                                 )}
@@ -697,11 +737,23 @@ const PluginsSection = () => {
                         <div className={'pl-filters'}>
                             <select
                                 className={'pl-select'}
-                                value={'curseforge'}
-                                disabled
+                                value={provider}
                                 title={'Provedor'}
+                                onChange={(e) => {
+                                    const next = e.target.value as Provider;
+                                    setProvider(next);
+                                    setSort(next === 'modrinth' ? 'downloads' : '2');
+                                    setPagination((p) => ({ ...p, index: 0 }));
+                                }}
                             >
-                                <option value={'curseforge'}>CurseForge</option>
+                                {Object.entries(filtersMeta?.providers || {
+                                    modrinth: 'Modrinth',
+                                    curseforge: 'CurseForge',
+                                }).map(([k, v]) => (
+                                    <option key={k} value={k}>
+                                        {v}
+                                    </option>
+                                ))}
                             </select>
                             <select
                                 className={'pl-select'}
@@ -787,17 +839,18 @@ const PluginsSection = () => {
 
                         {error && <div className={'pl-alert pl-alert--error'}>{error}</div>}
 
-                        {!apiConfigured && (
+                        {!apiConfigured && provider === 'curseforge' && (
                             <div className={'pl-empty'}>
-                                <h3>Não encontramos nenhum plugin</h3>
+                                <h3>CurseForge não configurado</h3>
                                 <p>
-                                    Configure a API Key do CurseForge em{' '}
+                                    Para buscar plugins no CurseForge, configure a API Key em{' '}
                                     <strong>Admin → Extensions → MC Plugins</strong>.
+                                    Você também pode usar o <strong>Modrinth</strong> sem API Key.
                                 </p>
                             </div>
                         )}
 
-                        {apiConfigured && plugins.length === 0 && (
+                        {(apiConfigured || provider === 'modrinth') && plugins.length === 0 && (
                             <div className={'pl-empty'}>
                                 <h3>Não encontramos nenhum plugin</h3>
                                 <p>{emptyMessage || 'Tente outros filtros ou outra busca.'}</p>
@@ -806,7 +859,7 @@ const PluginsSection = () => {
 
                         <div className={'pl-grid'}>
                             {plugins.map((plugin) => (
-                                <div key={plugin.id} className={'pl-card'}>
+                                <div key={`${provider}-${plugin.id}`} className={'pl-card'}>
                                     <div className={'pl-card__top'}>
                                         <img
                                             className={'pl-card__logo'}
@@ -835,7 +888,7 @@ const PluginsSection = () => {
                                                 href={plugin.url}
                                                 target={'_blank'}
                                                 rel={'noreferrer'}
-                                                title={'Abrir no CurseForge'}
+                                                title={`Abrir no ${providerLabel(provider)}`}
                                             >
                                                 ↗
                                             </a>
@@ -859,7 +912,8 @@ const PluginsSection = () => {
                             ))}
                         </div>
 
-                        {apiConfigured && pagination.totalCount > pagination.pageSize && (
+                        {(apiConfigured || provider === 'modrinth') &&
+                            pagination.totalCount > pagination.pageSize && (
                             <div className={'pl-pager'}>
                                 <button
                                     type={'button'}
@@ -928,10 +982,10 @@ const PluginsSection = () => {
                             <select
                                 className={'pl-select pl-select--full'}
                                 value={selectedFileId ?? ''}
-                                onChange={(e) => setSelectedFileId(Number(e.target.value))}
+                                onChange={(e) => setSelectedFileId(e.target.value)}
                             >
                                 {installModal.files.map((f) => (
-                                    <option key={f.id} value={f.id}>
+                                    <option key={String(f.id)} value={String(f.id)}>
                                         {f.display_name}
                                     </option>
                                 ))}
@@ -1006,10 +1060,10 @@ const PluginsSection = () => {
                             <select
                                 className={'pl-select pl-select--full'}
                                 value={selectedFileId ?? ''}
-                                onChange={(e) => setSelectedFileId(Number(e.target.value))}
+                                onChange={(e) => setSelectedFileId(e.target.value)}
                             >
                                 {updateModal.files.map((f) => (
-                                    <option key={f.id} value={f.id}>
+                                    <option key={String(f.id)} value={String(f.id)}>
                                         {f.display_name}
                                     </option>
                                 ))}

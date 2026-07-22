@@ -1,6 +1,6 @@
 # MC Plugins
 
-Blueprint addon para gerenciar **plugins Minecraft** (Paper / Spigot / Purpur) via **CurseForge API**.
+Blueprint addon para gerenciar **plugins Minecraft** (Paper / Spigot / Purpur) via **Modrinth** e **CurseForge**.
 
 ## URL
 
@@ -10,19 +10,24 @@ Blueprint addon para gerenciar **plugins Minecraft** (Paper / Spigot / Purpur) v
 
 ## O que faz
 
-- **Buscar Plugins** — catálogo CurseForge (Bukkit Plugins)
+- **Buscar Plugins** — catálogo **Modrinth** (sem API Key) e **CurseForge** (com API Key)
 - **Gerenciar Plugins** — lista jars em `/plugins`, atualizar e remover
-- Detalhes com Descrição / Versões (estilo Modrinth/Hangar/SpigotMC na UI)
+- Detalhes com Descrição / Versões
 - Instalação real: baixa o `.jar` para `/plugins`
 - Interface 100% em português
 
-> A interface menciona ecossistemas como Modrinth, Hangar e SpigotMC como referência de UX, mas o **catálogo e downloads usam a API do CurseForge**.
+## Provedores
 
-## API Key (obrigatória)
+| Provedor | API Key | Observação |
+|----------|---------|------------|
+| **Modrinth** | Não precisa | Padrão ao abrir o painel |
+| **CurseForge** | Obrigatória | Bukkit Plugins via CurseForge for Studios |
+
+## API Key CurseForge (opcional para Modrinth)
 
 1. [console.curseforge.com](https://console.curseforge.com/)
 2. Admin → Extensions → **MC Plugins** → salvar key
-3. Sem key: *“Não encontramos nenhum plugin”*
+3. Sem key no CurseForge: use o provedor **Modrinth** ou configure a key para buscar no CurseForge
 
 ## Wings
 
@@ -45,13 +50,15 @@ php artisan migrate
 
 | Método | Endpoint |
 |--------|----------|
-| `GET` | `/api/client/extensions/mcplugins/servers/{server}/plugins` |
+| `GET` | `/api/client/extensions/mcplugins/servers/{server}/plugins?provider=modrinth\|curseforge` |
 | `GET` | `/api/client/extensions/mcplugins/servers/{server}/plugins/installed` |
-| `GET` | `/api/client/extensions/mcplugins/servers/{server}/plugins/{id}` |
-| `GET` | `/api/client/extensions/mcplugins/servers/{server}/plugins/{id}/files` |
+| `GET` | `/api/client/extensions/mcplugins/servers/{server}/plugins/{id}?provider=...` |
+| `GET` | `/api/client/extensions/mcplugins/servers/{server}/plugins/{id}/files?provider=...` |
 | `POST` | `/api/client/extensions/mcplugins/servers/{server}/plugins/install` |
 | `POST` | `/api/client/extensions/mcplugins/servers/{server}/plugins/update` |
 | `POST` | `/api/client/extensions/mcplugins/servers/{server}/plugins/remove` |
+
+Corpo de install/update: `{ "provider": "modrinth"|"curseforge", "plugin_id": "...", "file_id": "..." }`
 
 ## Licença
 

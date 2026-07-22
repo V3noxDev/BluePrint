@@ -219,6 +219,7 @@ class CurseForgeClient
             'date_created' => $mod['dateCreated'] ?? null,
             'date_modified' => $mod['dateModified'] ?? null,
             'main_file_id' => (int) ($mod['mainFileId'] ?? 0),
+            'provider' => 'curseforge',
         ];
     }
 

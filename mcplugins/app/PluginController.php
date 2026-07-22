@@ -12,6 +12,7 @@ class PluginController extends Controller
 {
     public function __construct(
         private CurseForgeClient $curse,
+        private ModrinthClient $modrinth,
         private PluginInstallService $installer,
     ) {}
 
@@ -19,29 +20,33 @@ class PluginController extends Controller
     {
         $this->authorize('file.read', $server);
 
-        $hasKey = $this->curse->hasApiKey();
+        $provider = $this->normalizeProvider($request->query('provider', 'modrinth'));
 
-        if (!$hasKey) {
+        if ($provider === 'curseforge' && !$this->curse->hasApiKey()) {
             return response()->json([
                 'success' => true,
                 'data' => [
                     'api_configured' => false,
-                    'message' => 'Não encontramos nenhum plugin. Configure a API Key do CurseForge na área admin do Blueprint.',
+                    'message' => 'Configure a API Key do CurseForge em Admin → Extensions → MC Plugins para buscar neste provedor.',
                     'plugins' => [],
                     'pagination' => ['index' => 0, 'pageSize' => 48, 'resultCount' => 0, 'totalCount' => 0],
-                    'filters' => $this->filterMeta(),
+                    'filters' => $this->filterMeta($provider),
                 ],
             ]);
         }
 
-        $search = $this->curse->searchPlugins([
+        $params = [
             'search' => $request->query('search'),
             'game_version' => $request->query('game_version'),
             'loader' => $request->query('loader'),
-            'sort' => $request->query('sort', 2),
+            'sort' => $request->query('sort', $provider === 'modrinth' ? 'downloads' : 2),
             'page_size' => $request->query('page_size', 48),
             'index' => $request->query('index', 0),
-        ]);
+        ];
+
+        $search = $provider === 'modrinth'
+            ? $this->modrinth->searchPlugins($params)
+            : $this->curse->searchPlugins($params);
 
         $message = empty($search['data'])
             ? 'Não encontramos nenhum plugin com esses filtros.'
@@ -54,7 +59,7 @@ class PluginController extends Controller
                 'message' => $message,
                 'plugins' => $search['data'],
                 'pagination' => $search['pagination'],
-                'filters' => $this->filterMeta(),
+                'filters' => $this->filterMeta($provider),
             ],
         ]);
     }
@@ -66,41 +71,55 @@ class PluginController extends Controller
         return response()->json([
             'success' => true,
             'data' => [
-                'api_configured' => $this->curse->hasApiKey(),
+                'api_configured' => true,
+                'curseforge_configured' => $this->curse->hasApiKey(),
                 'plugins' => $this->installer->listManaged($server),
             ],
         ]);
     }
 
-    public function show(Request $request, Server $server, int $plugin): JsonResponse
+    public function show(Request $request, Server $server, string $plugin): JsonResponse
     {
         $this->authorize('file.read', $server);
 
-        if (!$this->curse->hasApiKey()) {
-            return response()->json(['success' => false, 'message' => 'API Key não configurada.'], 422);
+        $provider = $this->normalizeProvider($request->query('provider', 'modrinth'));
+
+        if ($provider === 'curseforge' && !$this->curse->hasApiKey()) {
+            return response()->json(['success' => false, 'message' => 'API Key do CurseForge não configurada.'], 422);
         }
 
-        $data = $this->curse->getPlugin($plugin);
+        $data = $provider === 'modrinth'
+            ? $this->modrinth->getPlugin($plugin)
+            : $this->curse->getPlugin((int) $plugin);
+
         if (!$data) {
             return response()->json(['success' => false, 'message' => 'Plugin não encontrado.'], 404);
         }
 
+        $data['provider'] = $provider;
+
         return response()->json(['success' => true, 'data' => $data]);
     }
 
-    public function files(Request $request, Server $server, int $plugin): JsonResponse
+    public function files(Request $request, Server $server, string $plugin): JsonResponse
     {
         $this->authorize('file.read', $server);
 
-        if (!$this->curse->hasApiKey()) {
-            return response()->json(['success' => false, 'message' => 'API Key não configurada.'], 422);
+        $provider = $this->normalizeProvider($request->query('provider', 'modrinth'));
+
+        if ($provider === 'curseforge' && !$this->curse->hasApiKey()) {
+            return response()->json(['success' => false, 'message' => 'API Key do CurseForge não configurada.'], 422);
         }
 
-        $files = $this->curse->getFiles(
-            $plugin,
-            (int) $request->query('index', 0),
-            (int) $request->query('page_size', 50)
-        );
+        if ($provider === 'modrinth') {
+            $files = $this->modrinth->getVersions($plugin);
+        } else {
+            $files = $this->curse->getFiles(
+                (int) $plugin,
+                (int) $request->query('index', 0),
+                (int) $request->query('page_size', 50)
+            );
+        }
 
         return response()->json(['success' => true, 'data' => $files]);
     }
@@ -110,15 +129,24 @@ class PluginController extends Controller
         $this->authorize('file.update', $server);
 
         $data = $request->validate([
-            'plugin_id' => 'required|integer|min:1',
-            'file_id' => 'required|integer|min:1',
+            'provider' => 'required|in:modrinth,curseforge',
+            'plugin_id' => 'required',
+            'file_id' => 'required',
         ]);
+
+        if ($data['provider'] === 'curseforge' && !$this->curse->hasApiKey()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Configure a API Key do CurseForge em Admin → Extensions → MC Plugins.',
+            ], 422);
+        }
 
         try {
             $result = $this->installer->install(
                 $server,
-                (int) $data['plugin_id'],
-                (int) $data['file_id'],
+                $data['provider'],
+                $data['plugin_id'],
+                $data['file_id'],
             );
 
             return response()->json([
@@ -144,15 +172,24 @@ class PluginController extends Controller
         $this->authorize('file.update', $server);
 
         $data = $request->validate([
-            'plugin_id' => 'required|integer|min:1',
-            'file_id' => 'required|integer|min:1',
+            'provider' => 'required|in:modrinth,curseforge',
+            'plugin_id' => 'required',
+            'file_id' => 'required',
         ]);
+
+        if ($data['provider'] === 'curseforge' && !$this->curse->hasApiKey()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Configure a API Key do CurseForge em Admin → Extensions → MC Plugins.',
+            ], 422);
+        }
 
         try {
             $result = $this->installer->update(
                 $server,
-                (int) $data['plugin_id'],
-                (int) $data['file_id'],
+                $data['provider'],
+                $data['plugin_id'],
+                $data['file_id'],
             );
 
             return response()->json([
@@ -191,13 +228,29 @@ class PluginController extends Controller
         }
     }
 
-    private function filterMeta(): array
+    private function normalizeProvider(?string $provider): string
+    {
+        $provider = strtolower(trim((string) $provider));
+
+        return in_array($provider, ['modrinth', 'curseforge'], true) ? $provider : 'modrinth';
+    }
+
+    private function filterMeta(string $provider): array
     {
         return [
-            'loaders' => CurseForgeClient::SERVER_LOADERS,
-            'sorts' => CurseForgeClient::SORTS,
+            'loaders' => $provider === 'modrinth'
+                ? ModrinthClient::LOADERS
+                : CurseForgeClient::SERVER_LOADERS,
+            'sorts' => $provider === 'modrinth'
+                ? ModrinthClient::SORTS
+                : CurseForgeClient::SORTS,
             'page_sizes' => [24, 48],
-            'provider' => 'CurseForge',
+            'providers' => [
+                'modrinth' => 'Modrinth',
+                'curseforge' => 'CurseForge',
+            ],
+            'provider' => $provider,
+            'curseforge_configured' => $this->curse->hasApiKey(),
         ];
     }
 }

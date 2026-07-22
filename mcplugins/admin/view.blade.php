@@ -8,7 +8,7 @@
             <h3 class="pl-admin__title">MC Plugins Manager</h3>
             <p class="pl-admin__subtitle">
                 Gerenciador de plugins Minecraft (Paper / Spigot / Purpur) via
-                <strong>CurseForge API</strong>.
+                <strong>Modrinth</strong> e <strong>CurseForge</strong>.
             </p>
         </div>
         <span class="pl-admin__version">v1.0.0</span>
@@ -27,18 +27,14 @@
                     de Minecraft: Java Edition para administradores de servidor.
                 </li>
                 <li>
-                    Navegue por milhares de plugins, veja detalhes, instale uma versão
+                    Busque plugins no <strong>Modrinth</strong> (sem configuração extra) ou no
+                    <strong>CurseForge</strong> (requer API Key abaixo). Instale uma versão
                     específica e gerencie tudo pelo painel — busca, instalação, atualização e
                     remoção.
                 </li>
                 <li>
-                    A interface é inspirada em catálogos como Modrinth, Hangar e SpigotMC, mas
-                    o catálogo e os downloads usam a <strong>API oficial do CurseForge</strong>
-                    (Bukkit Plugins).
-                </li>
-                <li>
-                    Configure a API Key abaixo. Sem ela, o painel mostra
-                    <em>“Não encontramos nenhum plugin”</em>.
+                    O <strong>Modrinth</strong> funciona imediatamente. Para o CurseForge, configure
+                    a API Key abaixo — sem ela, o painel só mostra catálogo vazio nesse provedor.
                 </li>
             </ul>
         </div>
@@ -68,10 +64,11 @@
 
     <div class="pl-admin__grid">
         <div class="pl-admin__card pl-admin__card--wide">
-            <div class="pl-admin__card-title">CurseForge API Key</div>
+            <div class="pl-admin__card-title">CurseForge API Key (opcional)</div>
             <form id="config-form" action="" method="POST" class="pl-admin__form">
                 <p class="pl-admin__hint">
-                    Chave em
+                    Necessária apenas para buscar no <strong>CurseForge</strong>. O
+                    <strong>Modrinth</strong> não precisa de API Key. Chave em
                     <a href="https://console.curseforge.com/" target="_blank" rel="noreferrer">
                         console.curseforge.com
                     </a>
@@ -106,9 +103,9 @@
         <div class="pl-admin__card">
             <div class="pl-admin__card-title">Como usar</div>
             <ol class="pl-admin__steps">
-                <li>Salve a API Key do CurseForge.</li>
+                <li>Abra <code>/server/{id}/minecraft/plugins</code> e use <strong>Modrinth</strong> ou configure a API Key do CurseForge.</li>
                 <li>Engrenagem do Blueprint → eggs Paper/Spigot.</li>
-                <li><code>/server/{id}/minecraft/plugins</code></li>
+                <li>Busque, instale e gerencie plugins em <code>/plugins</code>.</li>
             </ol>
         </div>
 
