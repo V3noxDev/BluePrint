@@ -2,6 +2,7 @@
 
 namespace Pterodactyl\BlueprintFramework\Extensions\templates;
 
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Pterodactyl\Models\Server;
 use Pterodactyl\Repositories\Wings\DaemonFileRepository;
@@ -200,25 +201,31 @@ class TemplateInstallService
             throw new \RuntimeException('URL vazia no step pull.');
         }
 
-        $directory = '/';
-        $filename = null;
-        $normalized = ltrim($path, '/');
+        $fullPath = $this->wingsPath($path);
+        $this->ensureParentDir($repo, ltrim($fullPath, '/'));
 
-        if (str_contains($normalized, '/')) {
-            $directory = '/' . dirname($normalized);
-            $filename = basename($normalized);
-        } elseif ($normalized !== '') {
-            $filename = $normalized;
+        // Baixa pelo painel e envia via API de arquivos — não usa remote pull do Wings
+        // (evita falhas de conexão e não mata o servidor).
+        $response = Http::timeout(180)
+            ->withOptions(['allow_redirects' => true])
+            ->withHeaders(['User-Agent' => 'BluePrint-TemplateInstaller/1.0'])
+            ->get($url);
+
+        if (!$response->successful()) {
+            throw new \RuntimeException('Falha ao baixar arquivo (HTTP ' . $response->status() . '): ' . $url);
         }
 
-        if ($directory !== '/' && str_contains($directory, '/')) {
-            $this->actionMkdir($repo, trim($directory, '/'));
+        $body = $response->body();
+        if ($body === '') {
+            throw new \RuntimeException('Download retornou arquivo vazio: ' . $url);
         }
 
-        $repo->pull($url, $directory, array_filter([
-            'filename' => $filename,
-            'foreground' => true,
-        ]));
+        $repo->putContent($fullPath, $body);
+
+        Log::info('[templates] pull via painel', [
+            'path' => $fullPath,
+            'bytes' => strlen($body),
+        ]);
     }
 
     private function actionUnzip(DaemonFileRepository $repo, string $path): void
