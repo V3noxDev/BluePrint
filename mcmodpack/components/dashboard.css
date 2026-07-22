@@ -431,6 +431,31 @@
     color: #93c5fd;
 }
 
+.mp-description h1,
+.mp-description h2,
+.mp-description h3,
+.mp-description h4,
+.mp-description h5,
+.mp-description h6 {
+    margin: 1.25em 0 0.5em;
+    line-height: 1.3;
+    font-weight: 700;
+}
+
+.mp-description ul,
+.mp-description ol {
+    margin: 0.75em 0;
+    padding-left: 1.5em;
+}
+
+.mp-description blockquote {
+    margin: 1em 0;
+    padding: 0.75em 1em;
+    border-left: 3px solid var(--mp-blue);
+    background: rgba(37, 99, 235, 0.08);
+    border-radius: 0 8px 8px 0;
+}
+
 .mp-description .modpack-md__center,
 .mp-description .curseforge-md__center {
     text-align: center;
