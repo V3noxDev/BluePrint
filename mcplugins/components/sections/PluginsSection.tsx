@@ -3,6 +3,7 @@ import { ServerContext } from '@/state/server';
 import http from '@/api/http';
 import Spinner from '@/components/elements/Spinner';
 import PageContentBlock from '@/components/elements/PageContentBlock';
+import BiIcon from '../elements/BiIcon';
 
 type TopMode = 'browse' | 'manage';
 type View = 'home' | 'details';
@@ -558,7 +559,8 @@ const PluginsSection = () => {
                 {view === 'details' && selected ? (
                     <>
                         <button type={'button'} className={'pl-back'} onClick={handleBackFromDetails}>
-                            ← Voltar {detailsReturn === 'manage' ? 'ao Gerenciamento' : 'aos Plugins'}
+                            <BiIcon name={'arrow-left'} className={'pl-inline-icon'} />
+                            Voltar {detailsReturn === 'manage' ? 'ao Gerenciamento' : 'aos Plugins'}
                         </button>
 
                         <div className={'pl-detail-head'}>
@@ -570,8 +572,14 @@ const PluginsSection = () => {
                             <div className={'pl-detail-head__body'}>
                                 <h2>{selected.name}</h2>
                                 <div className={'pl-card__stats'}>
-                                    <span>↓ {formatCount(selected.download_count)}</span>
-                                    <span>♥ {formatCount(selected.thumbs_up)}</span>
+                                    <span>
+                                        <BiIcon name={'download'} className={'pl-stat-icon'} />
+                                        {formatCount(selected.download_count)}
+                                    </span>
+                                    <span>
+                                        <BiIcon name={'heart-fill'} className={'pl-stat-icon'} />
+                                        {formatCount(selected.thumbs_up)}
+                                    </span>
                                 </div>
                                 <p>{selected.summary}</p>
                             </div>
@@ -582,8 +590,9 @@ const PluginsSection = () => {
                                         href={selected.url}
                                         target={'_blank'}
                                         rel={'noreferrer'}
+                                        aria-label={'Abrir página do plugin'}
                                     >
-                                        ↗
+                                        <BiIcon name={'box-arrow-up-right'} />
                                     </a>
                                 )}
                                 {selected.id && (
@@ -618,14 +627,16 @@ const PluginsSection = () => {
                                 </div>
 
                                 {detailsTab === 'description' ? (
-                                    <div
-                                        className={'pl-description'}
-                                        dangerouslySetInnerHTML={{
-                                            __html:
-                                                selected.description_html ||
-                                                `<p>${selected.summary || 'Sem descrição.'}</p>`,
-                                        }}
-                                    />
+                                    selected.description_html ? (
+                                        <div
+                                            className={'pl-description'}
+                                            dangerouslySetInnerHTML={{ __html: selected.description_html }}
+                                        />
+                                    ) : (
+                                        <div className={'pl-description'}>
+                                            <p>{selected.summary || 'Sem descrição.'}</p>
+                                        </div>
+                                    )
                                 ) : filesLoading ? (
                                     <div className={'pl-loading'}>
                                         <Spinner size={'large'} />
@@ -639,7 +650,8 @@ const PluginsSection = () => {
                                                         {f.display_name}
                                                     </div>
                                                     <div className={'pl-version__meta'}>
-                                                        ↓ {formatCount(f.download_count)} ·{' '}
+                                                        <BiIcon name={'download'} className={'pl-stat-icon'} />
+                                                        {formatCount(f.download_count)} ·{' '}
                                                         {timeAgo(f.file_date)}
                                                         {f.loaders[0] && (
                                                             <> · Loader: {f.loaders[0]}</>
@@ -811,14 +823,14 @@ const PluginsSection = () => {
                                             <div className={'pl-manage-card__name'}>{item.name}</div>
                                             <div className={'pl-manage-card__versions'}>
                                                 {item.version && (
-                                                    <span className={'pl-ver pl-ver--current'}>
-                                                        <span className={'pl-ver__icon'}>📌</span>
+                                                        <span className={'pl-ver pl-ver--current'}>
+                                                        <BiIcon name={'pin-angle-fill'} className={'pl-ver__icon'} />
                                                         {item.version}
                                                     </span>
                                                 )}
                                                 {item.update_available && item.latest_version && (
                                                     <span className={'pl-ver pl-ver--new'}>
-                                                        <span className={'pl-ver__icon'}>↻</span>
+                                                        <BiIcon name={'arrow-clockwise'} className={'pl-ver__icon'} />
                                                         {item.latest_version}
                                                     </span>
                                                 )}
@@ -835,7 +847,8 @@ const PluginsSection = () => {
                                             disabled={!item.update_available || !item.plugin_id}
                                             onClick={() => item.plugin_id && openUpdate(item)}
                                         >
-                                            ↻ Atualizar
+                                            <BiIcon name={'arrow-clockwise'} className={'pl-inline-icon'} />
+                                            Atualizar
                                         </button>
                                         <button
                                             type={'button'}
@@ -846,14 +859,16 @@ const PluginsSection = () => {
                                                 openDetails(cardFromInstalled(item), 'manage')
                                             }
                                         >
-                                            ℹ Detalhes
+                                            <BiIcon name={'info-circle'} className={'pl-inline-icon'} />
+                                            Detalhes
                                         </button>
                                         <button
                                             type={'button'}
                                             className={'pl-btn pl-btn--danger pl-btn--block'}
                                             onClick={() => setDeleteModal(item)}
                                         >
-                                            🗑 Remover
+                                            <BiIcon name={'trash'} className={'pl-inline-icon'} />
+                                            Remover
                                         </button>
                                     </div>
                                 </div>
@@ -1005,8 +1020,14 @@ const PluginsSection = () => {
                                         <div>
                                             <div className={'pl-card__name'}>{plugin.name}</div>
                                             <div className={'pl-card__stats'}>
-                                                <span>↓ {formatCount(plugin.download_count)}</span>
-                                                <span>♥ {formatCount(plugin.thumbs_up)}</span>
+                                                <span>
+                                                    <BiIcon name={'download'} className={'pl-stat-icon'} />
+                                                    {formatCount(plugin.download_count)}
+                                                </span>
+                                                <span>
+                                                    <BiIcon name={'heart-fill'} className={'pl-stat-icon'} />
+                                                    {formatCount(plugin.thumbs_up)}
+                                                </span>
                                             </div>
                                             <div className={'pl-card__author'}>
                                                 por {plugin.author}
@@ -1022,8 +1043,9 @@ const PluginsSection = () => {
                                                 target={'_blank'}
                                                 rel={'noreferrer'}
                                                 title={`Abrir no ${providerLabel(resolveProvider(plugin))}`}
+                                                aria-label={'Abrir página do plugin'}
                                             >
-                                                ↗
+                                                <BiIcon name={'box-arrow-up-right'} />
                                             </a>
                                         )}
                                         <button
@@ -1058,7 +1080,8 @@ const PluginsSection = () => {
                                         }))
                                     }
                                 >
-                                    ← Anterior
+                                    <BiIcon name={'arrow-left'} className={'pl-inline-icon'} />
+                                    Anterior
                                 </button>
                                 <span>
                                     Página {currentPage} de {totalPages}
@@ -1074,7 +1097,8 @@ const PluginsSection = () => {
                                         }))
                                     }
                                 >
-                                    Próxima →
+                                    Próxima
+                                    <BiIcon name={'arrow-right'} className={'pl-inline-icon'} />
                                 </button>
                             </div>
                         )}
@@ -1094,8 +1118,9 @@ const PluginsSection = () => {
                                     className={'pl-modal__close'}
                                     disabled={installing}
                                     onClick={() => setInstallModal(null)}
+                                    aria-label={'Fechar'}
                                 >
-                                    ×
+                                    <BiIcon name={'x-lg'} />
                                 </button>
                             </div>
 
@@ -1105,7 +1130,8 @@ const PluginsSection = () => {
                                     <div className={'pl-modal__name'}>{installModal.plugin.name}</div>
                                     <div className={'pl-muted'}>por {installModal.plugin.author}</div>
                                     <div className={'pl-card__stats'}>
-                                        ↓ {formatCount(installModal.plugin.download_count)}
+                                        <BiIcon name={'download'} className={'pl-stat-icon'} />
+                                        {formatCount(installModal.plugin.download_count)}
                                     </div>
                                 </div>
                             </div>
@@ -1124,7 +1150,8 @@ const PluginsSection = () => {
                             </select>
                             {installSelectedFile && (
                                 <div className={'pl-build-meta'}>
-                                    ↓ {formatCount(installSelectedFile.download_count)} · Publicado{' '}
+                                    <BiIcon name={'download'} className={'pl-stat-icon'} />
+                                    {formatCount(installSelectedFile.download_count)} · Publicado{' '}
                                     {timeAgo(installSelectedFile.file_date)}
                                 </div>
                             )}
@@ -1164,8 +1191,9 @@ const PluginsSection = () => {
                                     className={'pl-modal__close'}
                                     disabled={updating}
                                     onClick={() => setUpdateModal(null)}
+                                    aria-label={'Fechar'}
                                 >
-                                    ×
+                                    <BiIcon name={'x-lg'} />
                                 </button>
                             </div>
 
@@ -1202,7 +1230,8 @@ const PluginsSection = () => {
                             </select>
                             {updateSelectedFile && (
                                 <div className={'pl-build-meta'}>
-                                    ↓ {formatCount(updateSelectedFile.download_count)} · Publicado{' '}
+                                    <BiIcon name={'download'} className={'pl-stat-icon'} />
+                                    {formatCount(updateSelectedFile.download_count)} · Publicado{' '}
                                     {timeAgo(updateSelectedFile.file_date)}
                                 </div>
                             )}
@@ -1242,8 +1271,9 @@ const PluginsSection = () => {
                                     className={'pl-modal__close'}
                                     disabled={removing}
                                     onClick={() => setDeleteModal(null)}
+                                    aria-label={'Fechar'}
                                 >
-                                    ×
+                                    <BiIcon name={'x-lg'} />
                                 </button>
                             </div>
 

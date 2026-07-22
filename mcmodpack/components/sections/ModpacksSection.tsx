@@ -3,6 +3,7 @@ import { ServerContext } from '@/state/server';
 import http from '@/api/http';
 import Spinner from '@/components/elements/Spinner';
 import PageContentBlock from '@/components/elements/PageContentBlock';
+import BiIcon from '../elements/BiIcon';
 
 type View = 'home' | 'details';
 type DetailsTab = 'description' | 'versions';
@@ -452,8 +453,14 @@ const ModpacksSection = () => {
                                         <div>
                                             <div className={'mp-card__name'}>{pack.name}</div>
                                             <div className={'mp-card__stats'}>
-                                                <span>↓ {formatCount(pack.download_count)}</span>
-                                                <span>♥ {formatCount(pack.thumbs_up)}</span>
+                                                <span>
+                                                    <BiIcon name={'download'} className={'mp-stat-icon'} />
+                                                    {formatCount(pack.download_count)}
+                                                </span>
+                                                <span>
+                                                    <BiIcon name={'heart-fill'} className={'mp-stat-icon'} />
+                                                    {formatCount(pack.thumbs_up)}
+                                                </span>
                                             </div>
                                             <div className={'mp-card__author'}>
                                                 por {pack.author}
@@ -470,7 +477,7 @@ const ModpacksSection = () => {
                                                 rel={'noreferrer'}
                                                 title={'Abrir no CurseForge'}
                                             >
-                                                ↗
+                                                <BiIcon name={'box-arrow-up-right'} />
                                             </a>
                                         )}
                                         <button
@@ -505,7 +512,8 @@ const ModpacksSection = () => {
                                         }))
                                     }
                                 >
-                                    ← Anterior
+                                    <BiIcon name={'arrow-left'} className={'mp-inline-icon'} />
+                                    Anterior
                                 </button>
                                 <span>
                                     Página {currentPage} de {totalPages}
@@ -521,7 +529,8 @@ const ModpacksSection = () => {
                                         }))
                                     }
                                 >
-                                    Próxima →
+                                    Próxima
+                                    <BiIcon name={'arrow-right'} className={'mp-inline-icon'} />
                                 </button>
                             </div>
                         )}
@@ -534,7 +543,8 @@ const ModpacksSection = () => {
                                 className={'mp-back'}
                                 onClick={() => setView('home')}
                             >
-                                ← Voltar aos Modpacks
+                                <BiIcon name={'arrow-left'} className={'mp-inline-icon'} />
+                                Voltar aos Modpacks
                             </button>
 
                             <div className={'mp-detail-head'}>
@@ -546,8 +556,14 @@ const ModpacksSection = () => {
                                 <div className={'mp-detail-head__body'}>
                                     <h2>{selected.name}</h2>
                                     <div className={'mp-card__stats'}>
-                                        <span>↓ {formatCount(selected.download_count)}</span>
-                                        <span>♥ {formatCount(selected.thumbs_up)}</span>
+                                        <span>
+                                            <BiIcon name={'download'} className={'mp-stat-icon'} />
+                                            {formatCount(selected.download_count)}
+                                        </span>
+                                        <span>
+                                            <BiIcon name={'heart-fill'} className={'mp-stat-icon'} />
+                                            {formatCount(selected.thumbs_up)}
+                                        </span>
                                     </div>
                                     <p>{selected.summary}</p>
                                 </div>
@@ -558,8 +574,9 @@ const ModpacksSection = () => {
                                             href={selected.url}
                                             target={'_blank'}
                                             rel={'noreferrer'}
+                                            aria-label={'Abrir página do modpack'}
                                         >
-                                            ↗
+                                            <BiIcon name={'box-arrow-up-right'} />
                                         </a>
                                     )}
                                     <button
@@ -592,14 +609,16 @@ const ModpacksSection = () => {
                                     </div>
 
                                     {detailsTab === 'description' ? (
-                                        <div
-                                            className={'mp-description'}
-                                            dangerouslySetInnerHTML={{
-                                                __html:
-                                                    selected.description_html ||
-                                                    `<p>${selected.summary || 'Sem descrição.'}</p>`,
-                                            }}
-                                        />
+                                        selected.description_html ? (
+                                            <div
+                                                className={'mp-description'}
+                                                dangerouslySetInnerHTML={{ __html: selected.description_html }}
+                                            />
+                                        ) : (
+                                            <div className={'mp-description'}>
+                                                <p>{selected.summary || 'Sem descrição.'}</p>
+                                            </div>
+                                        )
                                     ) : filesLoading ? (
                                         <div className={'mp-loading'}>
                                             <Spinner size={'large'} />
@@ -613,7 +632,8 @@ const ModpacksSection = () => {
                                                             {f.display_name}
                                                         </div>
                                                         <div className={'mp-version__meta'}>
-                                                            ↓ {formatCount(f.download_count)} ·{' '}
+                                                            <BiIcon name={'download'} className={'mp-stat-icon'} />
+                                                            {formatCount(f.download_count)} ·{' '}
                                                             {timeAgo(f.file_date)}
                                                             {f.loaders[0] && (
                                                                 <> · Loader: {f.loaders[0]}</>
@@ -712,7 +732,7 @@ const ModpacksSection = () => {
                                     disabled={installing}
                                     onClick={() => setModal(null)}
                                 >
-                                    ×
+                                    <BiIcon name={'x-lg'} />
                                 </button>
                             </div>
 
@@ -722,7 +742,8 @@ const ModpacksSection = () => {
                                     <div className={'mp-modal__name'}>{modal.pack.name}</div>
                                     <div className={'mp-muted'}>por {modal.pack.author}</div>
                                     <div className={'mp-card__stats'}>
-                                        ↓ {formatCount(modal.pack.download_count)}
+                                        <BiIcon name={'download'} className={'mp-stat-icon'} />
+                                        {formatCount(modal.pack.download_count)}
                                     </div>
                                 </div>
                             </div>
@@ -741,7 +762,8 @@ const ModpacksSection = () => {
                             </select>
                             {selectedFile && (
                                 <div className={'mp-build-meta'}>
-                                    ↓ {formatCount(selectedFile.download_count)} · Publicado{' '}
+                                    <BiIcon name={'download'} className={'mp-stat-icon'} />
+                                    {formatCount(selectedFile.download_count)} · Publicado{' '}
                                     {timeAgo(selectedFile.file_date)}
                                     {selectedFile.server_pack_file_id
                                         ? ' · Server pack disponível'

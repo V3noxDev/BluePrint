@@ -21,7 +21,7 @@
 
     <div class="pl-admin__info-grid">
         <div class="pl-admin__info-card pl-admin__info-card--wide">
-            <div class="pl-admin__info-title">ℹ Information</div>
+            <div class="pl-admin__info-title"><i class="bi bi-info-circle"></i> Information</div>
             <ul class="pl-admin__info-list">
                 <li>
                     O <strong>MC Plugins Manager</strong> facilita instalar e gerenciar plugins
@@ -40,7 +40,7 @@
         </div>
 
         <div class="pl-admin__info-card">
-            <div class="pl-admin__info-title">👤 EULA</div>
+            <div class="pl-admin__info-title"><i class="bi bi-person-badge"></i> EULA</div>
             <p class="pl-admin__info-text">
                 Compartilhar ou redistribuir os assets baixados desta extensão é proibido e pode
                 resultar na revogação da licença. Você não possui direitos para distribuir os
@@ -49,7 +49,7 @@
         </div>
 
         <div class="pl-admin__info-card">
-            <div class="pl-admin__info-title">📖 Terms of Service</div>
+            <div class="pl-admin__info-title"><i class="bi bi-journal-text"></i> Terms of Service</div>
             <ol class="pl-admin__info-ol">
                 <li>Sem reembolsos.</li>
                 <li>Não revenda ou redistribua esta extensão.</li>
