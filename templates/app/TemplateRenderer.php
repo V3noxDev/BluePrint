@@ -27,6 +27,19 @@ class TemplateRenderer
             return $this->followRedirects($m[1]);
         }
 
+        if (preg_match('/^map\(\$([a-zA-Z_][\w]*),\s*\'([^\']+)\'\)$/', $expr, $m)) {
+            $value = (string) ($context[$m[1]] ?? '');
+
+            foreach (explode(',', $m[2]) as $pair) {
+                $parts = explode(':', trim($pair), 2);
+                if (count($parts) === 2 && $parts[0] === $value) {
+                    return $parts[1];
+                }
+            }
+
+            return $value;
+        }
+
         if (preg_match('/^\$([a-zA-Z_][\w]*)$/', $expr, $m)) {
             return $context[$m[1]] ?? '';
         }

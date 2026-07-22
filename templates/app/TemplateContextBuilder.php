@@ -88,6 +88,7 @@ class TemplateContextBuilder
             ['$nest[\'name\']', 'Nome do nest'],
             ['$request(\'GET\', \'url\')', 'HTTP request (Guzzle)'],
             ['$follow_redirects(\'url\')', 'Segue redirects e retorna URL final'],
+            ['map($var, \'a:A,b:B\')', 'Mapeia valor de variável (ex: spigot:Spigot)'],
         ];
     }
 }

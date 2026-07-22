@@ -3,7 +3,7 @@ info:
   identifier: "templates"
   description: "Instalador de templates com variáveis, steps avançados e suporte a pull/write/unzip — similar ao SourceXchange Template Installer."
   flags: ""
-  version: "1.0.5"
+  version: "1.0.6"
   target: "beta-2026-06"
   author: "BluePrint"
   icon: "data/icon.svg"
