@@ -13,6 +13,8 @@ class PluginController extends Controller
     public function __construct(
         private CurseForgeClient $curse,
         private ModrinthClient $modrinth,
+        private HangarClient $hangar,
+        private SpigotClient $spigot,
         private PluginInstallService $installer,
     ) {}
 
@@ -27,7 +29,7 @@ class PluginController extends Controller
                 'success' => true,
                 'data' => [
                     'api_configured' => false,
-                    'message' => 'Configure a API Key do CurseForge em Admin → Extensions → MC Plugins para buscar neste provedor.',
+                    'message' => 'Não encontramos nenhum plugin. Configure a API Key do CurseForge na área admin do Blueprint.',
                     'plugins' => [],
                     'pagination' => ['index' => 0, 'pageSize' => 48, 'resultCount' => 0, 'totalCount' => 0],
                     'filters' => $this->filterMeta($provider),
@@ -39,14 +41,17 @@ class PluginController extends Controller
             'search' => $request->query('search'),
             'game_version' => $request->query('game_version'),
             'loader' => $request->query('loader'),
-            'sort' => $request->query('sort', $provider === 'modrinth' ? 'downloads' : 2),
+            'sort' => $request->query('sort', $this->defaultSort($provider)),
             'page_size' => $request->query('page_size', 48),
             'index' => $request->query('index', 0),
         ];
 
-        $search = $provider === 'modrinth'
-            ? $this->modrinth->searchPlugins($params)
-            : $this->curse->searchPlugins($params);
+        $search = match ($provider) {
+            'hangar' => $this->hangar->searchPlugins($params),
+            'spigot' => $this->spigot->searchPlugins($params),
+            'curseforge' => $this->curse->searchPlugins($params),
+            default => $this->modrinth->searchPlugins($params),
+        };
 
         $message = empty($search['data'])
             ? 'Não encontramos nenhum plugin com esses filtros.'
@@ -88,10 +93,7 @@ class PluginController extends Controller
             return response()->json(['success' => false, 'message' => 'API Key do CurseForge não configurada.'], 422);
         }
 
-        $data = $provider === 'modrinth'
-            ? $this->modrinth->getPlugin($plugin)
-            : $this->curse->getPlugin((int) $plugin);
-
+        $data = $this->getPlugin($provider, $plugin);
         if (!$data) {
             return response()->json(['success' => false, 'message' => 'Plugin não encontrado.'], 404);
         }
@@ -111,15 +113,16 @@ class PluginController extends Controller
             return response()->json(['success' => false, 'message' => 'API Key do CurseForge não configurada.'], 422);
         }
 
-        if ($provider === 'modrinth') {
-            $files = $this->modrinth->getVersions($plugin);
-        } else {
-            $files = $this->curse->getFiles(
+        $files = match ($provider) {
+            'hangar' => $this->hangar->getVersions(urldecode($plugin)),
+            'spigot' => $this->spigot->getVersions((int) $plugin),
+            'curseforge' => $this->curse->getFiles(
                 (int) $plugin,
                 (int) $request->query('index', 0),
                 (int) $request->query('page_size', 50)
-            );
-        }
+            ),
+            default => $this->modrinth->getVersions($plugin),
+        };
 
         return response()->json(['success' => true, 'data' => $files]);
     }
@@ -129,7 +132,7 @@ class PluginController extends Controller
         $this->authorize('file.update', $server);
 
         $data = $request->validate([
-            'provider' => 'required|in:modrinth,curseforge',
+            'provider' => 'required|in:modrinth,curseforge,hangar,spigot',
             'plugin_id' => 'required',
             'file_id' => 'required',
         ]);
@@ -172,7 +175,7 @@ class PluginController extends Controller
         $this->authorize('file.update', $server);
 
         $data = $request->validate([
-            'provider' => 'required|in:modrinth,curseforge',
+            'provider' => 'required|in:modrinth,curseforge,hangar,spigot',
             'plugin_id' => 'required',
             'file_id' => 'required',
         ]);
@@ -228,25 +231,55 @@ class PluginController extends Controller
         }
     }
 
+    private function getPlugin(string $provider, string $plugin): ?array
+    {
+        return match ($provider) {
+            'hangar' => $this->hangar->getPlugin(urldecode($plugin)),
+            'spigot' => $this->spigot->getPlugin((int) $plugin),
+            'curseforge' => $this->curse->getPlugin((int) $plugin),
+            default => $this->modrinth->getPlugin($plugin),
+        };
+    }
+
     private function normalizeProvider(?string $provider): string
     {
         $provider = strtolower(trim((string) $provider));
 
-        return in_array($provider, ['modrinth', 'curseforge'], true) ? $provider : 'modrinth';
+        return in_array($provider, ['modrinth', 'curseforge', 'hangar', 'spigot'], true)
+            ? $provider
+            : 'modrinth';
+    }
+
+    private function defaultSort(string $provider): string|int
+    {
+        return match ($provider) {
+            'hangar' => 'downloads',
+            'spigot' => '-downloads',
+            'curseforge' => 2,
+            default => 'downloads',
+        };
     }
 
     private function filterMeta(string $provider): array
     {
         return [
-            'loaders' => $provider === 'modrinth'
-                ? ModrinthClient::LOADERS
-                : CurseForgeClient::SERVER_LOADERS,
-            'sorts' => $provider === 'modrinth'
-                ? ModrinthClient::SORTS
-                : CurseForgeClient::SORTS,
+            'loaders' => match ($provider) {
+                'hangar' => HangarClient::LOADERS,
+                'spigot' => SpigotClient::LOADERS,
+                'curseforge' => CurseForgeClient::SERVER_LOADERS,
+                default => ModrinthClient::LOADERS,
+            },
+            'sorts' => match ($provider) {
+                'hangar' => HangarClient::SORTS,
+                'spigot' => SpigotClient::SORTS,
+                'curseforge' => CurseForgeClient::SORTS,
+                default => ModrinthClient::SORTS,
+            },
             'page_sizes' => [24, 48],
             'providers' => [
                 'modrinth' => 'Modrinth',
+                'hangar' => 'Hangar',
+                'spigot' => 'SpigotMC',
                 'curseforge' => 'CurseForge',
             ],
             'provider' => $provider,

@@ -7,8 +7,17 @@
     --pl-card-dark: #1e293b;
     --pl-border: #3d4f8f;
     --pl-blue: #3b82f6;
+    max-width: 100%;
     margin: 0 0 20px;
     color: var(--pl-text);
+    overflow-x: hidden;
+    box-sizing: border-box;
+}
+
+.pl-admin *,
+.pl-admin *::before,
+.pl-admin *::after {
+    box-sizing: border-box;
 }
 
 .pl-admin__header {
@@ -21,10 +30,16 @@
     border-bottom: 1px solid var(--pl-border);
 }
 
+.pl-admin__header > div:first-child {
+    min-width: 0;
+    flex: 1;
+}
+
 .pl-admin__title {
     margin: 0 0 6px;
     font-size: 22px;
     font-weight: 700;
+    overflow-wrap: anywhere;
 }
 
 .pl-admin__subtitle {
@@ -32,6 +47,7 @@
     color: var(--pl-muted);
     font-size: 14px;
     line-height: 1.5;
+    overflow-wrap: anywhere;
 }
 
 .pl-admin__version {
@@ -50,6 +66,7 @@
     padding: 12px 14px;
     margin-bottom: 14px;
     font-size: 13px;
+    overflow-wrap: anywhere;
 }
 
 .pl-admin__alert--ok {
@@ -60,7 +77,7 @@
 
 .pl-admin__info-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 14px;
     margin-bottom: 16px;
 }
@@ -71,6 +88,8 @@
     border-radius: 14px;
     padding: 18px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    min-width: 0;
+    overflow: hidden;
 }
 
 .pl-admin__info-card--wide {
@@ -92,6 +111,7 @@
     font-size: 13px;
     line-height: 1.65;
     color: #dbeafe;
+    overflow-wrap: anywhere;
 }
 
 .pl-admin__info-text {
@@ -99,6 +119,7 @@
     font-size: 13px;
     line-height: 1.65;
     color: #dbeafe;
+    overflow-wrap: anywhere;
 }
 
 .pl-admin__grid {
@@ -112,6 +133,8 @@
     border: 1px solid #334155;
     border-radius: 10px;
     padding: 18px;
+    min-width: 0;
+    overflow: hidden;
 }
 
 .pl-admin__card--wide {
@@ -127,11 +150,16 @@
     margin-bottom: 12px;
 }
 
+.pl-admin__form {
+    max-width: 100%;
+}
+
 .pl-admin__hint {
     margin: 0 0 12px;
     color: var(--pl-muted);
     font-size: 13px;
     line-height: 1.5;
+    overflow-wrap: anywhere;
 }
 
 .pl-admin__hint a {
@@ -147,7 +175,9 @@
 }
 
 .pl-admin__input {
+    display: block;
     width: 100%;
+    max-width: 100%;
     height: 42px;
     border-radius: 8px;
     border: 1px solid #334155;
@@ -159,7 +189,7 @@
 
 .pl-admin__status {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 8px;
     flex-wrap: wrap;
     margin-bottom: 14px;
@@ -168,12 +198,16 @@
 }
 
 .pl-admin__status code {
+    display: inline-block;
+    max-width: 100%;
     background: #0f172a;
     border: 1px solid #334155;
     padding: 2px 6px;
     border-radius: 4px;
     color: #93c5fd;
     font-size: 12px;
+    word-break: break-all;
+    overflow-wrap: anywhere;
 }
 
 .pl-admin__badge {
@@ -181,6 +215,7 @@
     padding: 2px 10px;
     font-size: 11px;
     font-weight: 700;
+    flex-shrink: 0;
 }
 
 .pl-admin__badge--ok {
@@ -209,21 +244,32 @@
     padding-left: 18px;
     font-size: 13px;
     line-height: 1.7;
+    overflow-wrap: anywhere;
 }
 
 .pl-admin__steps code,
-.pl-admin__hint code {
+.pl-admin__hint code,
+.pl-admin__info-list code {
+    display: inline-block;
+    max-width: 100%;
     background: #0f172a;
     border: 1px solid #334155;
     color: #93c5fd;
     padding: 1px 6px;
     border-radius: 4px;
     font-size: 12px;
+    word-break: break-all;
+    overflow-wrap: anywhere;
 }
 
 @media (max-width: 768px) {
     .pl-admin__info-grid,
     .pl-admin__grid {
         grid-template-columns: 1fr;
+    }
+
+    .pl-admin__header {
+        flex-direction: column;
+        align-items: flex-start;
     }
 }

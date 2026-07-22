@@ -1,7 +1,7 @@
 info:
   name: "MC Plugins"
   identifier: "mcplugins"
-  description: "Gerenciador de plugins Minecraft (Paper/Spigot) — buscar no Modrinth e CurseForge, instalar, atualizar e remover."
+  description: "Gerenciador de plugins Minecraft — buscar no Modrinth, Hangar, SpigotMC e CurseForge; instalar, atualizar e remover."
   flags: ""
   version: "1.0.0"
   target: "beta-2026-06"

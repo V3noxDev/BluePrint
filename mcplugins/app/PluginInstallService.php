@@ -15,6 +15,8 @@ class PluginInstallService
     public function __construct(
         private CurseForgeClient $curse,
         private ModrinthClient $modrinth,
+        private HangarClient $hangar,
+        private SpigotClient $spigot,
         private DaemonFileRepository $files,
         private DaemonPowerRepository $power,
         private BlueprintExtensionLibrary $blueprint,
@@ -23,34 +25,12 @@ class PluginInstallService
     public function install(Server $server, string $provider, string|int $pluginId, string|int $fileId): array
     {
         $provider = strtolower($provider);
-
-        $plugin = $provider === 'modrinth'
-            ? $this->modrinth->getPlugin((string) $pluginId)
-            : $this->curse->getPlugin((int) $pluginId);
-
+        $plugin = $this->fetchPlugin($provider, $pluginId);
         if (!$plugin) {
             throw new \RuntimeException('Plugin não encontrado.');
         }
 
-        if ($provider === 'modrinth') {
-            $file = $this->modrinth->getVersion((string) $fileId);
-            if (!$file) {
-                throw new \RuntimeException('Versão do plugin não encontrada no Modrinth.');
-            }
-            $url = $file['download_url'] ?? null;
-            $filename = basename($file['file_name'] ?: 'plugin.jar');
-        } else {
-            if (!$this->curse->hasApiKey()) {
-                throw new \RuntimeException('API Key do CurseForge não configurada.');
-            }
-            $file = $this->curse->getFile((int) $pluginId, (int) $fileId);
-            if (!$file) {
-                throw new \RuntimeException('Versão do plugin não encontrada no CurseForge.');
-            }
-            $url = $this->curse->getDownloadUrl((int) $pluginId, (int) $fileId) ?: ($file['download_url'] ?? null);
-            $filename = basename($file['file_name'] ?: 'plugin-' . $fileId . '.jar');
-        }
-
+        [$url, $filename, $file] = $this->resolveDownload($provider, $pluginId, $fileId);
         if (!$url) {
             throw new \RuntimeException('Não foi possível obter a URL de download.');
         }
@@ -91,6 +71,101 @@ class PluginInstallService
         $this->startServer($server);
 
         return $record;
+    }
+
+  /**
+   * @return array{0: ?string, 1: string, 2: array}
+   */
+    private function resolveDownload(string $provider, string|int $pluginId, string|int $fileId): array
+    {
+        return match ($provider) {
+            'modrinth' => $this->resolveModrinthDownload($fileId),
+            'hangar' => $this->resolveHangarDownload((string) $pluginId, (string) $fileId),
+            'spigot' => $this->resolveSpigotDownload((int) $pluginId, (int) $fileId),
+            default => $this->resolveCurseForgeDownload((int) $pluginId, (int) $fileId),
+        };
+    }
+
+  /**
+   * @return array{0: ?string, 1: string, 2: array}
+   */
+    private function resolveModrinthDownload(string|int $fileId): array
+    {
+        $file = $this->modrinth->getVersion((string) $fileId);
+        if (!$file) {
+            throw new \RuntimeException('Versão do plugin não encontrada no Modrinth.');
+        }
+
+        return [
+            $file['download_url'] ?? null,
+            basename($file['file_name'] ?: 'plugin.jar'),
+            $file,
+        ];
+    }
+
+  /**
+   * @return array{0: ?string, 1: string, 2: array}
+   */
+    private function resolveHangarDownload(string $pluginId, string $versionName): array
+    {
+        $file = $this->hangar->getVersion($pluginId, $versionName);
+        if (!$file) {
+            throw new \RuntimeException('Versão do plugin não encontrada no Hangar.');
+        }
+
+        return [
+            $file['download_url'] ?? null,
+            basename($file['file_name'] ?: 'plugin.jar'),
+            $file,
+        ];
+    }
+
+  /**
+   * @return array{0: ?string, 1: string, 2: array}
+   */
+    private function resolveSpigotDownload(int $pluginId, int $fileId): array
+    {
+        $file = $this->spigot->getVersion($pluginId, $fileId);
+        if (!$file) {
+            throw new \RuntimeException('Versão do plugin não encontrada no SpigotMC.');
+        }
+
+        return [
+            $this->spigot->getDownloadUrl($pluginId, $fileId),
+            basename($file['file_name'] ?: 'plugin.jar'),
+            $file,
+        ];
+    }
+
+  /**
+   * @return array{0: ?string, 1: string, 2: array}
+   */
+    private function resolveCurseForgeDownload(int $pluginId, int $fileId): array
+    {
+        if (!$this->curse->hasApiKey()) {
+            throw new \RuntimeException('API Key do CurseForge não configurada.');
+        }
+
+        $file = $this->curse->getFile($pluginId, $fileId);
+        if (!$file) {
+            throw new \RuntimeException('Versão do plugin não encontrada no CurseForge.');
+        }
+
+        return [
+            $this->curse->getDownloadUrl($pluginId, $fileId) ?: ($file['download_url'] ?? null),
+            basename($file['file_name'] ?: 'plugin-' . $fileId . '.jar'),
+            $file,
+        ];
+    }
+
+    private function fetchPlugin(string $provider, string|int $pluginId): ?array
+    {
+        return match ($provider) {
+            'modrinth' => $this->modrinth->getPlugin((string) $pluginId),
+            'hangar' => $this->hangar->getPlugin((string) $pluginId),
+            'spigot' => $this->spigot->getPlugin((int) $pluginId),
+            default => $this->curse->getPlugin((int) $pluginId),
+        };
     }
 
     public function update(Server $server, string $provider, string|int $pluginId, string|int $fileId): array
@@ -162,10 +237,33 @@ class PluginInstallService
                     return ['available' => false];
                 }
 
-                return [
-                    'available' => true,
-                    'latest_file_id' => $latest['id'],
-                ];
+                return ['available' => true, 'latest_file_id' => $latest['id']];
+            }
+
+            if ($provider === 'hangar') {
+                $versions = $this->hangar->getVersions((string) $pluginId);
+                $latest = $versions['data'][0] ?? null;
+                if (!$latest) {
+                    return null;
+                }
+                if ((string) $latest['id'] === (string) $currentFileId) {
+                    return ['available' => false];
+                }
+
+                return ['available' => true, 'latest_file_id' => $latest['id']];
+            }
+
+            if ($provider === 'spigot') {
+                $versions = $this->spigot->getVersions((int) $pluginId);
+                $latest = $versions['data'][0] ?? null;
+                if (!$latest) {
+                    return null;
+                }
+                if ((string) $latest['id'] === (string) $currentFileId) {
+                    return ['available' => false];
+                }
+
+                return ['available' => true, 'latest_file_id' => $latest['id']];
             }
 
             if (!$this->curse->hasApiKey()) {

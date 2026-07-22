@@ -8,8 +8,17 @@
     --mp-blue: #3b82f6;
     --mp-gold: #f59e0b;
     --mp-ok: #22c55e;
+    max-width: 100%;
     margin: 0 0 20px;
     color: var(--mp-text);
+    overflow-x: hidden;
+    box-sizing: border-box;
+}
+
+.mp-admin *,
+.mp-admin *::before,
+.mp-admin *::after {
+    box-sizing: border-box;
 }
 
 .mp-admin__header {
@@ -22,10 +31,16 @@
     border-bottom: 1px solid var(--mp-border);
 }
 
+.mp-admin__header > div:first-child {
+    min-width: 0;
+    flex: 1;
+}
+
 .mp-admin__title {
     margin: 0 0 6px;
     font-size: 22px;
     font-weight: 700;
+    overflow-wrap: anywhere;
 }
 
 .mp-admin__subtitle {
@@ -33,6 +48,7 @@
     color: var(--mp-muted);
     font-size: 14px;
     line-height: 1.5;
+    overflow-wrap: anywhere;
 }
 
 .mp-admin__version {
@@ -51,6 +67,7 @@
     padding: 12px 14px;
     margin-bottom: 14px;
     font-size: 13px;
+    overflow-wrap: anywhere;
 }
 
 .mp-admin__alert--ok {
@@ -70,6 +87,8 @@
     border: 1px solid var(--mp-border);
     border-radius: 10px;
     padding: 18px;
+    min-width: 0;
+    overflow: hidden;
 }
 
 .mp-admin__card--wide {
@@ -85,11 +104,16 @@
     margin-bottom: 12px;
 }
 
+.mp-admin__form {
+    max-width: 100%;
+}
+
 .mp-admin__hint {
     margin: 0 0 14px;
     color: var(--mp-muted);
     font-size: 13px;
     line-height: 1.5;
+    overflow-wrap: anywhere;
 }
 
 .mp-admin__hint a {
@@ -105,7 +129,9 @@
 }
 
 .mp-admin__input {
+    display: block;
     width: 100%;
+    max-width: 100%;
     height: 42px;
     border-radius: 8px;
     border: 1px solid var(--mp-border);
@@ -117,7 +143,7 @@
 
 .mp-admin__status {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 8px;
     flex-wrap: wrap;
     margin-bottom: 14px;
@@ -126,12 +152,16 @@
 }
 
 .mp-admin__status code {
+    display: inline-block;
+    max-width: 100%;
     background: #0f172a;
     border: 1px solid var(--mp-border);
     padding: 2px 6px;
     border-radius: 4px;
     color: #93c5fd;
     font-size: 12px;
+    word-break: break-all;
+    overflow-wrap: anywhere;
 }
 
 .mp-admin__badge {
@@ -139,6 +169,7 @@
     padding: 2px 10px;
     font-size: 11px;
     font-weight: 700;
+    flex-shrink: 0;
 }
 
 .mp-admin__badge--ok {
@@ -174,26 +205,37 @@
     padding-left: 18px;
     font-size: 13px;
     line-height: 1.7;
+    overflow-wrap: anywhere;
 }
 
 .mp-admin__route {
     margin-top: 10px;
+    overflow-wrap: anywhere;
 }
 
 .mp-admin__route code,
 .mp-admin__steps code,
 .mp-admin__list code,
 .mp-admin__hint code {
+    display: inline-block;
+    max-width: 100%;
     background: #0f172a;
     border: 1px solid var(--mp-border);
     color: #93c5fd;
     padding: 1px 6px;
     border-radius: 4px;
     font-size: 12px;
+    word-break: break-all;
+    overflow-wrap: anywhere;
 }
 
 @media (max-width: 768px) {
     .mp-admin__grid {
         grid-template-columns: 1fr;
+    }
+
+    .mp-admin__header {
+        flex-direction: column;
+        align-items: flex-start;
     }
 }

@@ -8,7 +8,7 @@ type TopMode = 'browse' | 'manage';
 type View = 'home' | 'details';
 type DetailsTab = 'description' | 'versions';
 
-type Provider = 'modrinth' | 'curseforge';
+type Provider = 'modrinth' | 'hangar' | 'spigot' | 'curseforge';
 
 interface PluginCard {
     id: string | number;
@@ -178,11 +178,15 @@ const PluginsSection = () => {
                 setError(res.message || 'Falha ao carregar plugins.');
                 return;
             }
-            const configured =
-                provider === 'modrinth' ? true : !!res.data.api_configured;
+            const configured = provider === 'curseforge' ? !!res.data.api_configured : true;
             setApiConfigured(configured);
             setEmptyMessage(res.data.message || null);
-            setPlugins(res.data.plugins || []);
+            setPlugins(
+                (res.data.plugins || []).map((p: PluginCard) => ({
+                    ...p,
+                    provider: p.provider || provider,
+                }))
+            );
             setFiltersMeta(res.data.filters || null);
             setPagination({
                 index: res.data.pagination?.index ?? 0,
@@ -320,7 +324,7 @@ const PluginsSection = () => {
             showToast('error', 'Este plugin não foi instalado pelo gerenciador e não pode ser atualizado.');
             return;
         }
-        const itemProvider = item.provider || 'curseforge';
+        const itemProvider = item.provider || 'modrinth';
         let plugin: PluginCard | null = { ...cardFromInstalled(item), provider: itemProvider };
         try {
             const { data: res } = await http.get(
@@ -394,8 +398,31 @@ const PluginsSection = () => {
         [updateModal, selectedFileId]
     );
 
-    const providerLabel = (p: Provider) =>
-        p === 'modrinth' ? 'Modrinth' : 'CurseForge';
+    const defaultSortFor = (p: Provider) => {
+        switch (p) {
+            case 'hangar':
+                return 'downloads';
+            case 'spigot':
+                return '-downloads';
+            case 'curseforge':
+                return '2';
+            default:
+                return 'downloads';
+        }
+    };
+
+    const providerLabel = (p: Provider) => {
+        switch (p) {
+            case 'modrinth':
+                return 'Modrinth';
+            case 'hangar':
+                return 'Hangar';
+            case 'spigot':
+                return 'SpigotMC';
+            default:
+                return 'CurseForge';
+        }
+    };
 
     const totalPages = Math.max(1, Math.ceil(pagination.totalCount / pagination.pageSize));
     const currentPage = Math.floor(pagination.index / pagination.pageSize) + 1;
@@ -742,12 +769,15 @@ const PluginsSection = () => {
                                 onChange={(e) => {
                                     const next = e.target.value as Provider;
                                     setProvider(next);
-                                    setSort(next === 'modrinth' ? 'downloads' : '2');
+                                    setSort(defaultSortFor(next));
+                                    setLoader('');
                                     setPagination((p) => ({ ...p, index: 0 }));
                                 }}
                             >
                                 {Object.entries(filtersMeta?.providers || {
                                     modrinth: 'Modrinth',
+                                    hangar: 'Hangar',
+                                    spigot: 'SpigotMC',
                                     curseforge: 'CurseForge',
                                 }).map(([k, v]) => (
                                     <option key={k} value={k}>
@@ -841,16 +871,15 @@ const PluginsSection = () => {
 
                         {!apiConfigured && provider === 'curseforge' && (
                             <div className={'pl-empty'}>
-                                <h3>CurseForge não configurado</h3>
+                                <h3>Não encontramos nenhum plugin</h3>
                                 <p>
-                                    Para buscar plugins no CurseForge, configure a API Key em{' '}
+                                    Configure a API Key do CurseForge em{' '}
                                     <strong>Admin → Extensions → MC Plugins</strong>.
-                                    Você também pode usar o <strong>Modrinth</strong> sem API Key.
                                 </p>
                             </div>
                         )}
 
-                        {(apiConfigured || provider === 'modrinth') && plugins.length === 0 && (
+                        {apiConfigured && plugins.length === 0 && (
                             <div className={'pl-empty'}>
                                 <h3>Não encontramos nenhum plugin</h3>
                                 <p>{emptyMessage || 'Tente outros filtros ou outra busca.'}</p>
@@ -888,7 +917,7 @@ const PluginsSection = () => {
                                                 href={plugin.url}
                                                 target={'_blank'}
                                                 rel={'noreferrer'}
-                                                title={`Abrir no ${providerLabel(provider)}`}
+                                                title={`Abrir no ${providerLabel(resolveProvider(plugin))}`}
                                             >
                                                 ↗
                                             </a>
@@ -912,8 +941,7 @@ const PluginsSection = () => {
                             ))}
                         </div>
 
-                        {(apiConfigured || provider === 'modrinth') &&
-                            pagination.totalCount > pagination.pageSize && (
+                        {apiConfigured && pagination.totalCount > pagination.pageSize && (
                             <div className={'pl-pager'}>
                                 <button
                                     type={'button'}

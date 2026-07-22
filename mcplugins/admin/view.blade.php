@@ -7,8 +7,9 @@
         <div>
             <h3 class="pl-admin__title">MC Plugins Manager</h3>
             <p class="pl-admin__subtitle">
-                Gerenciador de plugins Minecraft (Paper / Spigot / Purpur) via
-                <strong>Modrinth</strong> e <strong>CurseForge</strong>.
+                Gerenciador de plugins Minecraft (Paper / Spigot / Purpur) com busca em
+                <strong>Modrinth</strong>, <strong>Hangar</strong>, <strong>SpigotMC</strong> e
+                <strong>CurseForge</strong>.
             </p>
         </div>
         <span class="pl-admin__version">v1.0.0</span>
@@ -27,14 +28,13 @@
                     de Minecraft: Java Edition para administradores de servidor.
                 </li>
                 <li>
-                    Busque plugins no <strong>Modrinth</strong> (sem configuração extra) ou no
-                    <strong>CurseForge</strong> (requer API Key abaixo). Instale uma versão
-                    específica e gerencie tudo pelo painel — busca, instalação, atualização e
-                    remoção.
+                    Busque plugins no <strong>Modrinth</strong>, <strong>Hangar</strong>,
+                    <strong>SpigotMC</strong> ou <strong>CurseForge</strong>. Os três primeiros
+                    funcionam sem configuração; o CurseForge exige API Key abaixo.
                 </li>
                 <li>
-                    O <strong>Modrinth</strong> funciona imediatamente. Para o CurseForge, configure
-                    a API Key abaixo — sem ela, o painel só mostra catálogo vazio nesse provedor.
+                    Instale uma versão específica e gerencie tudo pelo painel — busca, instalação,
+                    atualização e remoção na pasta <code>/plugins</code>.
                 </li>
             </ul>
         </div>
@@ -103,9 +103,9 @@
         <div class="pl-admin__card">
             <div class="pl-admin__card-title">Como usar</div>
             <ol class="pl-admin__steps">
-                <li>Abra <code>/server/{id}/minecraft/plugins</code> e use <strong>Modrinth</strong> ou configure a API Key do CurseForge.</li>
+                <li>Abra <code>/server/{id}/minecraft/plugins</code> e escolha o provedor desejado.</li>
+                <li>Para CurseForge, salve a API Key nesta página.</li>
                 <li>Engrenagem do Blueprint → eggs Paper/Spigot.</li>
-                <li>Busque, instale e gerencie plugins em <code>/plugins</code>.</li>
             </ol>
         </div>
 
