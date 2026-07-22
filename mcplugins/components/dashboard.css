@@ -724,6 +724,15 @@
     border-radius: 0 8px 8px 0;
 }
 
+.pl-description blockquote h1,
+.pl-description blockquote h2,
+.pl-description blockquote h3,
+.pl-description blockquote h4,
+.pl-description blockquote h5,
+.pl-description blockquote h6 {
+    margin-top: 0;
+}
+
 .pl-description hr {
     border: 0;
     border-top: 1px solid var(--pl-border);

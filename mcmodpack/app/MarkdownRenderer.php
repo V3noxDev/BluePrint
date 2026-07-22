@@ -25,42 +25,77 @@ class MarkdownRenderer
         return $html;
     }
 
+    private static function normalizeUrl(string $url): ?string
+    {
+        if ($url === '') {
+            return null;
+        }
+
+        if (str_starts_with($url, '//')) {
+            $url = 'https:' . $url;
+        }
+
+        if (!preg_match('#^https?://#i', $url)) {
+            return null;
+        }
+
+        if (preg_match('/^\s*javascript:/i', $url)) {
+            return null;
+        }
+
+        return $url;
+    }
+
+    private static function extractAttribute(string $attrs, string $name): ?string
+    {
+        if (preg_match('/\b' . preg_quote($name, '/') . '\s*=\s*"([^"]*)"/i', $attrs, $m)) {
+            return $m[1];
+        }
+        if (preg_match('/\b' . preg_quote($name, '/') . "\s*=\s*'([^']*)'/i", $attrs, $m)) {
+            return $m[1];
+        }
+        if (preg_match('/\b' . preg_quote($name, '/') . '\s*=\s*([^\s>]+)/i', $attrs, $m)) {
+            return $m[1];
+        }
+
+        return null;
+    }
+
     private static function sanitizeHtml(string $html): string
     {
         $html = self::normalizeHtml($html);
         $html = preg_replace('/<script\b[^>]*>[\s\S]*?<\/script>/i', '', $html) ?? $html;
-        $html = preg_replace('/\s+on\w+\s*=\s*(["\']).*?\1/i', '', $html) ?? $html;
-        $html = preg_replace('/\s+on\w+\s*=\s*[^\s>]+/i', '', $html) ?? $html;
-        $html = preg_replace('/javascript:/i', '', $html) ?? $html;
+        $html = preg_replace('/\bon\w+\s*=\s*("[^"]*"|\'[^\']*\'|[^\s>]+)/i', '', $html) ?? $html;
+        $html = preg_replace('/\b(href|src)\s*=\s*["\']?\s*javascript:[^"\'>\s]*/i', '$1="#"', $html) ?? $html;
 
         $html = preg_replace_callback(
-            '/<img\b([^>]*)>/i',
+            '/<a\b([^>]*?)>([\s\S]*?)<\/a>/i',
             function ($m) {
-                $attrs = $m[1];
-                if (!preg_match('/\bsrc\s*=\s*(["\'])(https?:\/\/[^"\']+)\1/i', $attrs, $src)) {
-                    return '';
-                }
-                $alt = '';
-                if (preg_match('/\balt\s*=\s*(["\'])(.*?)\1/i', $attrs, $altMatch)) {
-                    $alt = ' alt="' . htmlspecialchars($altMatch[2], ENT_QUOTES, 'UTF-8') . '"';
+                $href = self::extractAttribute($m[1], 'href');
+                $href = $href !== null ? self::normalizeUrl($href) : null;
+                if ($href === null) {
+                    return $m[2];
                 }
 
-                return '<img src="' . htmlspecialchars($src[2], ENT_QUOTES, 'UTF-8') . '"' . $alt . ' loading="lazy" />';
+                return '<a href="' . htmlspecialchars($href, ENT_QUOTES, 'UTF-8')
+                    . '" target="_blank" rel="noopener noreferrer">' . $m[2] . '</a>';
             },
             $html
         ) ?? $html;
 
         $html = preg_replace_callback(
-            '/<a\b([^>]*)>(.*?)<\/a>/is',
+            '/<img\b([^>]*?)\/?>/i',
             function ($m) {
-                if (!preg_match('/\bhref\s*=\s*(["\'])(https?:\/\/[^"\']+)\1/i', $m[1], $href)) {
-                    return htmlspecialchars(strip_tags($m[2]), ENT_QUOTES, 'UTF-8');
+                $src = self::extractAttribute($m[1], 'src');
+                $src = $src !== null ? self::normalizeUrl($src) : null;
+                if ($src === null) {
+                    return '';
                 }
 
-                return '<a href="' . htmlspecialchars($href[2], ENT_QUOTES, 'UTF-8')
-                    . '" target="_blank" rel="noopener noreferrer">'
-                    . strip_tags($m[2], '<strong><em><b><i><code>')
-                    . '</a>';
+                $alt = self::extractAttribute($m[1], 'alt') ?? '';
+
+                return '<img src="' . htmlspecialchars($src, ENT_QUOTES, 'UTF-8') . '" alt="'
+                    . htmlspecialchars($alt, ENT_QUOTES, 'UTF-8') . '" loading="lazy" />';
             },
             $html
         ) ?? $html;
