@@ -155,15 +155,6 @@
     gap: 12px;
 }
 
-.pl-card__logo {
-    width: 56px;
-    height: 56px;
-    border-radius: 10px;
-    object-fit: cover;
-    background: #0f172a;
-    flex-shrink: 0;
-}
-
 .pl-card__name {
     font-weight: 700;
     font-size: 14px;
@@ -212,7 +203,7 @@
 
 .pl-manage-toolbar {
     display: grid;
-    grid-template-columns: 220px 1fr;
+    grid-template-columns: 220px 1fr auto;
     gap: 12px;
     margin-bottom: 16px;
     padding: 14px;
@@ -230,6 +221,19 @@
 
 .pl-manage-field--grow {
     flex: 1;
+}
+
+.pl-manage-field--action {
+    flex-shrink: 0;
+}
+
+.pl-manage-field--action .pl-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 140px;
+    justify-content: center;
+    height: 38px;
 }
 
 .pl-manage-field label {

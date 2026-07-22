@@ -134,6 +134,9 @@ class SpigotClient
                 $mapped['categories'] = $official['categories'];
                 $mapped['game_versions'] = $official['game_versions'] ?: $mapped['game_versions'];
                 $mapped['download_count'] = max($mapped['download_count'], $official['download_count']);
+                if (!empty($official['logo'])) {
+                    $mapped['logo'] = $official['logo'];
+                }
             } else {
                 $mapped = $official;
             }
@@ -188,10 +191,7 @@ class SpigotClient
     private function mapPlugin(array $resource): array
     {
         $id = (int) ($resource['id'] ?? 0);
-        $icon = $resource['icon']['url'] ?? null;
-        if (is_string($icon) && str_starts_with($icon, 'data/')) {
-            $icon = 'https://www.spigotmc.org/' . ltrim($icon, '/');
-        }
+        $icon = $this->normalizeIconUrl($resource['icon']['url'] ?? null, $id);
 
         $tested = $resource['testedVersions'] ?? ($resource['supported_minecraft_versions'] ?? []);
 
@@ -219,7 +219,7 @@ class SpigotClient
     private function mapSpigotResource(array $resource): array
     {
         $id = (int) ($resource['id'] ?? 0);
-        $icon = $resource['icon_link'] ?? null;
+        $icon = $this->normalizeIconUrl($resource['icon_link'] ?? null, $id);
 
         return [
             'id' => $id,
@@ -243,21 +243,6 @@ class SpigotClient
         ];
     }
 
-    private function bbcodeToSimpleHtml(string $text): string
-    {
-        if ($text === '') {
-            return '<p>Sem descrição.</p>';
-        }
-
-        $html = htmlspecialchars($text, ENT_QUOTES, 'UTF-8');
-        $html = preg_replace('/\[b\](.*?)\[\/b\]/is', '<strong>$1</strong>', $html);
-        $html = preg_replace('/\[i\](.*?)\[\/i\]/is', '<em>$1</em>', $html);
-        $html = preg_replace('/\[url=(.*?)\](.*?)\[\/url\]/is', '<a href="$1" target="_blank" rel="noreferrer">$2</a>', $html);
-        $html = nl2br($html);
-
-        return '<div class="spigot-md">' . $html . '</div>';
-    }
-
     private function mapVersion(array $version, int $resourceId): array
     {
         $versionId = (int) ($version['id'] ?? 0);
@@ -274,5 +259,50 @@ class SpigotClient
             'download_url' => $this->getDownloadUrl($resourceId, $versionId),
             'resource_id' => $resourceId,
         ];
+    }
+
+    private function normalizeIconUrl(?string $icon, int $resourceId): ?string
+    {
+        if ($icon === null || $icon === '') {
+            return null;
+        }
+
+        $icon = trim($icon);
+        if ($icon === '') {
+            return null;
+        }
+
+        if (str_starts_with($icon, 'http://') || str_starts_with($icon, 'https://')) {
+            return $icon;
+        }
+
+        if (str_starts_with($icon, '//')) {
+            return 'https:' . $icon;
+        }
+
+        if (str_starts_with($icon, '/')) {
+            return 'https://www.spigotmc.org' . $icon;
+        }
+
+        if (str_starts_with($icon, 'data/')) {
+            return 'https://www.spigotmc.org/' . ltrim($icon, '/');
+        }
+
+        return 'https://www.spigotmc.org/data/resource_icons/' . $resourceId . '/' . ltrim($icon, '/');
+    }
+
+    private function bbcodeToSimpleHtml(string $text): string
+    {
+        if ($text === '') {
+            return '<p>Sem descrição.</p>';
+        }
+
+        $html = htmlspecialchars($text, ENT_QUOTES, 'UTF-8');
+        $html = preg_replace('/\[b\](.*?)\[\/b\]/is', '<strong>$1</strong>', $html);
+        $html = preg_replace('/\[i\](.*?)\[\/i\]/is', '<em>$1</em>', $html);
+        $html = preg_replace('/\[url=(.*?)\](.*?)\[\/url\]/is', '<a href="$1" target="_blank" rel="noreferrer">$2</a>', $html);
+        $html = nl2br($html);
+
+        return '<div class="spigot-md">' . $html . '</div>';
     }
 }

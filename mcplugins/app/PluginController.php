@@ -83,6 +83,21 @@ class PluginController extends Controller
         ]);
     }
 
+    public function syncInstalled(Request $request, Server $server): JsonResponse
+    {
+        $this->authorize('file.read', $server);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Plugins sincronizados.',
+            'data' => [
+                'api_configured' => true,
+                'curseforge_configured' => $this->curse->hasApiKey(),
+                'plugins' => $this->installer->syncManaged($server),
+            ],
+        ]);
+    }
+
     public function show(Request $request, Server $server, string $plugin): JsonResponse
     {
         $this->authorize('file.read', $server);
