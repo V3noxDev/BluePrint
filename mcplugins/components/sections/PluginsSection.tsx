@@ -345,7 +345,7 @@ const PluginsSection = () => {
 
     const handleUpdate = async () => {
         if (!updateModal?.item.plugin_id || selectedFileId === null || selectedFileId === '') return;
-        const itemProvider = updateModal.item.provider || 'curseforge';
+        const itemProvider = updateModal.item.provider || 'modrinth';
         setUpdating(true);
         try {
             const { data: res } = await http.post(`${apiBase}/update`, {
@@ -463,14 +463,14 @@ const PluginsSection = () => {
                 <div className={'pl-mode-tabs'}>
                     <button
                         type={'button'}
-                        className={topMode === 'browse' ? 'is-on' : ''}
+                        className={`pl-mode-btn${topMode === 'browse' ? ' is-on' : ''}`}
                         onClick={() => switchTopMode('browse')}
                     >
                         Buscar Plugins
                     </button>
                     <button
                         type={'button'}
-                        className={topMode === 'manage' ? 'is-on' : ''}
+                        className={`pl-mode-btn${topMode === 'manage' ? ' is-on' : ''}`}
                         onClick={() => switchTopMode('manage')}
                     >
                         Gerenciar Plugins
@@ -672,7 +672,10 @@ const PluginsSection = () => {
 
                         <div className={'pl-manage-list'}>
                             {installed.map((item) => (
-                                <div key={item.file_name} className={'pl-manage-card'}>
+                                <div
+                                    key={item.file_name}
+                                    className={`pl-manage-card${item.update_available ? ' pl-manage-card--update' : ''}`}
+                                >
                                     <div className={'pl-manage-card__top'}>
                                         {item.logo ? (
                                             <img
