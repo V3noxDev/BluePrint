@@ -75,11 +75,11 @@ const pluginInitials = (name: string) => {
 };
 
 const PluginLogo = ({
-    name,
+    pluginName,
     logo,
     className,
 }: {
-    name: string;
+    pluginName: string;
     logo: string | null;
     className: string;
 }) => {
@@ -90,13 +90,15 @@ const PluginLogo = ({
             <img
                 className={className}
                 src={logo}
-                alt={name}
+                alt={pluginName}
                 onError={() => setFailed(true)}
             />
         );
     }
 
-    return <div className={`${className} pl-logo-fallback`}>{pluginInitials(name)}</div>;
+    return (
+        <div className={`${className} pl-logo-fallback`}>{pluginInitials(pluginName)}</div>
+    );
 };
 
 const formatCount = (n: number) =>
@@ -542,7 +544,7 @@ const PluginsSection = () => {
 
                         <div className={'pl-detail-head'}>
                             <PluginLogo
-                                name={selected.name}
+                                pluginName={selected.name}
                                 logo={selected.logo}
                                 className={'pl-detail-head__logo'}
                             />
@@ -764,7 +766,7 @@ const PluginsSection = () => {
                                 >
                                     <div className={'pl-manage-card__head'}>
                                         <PluginLogo
-                                            name={item.name}
+                                            pluginName={item.name}
                                             logo={item.logo}
                                             className={'pl-manage-card__logo'}
                                         />
@@ -959,7 +961,7 @@ const PluginsSection = () => {
                                 <div key={`${provider}-${plugin.id}`} className={'pl-card'}>
                                     <div className={'pl-card__top'}>
                                         <PluginLogo
-                                            name={plugin.name}
+                                            pluginName={plugin.name}
                                             logo={plugin.logo}
                                             className={'pl-card__logo'}
                                         />
