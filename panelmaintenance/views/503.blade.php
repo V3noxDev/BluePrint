@@ -1,184 +1,200 @@
 @php
-    $configPath = storage_path('framework/panelmaintenance.json');
-    $config = is_file($configPath)
-        ? (json_decode((string) file_get_contents($configPath), true) ?: [])
-        : [];
+    $defaults = [
+        'title' => 'Estaremos de volta em breve!',
+        'headline_before' => 'Estaremos de volta em',
+        'headline_highlight' => 'breve!',
+        'message' => 'O painel está em manutenção no momento. Volte mais tarde ou fique conectado:',
+        'retry_minutes' => 60,
+        'site_url' => 'https://blackhosting.com.br',
+        'store_url' => 'https://financeiro.blackhosting.com.br',
+        'discord_url' => 'https://discord.gg/blackhosting',
+        'brand_name' => 'BlackHosting',
+    ];
 
-    $title = $config['title'] ?? 'Painel em manutenção';
-    $message = $config['message'] ?? 'Estamos realizando melhorias no painel. Voltaremos em breve!';
-    $retry_minutes = (int) ($config['retry_minutes'] ?? 60);
-    $site_url = $config['site_url'] ?? 'https://blackhosting.com.br';
-    $store_url = $config['store_url'] ?? 'https://financeiro.blackhosting.com.br';
-    $discord_url = $config['discord_url'] ?? 'https://discord.gg/blackhosting';
-    $brand_name = $config['brand_name'] ?? 'BlackHosting';
+    $config = $defaults;
+
+    foreach ([
+        storage_path('framework/panelmaintenance.json'),
+        storage_path('framework/panelmaintenance-settings.json'),
+    ] as $configPath) {
+        if (!is_file($configPath)) {
+            continue;
+        }
+        $data = json_decode((string) file_get_contents($configPath), true);
+        if (is_array($data)) {
+            $config = array_merge($config, $data);
+        }
+    }
+
+    $headlineBefore = $config['headline_before'] ?? $defaults['headline_before'];
+    $headlineHighlight = $config['headline_highlight'] ?? $defaults['headline_highlight'];
+    $message = $config['message'] ?? $defaults['message'];
+    $siteUrl = $config['site_url'] ?? $defaults['site_url'];
+    $storeUrl = $config['store_url'] ?? $defaults['store_url'];
+    $discordUrl = $config['discord_url'] ?? $defaults['discord_url'];
+    $pageTitle = $config['title'] ?? $defaults['title'];
 @endphp
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ $title }}</title>
+    <meta name="robots" content="noindex, nofollow">
+    <title>{{ $pageTitle }}</title>
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
         body {
             min-height: 100vh;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background: radial-gradient(ellipse 120% 80% at 50% -20%, #1e3a5f 0%, #0b0f17 45%, #06080c 100%);
-            color: #e2e8f0;
+            background: #1a1b1e;
+            color: #e3e5e8;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 24px;
+            padding: 32px 20px;
         }
-        .pm-wrap { width: 100%; max-width: 520px; text-align: center; }
-        .pm-brand {
+
+        .pm-screen {
+            width: 100%;
+            max-width: 720px;
+            display: flex;
+            align-items: center;
+            gap: 28px;
+        }
+
+        @media (max-width: 640px) {
+            .pm-screen {
+                flex-direction: column;
+                text-align: center;
+                gap: 20px;
+            }
+        }
+
+        .pm-cone {
+            flex-shrink: 0;
+            width: 88px;
+            height: 88px;
+            filter: drop-shadow(0 8px 24px rgba(249, 115, 22, 0.35));
+            animation: pm-float 4s ease-in-out infinite;
+        }
+
+        @keyframes pm-float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-6px); }
+        }
+
+        .pm-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .pm-title {
+            font-size: clamp(1.65rem, 4vw, 2.1rem);
+            font-weight: 700;
+            line-height: 1.2;
+            color: #f2f3f5;
+            margin-bottom: 10px;
+            letter-spacing: -0.02em;
+        }
+
+        .pm-title span {
+            color: #f97316;
+        }
+
+        .pm-message {
+            font-size: 0.95rem;
+            line-height: 1.55;
+            color: #b5bac1;
+            margin-bottom: 22px;
+            max-width: 520px;
+        }
+
+        .pm-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        @media (max-width: 640px) {
+            .pm-actions {
+                justify-content: center;
+            }
+        }
+
+        .pm-btn {
             display: inline-flex;
             align-items: center;
-            gap: 10px;
-            margin-bottom: 28px;
-            font-size: 14px;
-            font-weight: 600;
-            letter-spacing: 0.06em;
-            text-transform: uppercase;
-            color: #94a3b8;
-        }
-        .pm-brand__dot {
-            width: 8px; height: 8px;
-            border-radius: 50%;
-            background: #f59e0b;
-            box-shadow: 0 0 12px #f59e0b;
-            animation: pm-pulse 2s ease-in-out infinite;
-        }
-        @keyframes pm-pulse {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.5; transform: scale(0.85); }
-        }
-        .pm-card {
-            background: rgba(15, 23, 42, 0.85);
-            border: 1px solid rgba(148, 163, 184, 0.12);
-            border-radius: 20px;
-            padding: 40px 32px 32px;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255,255,255,0.04);
-            backdrop-filter: blur(12px);
-        }
-        .pm-icon {
-            width: 72px; height: 72px;
-            margin: 0 auto 24px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, rgba(59,130,246,0.2), rgba(99,102,241,0.15));
-            border: 1px solid rgba(59,130,246,0.25);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .pm-icon svg {
-            width: 36px; height: 36px; color: #60a5fa;
-            animation: pm-wobble 3s ease-in-out infinite;
-        }
-        @keyframes pm-wobble {
-            0%, 100% { transform: rotate(-8deg); }
-            50% { transform: rotate(8deg); }
-        }
-        .pm-title {
-            font-size: 1.65rem;
-            font-weight: 700;
-            color: #f8fafc;
-            margin-bottom: 12px;
-            line-height: 1.25;
-        }
-        .pm-message {
-            font-size: 1rem;
-            color: #94a3b8;
-            line-height: 1.65;
-            margin-bottom: 28px;
-        }
-        .pm-retry {
-            font-size: 0.8rem;
-            color: #64748b;
-            margin-bottom: 28px;
-        }
-        .pm-links {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-            margin-bottom: 24px;
-        }
-        @media (max-width: 480px) {
-            .pm-links { grid-template-columns: 1fr; }
-        }
-        .pm-link {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 6px;
-            padding: 14px 10px;
-            border-radius: 12px;
-            background: rgba(30, 41, 59, 0.6);
-            border: 1px solid rgba(148, 163, 184, 0.1);
-            color: #cbd5e1;
+            gap: 8px;
+            padding: 10px 16px;
+            border-radius: 8px;
+            background: #2b2d31;
+            border: 1px solid #3f4147;
+            color: #dbdee1;
             text-decoration: none;
-            font-size: 0.8rem;
+            font-size: 0.875rem;
             font-weight: 500;
             transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.15s;
         }
-        .pm-link:hover {
-            background: rgba(59, 130, 246, 0.15);
-            border-color: rgba(59, 130, 246, 0.35);
-            color: #f1f5f9;
-            transform: translateY(-2px);
+
+        .pm-btn:hover {
+            background: #313338;
+            border-color: #4e5058;
+            color: #fff;
+            transform: translateY(-1px);
         }
-        .pm-link__icon { font-size: 1.25rem; }
-        .pm-footer {
-            font-size: 0.75rem;
-            color: #475569;
+
+        .pm-btn svg {
+            width: 18px;
+            height: 18px;
+            flex-shrink: 0;
         }
-        .pm-footer a { color: #64748b; text-decoration: none; }
-        .pm-footer a:hover { color: #94a3b8; }
+
+        .pm-btn--discord:hover { border-color: #5865f2; }
+        .pm-btn--site:hover { border-color: #22c55e; }
+        .pm-btn--store:hover { border-color: #f59e0b; }
     </style>
 </head>
 <body>
-    <div class="pm-wrap">
-        <div class="pm-brand">
-            <span class="pm-brand__dot"></span>
-            <span>{{ $brand_name }}</span>
+    <main class="pm-screen">
+        <div class="pm-cone" aria-hidden="true">
+            <svg viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M48 10L18 82h60L48 10z" fill="#f97316"/>
+                <path d="M26 68h44L48 28 26 68z" fill="#fff" opacity="0.95"/>
+                <path d="M32 56h32L48 36 32 56z" fill="#f97316" opacity="0.85"/>
+                <rect x="14" y="78" width="68" height="8" rx="2" fill="#52525b"/>
+            </svg>
         </div>
 
-        <div class="pm-card">
-            <div class="pm-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 11-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 004.486-6.336l-3.276 3.277a3.004 3.004 0 01-2.25-2.25l3.276-3.276a4.5 4.5 0 00-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437L5.909 7.5H4.5L2.25 3.75l1.5-1.5L7.5 4.5v1.409l4.26 4.26m-1.745 1.437l1.745-1.437m6.615 8.206L15.75 15.75M4.867 19.125h.008v.008h-.008v-.008z" />
-                </svg>
-            </div>
-
-            <h1 class="pm-title">{{ $title }}</h1>
+        <div class="pm-content">
+            <h1 class="pm-title">
+                {{ $headlineBefore }} <span>{{ $headlineHighlight }}</span>
+            </h1>
             <p class="pm-message">{{ $message }}</p>
 
-            @if(!empty($retryAfter))
-                <p class="pm-retry">Tente novamente em aproximadamente {{ (int) ceil($retryAfter / 60) }} minutos.</p>
-            @else
-                <p class="pm-retry">Tente novamente em aproximadamente {{ $retry_minutes }} minutos.</p>
-            @endif
-
-            <div class="pm-links">
-                <a class="pm-link" href="{{ $site_url }}" target="_blank" rel="noopener">
-                    <span class="pm-link__icon">🌐</span>
-                    <span>Site</span>
+            <div class="pm-actions">
+                <a class="pm-btn pm-btn--discord" href="{{ $discordUrl }}" target="_blank" rel="noopener noreferrer">
+                    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                        <path d="M20.317 4.37a19.79 19.79 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157 1.085-2.157 2.419 0 1.333.956 2.419 2.157 2.419 1.21 0 2.176-1.096 2.157-2.42 0-1.333-.956-2.418-2.157-2.418zm7.975 0c-1.183 0-2.157 1.085-2.157 2.419 0 1.333.955 2.419 2.157 2.419 1.21 0 2.176-1.096 2.157-2.42 0-1.333-.946-2.418-2.157-2.418z"/>
+                    </svg>
+                    Discord
                 </a>
-                <a class="pm-link" href="{{ $store_url }}" target="_blank" rel="noopener">
-                    <span class="pm-link__icon">🛒</span>
-                    <span>Loja</span>
+                <a class="pm-btn pm-btn--site" href="{{ $siteUrl }}" target="_blank" rel="noopener noreferrer">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                    </svg>
+                    Site
                 </a>
-                <a class="pm-link" href="{{ $discord_url }}" target="_blank" rel="noopener">
-                    <span class="pm-link__icon">💬</span>
-                    <span>Discord</span>
+                <a class="pm-btn pm-btn--store" href="{{ $storeUrl }}" target="_blank" rel="noopener noreferrer">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                        <polyline points="9 22 9 12 15 12 15 22"/>
+                    </svg>
+                    Loja
                 </a>
             </div>
-
-            <p class="pm-footer">
-                &copy; {{ date('Y') }}
-                <a href="{{ $site_url }}">{{ $brand_name }}</a>
-            </p>
         </div>
-    </div>
+    </main>
 </body>
 </html>

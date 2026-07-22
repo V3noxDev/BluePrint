@@ -3,10 +3,10 @@
         <div>
             <h3 class="pm-admin__title">Panel Maintenance</h3>
             <p class="pm-admin__subtitle">
-                Ative o modo de manutenção do painel com uma página 503 personalizada — sem precisar de SSH ou <code>php artisan down</code>.
+                Página 503 personalizada em português — ative pelo admin <strong>ou</strong> via SSH com <code>php artisan down</code>.
             </p>
         </div>
-        <span class="pm-admin__version">v1.0.0</span>
+        <span class="pm-admin__version">v1.1.0</span>
     </div>
 
     @if(session('success'))
@@ -43,9 +43,17 @@
                 <input type="text" name="brand_name" id="brand_name" class="pm-admin__input"
                     value="{{ $settings['brand_name'] }}" required>
 
-                <label class="pm-admin__label" for="title">Título</label>
+                <label class="pm-admin__label" for="title">Título da aba do navegador</label>
                 <input type="text" name="title" id="title" class="pm-admin__input"
                     value="{{ $settings['title'] }}" required>
+
+                <label class="pm-admin__label" for="headline_before">Título (parte 1)</label>
+                <input type="text" name="headline_before" id="headline_before" class="pm-admin__input"
+                    value="{{ $settings['headline_before'] }}" required>
+
+                <label class="pm-admin__label" for="headline_highlight">Título destacado (laranja)</label>
+                <input type="text" name="headline_highlight" id="headline_highlight" class="pm-admin__input"
+                    value="{{ $settings['headline_highlight'] }}" required>
 
                 <label class="pm-admin__label" for="message">Mensagem</label>
                 <textarea name="message" id="message" class="pm-admin__textarea" rows="3" required>{{ $settings['message'] }}</textarea>

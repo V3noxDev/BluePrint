@@ -28,8 +28,10 @@ class MaintenanceService
     public function getSettings(): array
     {
         return [
-            'title' => (string) $this->setting('title', 'Painel em manutenção'),
-            'message' => (string) $this->setting('message', 'Estamos realizando melhorias no painel. Voltaremos em breve!'),
+            'title' => (string) $this->setting('title', 'Estaremos de volta em breve!'),
+            'headline_before' => (string) $this->setting('headline_before', 'Estaremos de volta em'),
+            'headline_highlight' => (string) $this->setting('headline_highlight', 'breve!'),
+            'message' => (string) $this->setting('message', 'O painel está em manutenção no momento. Volte mais tarde ou fique conectado:'),
             'retry_minutes' => max(1, (int) $this->setting('retry_minutes', 60)),
             'secret' => (string) $this->setting('secret', ''),
             'site_url' => (string) $this->setting('site_url', 'https://blackhosting.com.br'),
@@ -90,8 +92,10 @@ class MaintenanceService
     private function writeRuntimeConfig(array $settings, string $secret, int $retryMinutes): void
     {
         $payload = [
-            'title' => (string) ($settings['title'] ?? 'Painel em manutenção'),
-            'message' => (string) ($settings['message'] ?? 'Estamos realizando melhorias no painel. Voltaremos em breve!'),
+            'title' => (string) ($settings['title'] ?? 'Estaremos de volta em breve!'),
+            'headline_before' => (string) ($settings['headline_before'] ?? 'Estaremos de volta em'),
+            'headline_highlight' => (string) ($settings['headline_highlight'] ?? 'breve!'),
+            'message' => (string) ($settings['message'] ?? 'O painel está em manutenção no momento. Volte mais tarde ou fique conectado:'),
             'retry_minutes' => $retryMinutes,
             'secret' => $secret,
             'site_url' => (string) ($settings['site_url'] ?? 'https://blackhosting.com.br'),
@@ -140,8 +144,10 @@ class MaintenanceService
     private function defaultSettings(): array
     {
         return [
-            'title' => 'Painel em manutenção',
-            'message' => 'Estamos realizando melhorias no painel. Voltaremos em breve!',
+            'title' => 'Estaremos de volta em breve!',
+            'headline_before' => 'Estaremos de volta em',
+            'headline_highlight' => 'breve!',
+            'message' => 'O painel está em manutenção no momento. Volte mais tarde ou fique conectado:',
             'retry_minutes' => 60,
             'secret' => '',
             'site_url' => 'https://blackhosting.com.br',

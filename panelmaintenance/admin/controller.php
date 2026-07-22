@@ -76,6 +76,8 @@ class panelmaintenanceSettingsFormRequest extends AdminFormRequest
         return [
             'action' => ['nullable', 'in:save,enable,disable'],
             'title' => ['required', 'string', 'max:120'],
+            'headline_before' => ['required', 'string', 'max:80'],
+            'headline_highlight' => ['required', 'string', 'max:40'],
             'message' => ['required', 'string', 'max:1000'],
             'retry_minutes' => ['required', 'integer', 'min:1', 'max:10080'],
             'secret' => ['nullable', 'string', 'max:64', 'regex:/^[a-zA-Z0-9\-_]*$/'],
@@ -89,7 +91,9 @@ class panelmaintenanceSettingsFormRequest extends AdminFormRequest
     public function attributes(): array
     {
         return [
-            'title' => 'Título',
+            'title' => 'Título da aba',
+            'headline_before' => 'Título (parte 1)',
+            'headline_highlight' => 'Título destacado',
             'message' => 'Mensagem',
             'retry_minutes' => 'Tentar novamente (minutos)',
             'secret' => 'Token de bypass',
@@ -104,6 +108,8 @@ class panelmaintenanceSettingsFormRequest extends AdminFormRequest
     {
         return [
             'title' => trim((string) $this->input('title')),
+            'headline_before' => trim((string) $this->input('headline_before')),
+            'headline_highlight' => trim((string) $this->input('headline_highlight')),
             'message' => trim((string) $this->input('message')),
             'retry_minutes' => (int) $this->input('retry_minutes'),
             'secret' => trim((string) $this->input('secret', '')),
