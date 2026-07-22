@@ -56,13 +56,13 @@
       "sort_order": 2,
       "action": "pull",
       "file_path": "plugins/floodgate-spigot.jar",
-      "content": "https://download.geysermc.org/v2/projects/floodgate/versions/latest/builds/latest/downloads/spigot"
+      "content": "https://download.geysermc.org/v2/projects/floodgate/versions/latest/builds/latest/downloads/{{ $geyser_type }}"
     },
     {
       "sort_order": 3,
       "action": "write",
       "file_path": "plugins/Geyser-{{ $geyser_type }}/config.yml",
-      "content": "# Gerado pelo Template Installer\nbedrock:\n  port: {{ $bedrock_port }}\n  clone-remote-port: false\nremote:\n  address: 127.0.0.1\n  port: {{ $server['allocation']['port'] }}\n  auth-type: floodgate\n"
+      "content": "# Gerado pelo Template Installer\nbedrock:\n  port: {{ $bedrock_port }}\n  clone-remote-port: false\nremote:\n  address: 127.0.0.1\n  port: {{ $server_port }}\n  auth-type: floodgate\n"
     },
     {
       "sort_order": 4,

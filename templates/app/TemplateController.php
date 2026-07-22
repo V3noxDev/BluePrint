@@ -5,7 +5,9 @@ namespace Pterodactyl\BlueprintFramework\Extensions\templates;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
+use Pterodactyl\Exceptions\Http\Connection\DaemonConnectionException;
 use Pterodactyl\Http\Controllers\Controller;
 use Pterodactyl\Models\Server;
 
@@ -71,13 +73,22 @@ class TemplateController extends Controller
 
     public function install(Request $request, Server $server): JsonResponse
     {
-        $this->authorize('control.console', $server);
+        $this->authorize('file.update', $server);
 
-        $templateId = (int) $request->input('template_id');
-        $model = InstallerTemplate::query()->where('enabled', true)->with(['variables', 'steps'])->findOrFail($templateId);
+        $validated = $request->validate([
+            'template_id' => 'required|integer|min:1',
+            'password' => 'nullable|string|max:191',
+            'variables' => 'nullable|array',
+        ]);
+
+        $templateId = (int) $validated['template_id'];
+        $model = InstallerTemplate::query()
+            ->where('enabled', true)
+            ->with(['variables', 'steps'])
+            ->findOrFail($templateId);
 
         if ($model->password) {
-            $password = (string) $request->input('password', '');
+            $password = (string) ($validated['password'] ?? '');
             if (!Hash::check($password, $model->password)) {
                 return response()->json([
                     'success' => false,
@@ -90,30 +101,56 @@ class TemplateController extends Controller
         $attributes = [];
         foreach ($model->variables as $var) {
             $key = $var->env_variable;
-            $rules[$key] = $var->rules ?: 'nullable|string';
+            $rules[$key] = $this->normalizeRules($var->rules ?: 'nullable|string');
             $attributes[$key] = $var->name;
         }
 
-        $validator = Validator::make($request->input('variables', []), $rules, [], $attributes);
+        $validator = Validator::make($validated['variables'] ?? [], $rules, [], $attributes);
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
+                'error' => $validator->errors()->first(),
                 'errors' => $validator->errors(),
             ], 422);
         }
 
         $userVars = [];
         foreach ($model->variables as $var) {
-            $val = $request->input('variables.' . $var->env_variable, $var->default_value);
+            $val = $validated['variables'][$var->env_variable] ?? $var->default_value;
             $userVars[ltrim($var->env_variable, '$')] = is_bool($val) ? ($val ? '1' : '0') : (string) $val;
+        }
+
+        if ($model->steps->isEmpty()) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Este template não possui steps de instalação configurados.',
+            ], 422);
         }
 
         try {
             $result = $this->installer->install($server, $model, $userVars);
-        } catch (\Throwable $e) {
+        } catch (DaemonConnectionException $e) {
+            Log::warning('[templates] daemon offline', [
+                'server' => $server->uuid,
+                'template' => $model->id,
+                'error' => $e->getMessage(),
+            ]);
+
             return response()->json([
                 'success' => false,
+                'error' => 'Não foi possível conectar ao Wings. Verifique se o node está online.',
+            ], 502);
+        } catch (\Throwable $e) {
+            Log::error('[templates] install failed', [
+                'server' => $server->uuid,
+                'template' => $model->id,
                 'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'error' => 'Erro ao instalar: ' . $e->getMessage(),
             ], 500);
         }
 
@@ -122,6 +159,18 @@ class TemplateController extends Controller
             'data' => $result,
             'message' => 'Template instalado com sucesso.',
         ]);
+    }
+
+  /**
+   * Aceita valores 0/1 enviados pelo painel em campos boolean.
+   */
+    private function normalizeRules(string $rules): string
+    {
+        if (!str_contains($rules, 'boolean')) {
+            return $rules;
+        }
+
+        return str_replace('boolean', 'in:0,1,true,false', $rules);
     }
 
     private function formatTemplate(InstallerTemplate $t, bool $detailed = false): array
