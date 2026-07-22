@@ -1,0 +1,74 @@
+{
+  "sort_order": 0,
+  "name": "GeyserMC",
+  "icon_url": "https://geysermc.org/img/apple-touch-icon.png",
+  "category": "Plugin Setups",
+  "description": "GeyserMC is used to allow <strong>Bedrock Edition</strong> to join your <strong>Java</strong> Server.",
+  "full_description": "<p>GeyserMC permite jogadores <strong>Bedrock</strong> entrarem no seu servidor Java.</p><p>Escolha o tipo (Spigot, Velocity ou BungeeCord), a porta Bedrock e se deseja incluir o Floodgate.</p>",
+  "password": null,
+  "password_description": null,
+  "version": "1.1.0",
+  "author": "BluePrint",
+  "enabled": true,
+  "variables": [
+    {
+      "sort_order": 0,
+      "name": "Bedrock Port",
+      "env_variable": "bedrock_port",
+      "description": "The Port to use for Bedrock Connectivity, make sure the port has been assigned in your Network Tab.",
+      "default_value": "19132",
+      "rules": "required|integer|min:1|max:65535",
+      "selectable": true
+    },
+    {
+      "sort_order": 1,
+      "name": "GeyserMC Type",
+      "env_variable": "geyser_type",
+      "description": "What type of the GeyserMC Plugin to use.",
+      "default_value": "spigot",
+      "rules": "required|string|in:spigot,bungeecord,velocity",
+      "selectable": true
+    },
+    {
+      "sort_order": 2,
+      "name": "Include Floodgate",
+      "env_variable": "include_floodgate",
+      "description": "Include floodgate in the GeyserMC Installation, this is required for bedrock players to join without logging in with a java account.",
+      "default_value": "1",
+      "rules": "required|boolean",
+      "selectable": true
+    }
+  ],
+  "steps": [
+    {
+      "sort_order": 0,
+      "action": "mkdir",
+      "file_path": "plugins",
+      "content": null
+    },
+    {
+      "sort_order": 1,
+      "action": "pull",
+      "file_path": "plugins/Geyser-{{ $geyser_type }}.jar",
+      "content": "https://download.geysermc.org/v2/projects/geyser/versions/latest/builds/latest/downloads/{{ $geyser_type }}"
+    },
+    {
+      "sort_order": 2,
+      "action": "pull",
+      "file_path": "plugins/floodgate-spigot.jar",
+      "content": "https://download.geysermc.org/v2/projects/floodgate/versions/latest/builds/latest/downloads/spigot"
+    },
+    {
+      "sort_order": 3,
+      "action": "write",
+      "file_path": "plugins/Geyser-{{ $geyser_type }}/config.yml",
+      "content": "# Gerado pelo Template Installer\nbedrock:\n  port: {{ $bedrock_port }}\n  clone-remote-port: false\nremote:\n  address: 127.0.0.1\n  port: {{ $server['allocation']['port'] }}\n  auth-type: floodgate\n"
+    },
+    {
+      "sort_order": 4,
+      "action": "power",
+      "file_path": null,
+      "content": "restart"
+    }
+  ]
+}
