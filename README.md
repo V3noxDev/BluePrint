@@ -36,3 +36,11 @@ Gerenciador de plugins CurseForge (Paper / Spigot / Purpur):
 - URL: `/server/{id}/minecraft/plugins`
 - Buscar Plugins + Gerenciar Plugins
 - Instalar, atualizar e remover `.jar` em `/plugins`
+
+### [Admin Infra](./admininfra/)
+
+Tema escuro profissional para o painel administrativo:
+
+- Aplica em todo o **Admin** (sidebar, tabelas, modais, formulários)
+- Melhor UX em nodes, allocations e criação de servidores
+- Cor de destaque e modo compacto configuráveis na engrenagem

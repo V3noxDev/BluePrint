@@ -1,0 +1,1061 @@
+/* Admin Infra — dark infrastructure theme for Pterodactyl admin */
+/* Variables are injected by admin/wrapper.blade.php (--ap-* → --ai-*). Fallbacks below. */
+
+:root {
+  --ai-accent: var(--ap-accent, #3b82f6);
+  --ai-accent-soft: var(--ap-accent-soft, rgba(59, 130, 246, 0.14));
+  --ai-bg: var(--ap-bg, #09090b);
+  --ai-surface: var(--ap-bg-elevated, #111114);
+  --ai-surface-2: var(--ap-surface, #18181b);
+  --ai-surface-3: var(--ap-surface-2, #1f1f23);
+  --ai-border: color-mix(in srgb, var(--ap-border, #2e2e33) 70%, transparent);
+  --ai-border-strong: var(--ap-border-strong, #3f3f46);
+  --ai-text: var(--ap-text, #f4f4f5);
+  --ai-muted: var(--ap-muted, #a1a1aa);
+  --ai-success: var(--ap-success, #22c55e);
+  --ai-warning: var(--ap-warning, #f59e0b);
+  --ai-danger: var(--ap-danger, #ef4444);
+  --ai-radius: var(--ap-radius, 10px);
+  --ai-radius-sm: var(--ap-radius-sm, 8px);
+  --ai-shadow: var(--ap-shadow, 0 10px 30px rgba(0, 0, 0, 0.35));
+}
+
+/* ── Base ─────────────────────────────────────────────────────────────── */
+
+body,
+.content-wrapper,
+.main-footer {
+  background: var(--ai-bg) !important;
+  color: var(--ai-text) !important;
+}
+
+.content-wrapper {
+  min-height: calc(100vh - 50px);
+}
+
+.content-header {
+  padding: 20px 24px 0 !important;
+}
+
+.content-header > h1,
+.content-header > h1 small {
+  color: var(--ai-text) !important;
+  font-weight: 600 !important;
+}
+
+.content-header > h1 small {
+  color: var(--ai-muted) !important;
+  font-weight: 400 !important;
+}
+
+.content {
+  padding: 16px 24px 32px !important;
+}
+
+a {
+  color: var(--ai-accent);
+}
+
+a:hover,
+a:focus {
+  color: #60a5fa;
+}
+
+/* ── Header / Navbar ──────────────────────────────────────────────────── */
+
+.main-header {
+  background: var(--ai-surface) !important;
+  border-bottom: 1px solid var(--ai-border) !important;
+  box-shadow: var(--ai-shadow) !important;
+}
+
+.main-header .logo {
+  background: var(--ai-surface-2) !important;
+  border-right: 1px solid var(--ai-border) !important;
+  color: var(--ai-text) !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.02em;
+}
+
+.main-header .navbar {
+  background: transparent !important;
+}
+
+.main-header .navbar .nav > li > a {
+  color: var(--ai-muted) !important;
+  border-radius: var(--ai-radius-sm);
+  margin: 8px 2px;
+  padding: 8px 12px !important;
+  transition: background 0.15s, color 0.15s;
+}
+
+.main-header .navbar .nav > li > a:hover,
+.main-header .navbar .nav > li > a:focus {
+  background: var(--ai-surface-3) !important;
+  color: var(--ai-text) !important;
+}
+
+.main-header .navbar .dropdown-menu {
+  background: var(--ai-surface-2) !important;
+  border: 1px solid var(--ai-border) !important;
+  border-radius: var(--ai-radius) !important;
+  box-shadow: var(--ai-shadow) !important;
+  padding: 6px !important;
+}
+
+.main-header .navbar .dropdown-menu > li > a {
+  color: var(--ai-text) !important;
+  border-radius: var(--ai-radius-sm);
+  padding: 8px 12px !important;
+}
+
+.main-header .navbar .dropdown-menu > li > a:hover {
+  background: var(--ai-surface-3) !important;
+}
+
+/* ── Sidebar ──────────────────────────────────────────────────────────── */
+
+.main-sidebar,
+.left-side {
+  background: var(--ai-surface) !important;
+  border-right: 1px solid var(--ai-border) !important;
+  box-shadow: none !important;
+}
+
+.sidebar-menu > li.header {
+  background: transparent !important;
+  color: var(--ai-muted) !important;
+  font-size: 0.68rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 16px 16px 8px !important;
+}
+
+.sidebar-menu > li > a {
+  border-left: 3px solid transparent !important;
+  color: var(--ai-muted) !important;
+  border-radius: 0 var(--ai-radius-sm) var(--ai-radius-sm) 0;
+  margin: 2px 8px 2px 0;
+  padding: 11px 14px !important;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.sidebar-menu > li > a:hover {
+  background: var(--ai-surface-2) !important;
+  color: var(--ai-text) !important;
+}
+
+.sidebar-menu > li.active > a {
+  background: var(--ai-accent-soft) !important;
+  border-left-color: var(--ai-accent) !important;
+  color: var(--ai-text) !important;
+  font-weight: 600;
+}
+
+.sidebar-menu > li > a > .fa,
+.sidebar-menu > li > a > .glyphicon,
+.sidebar-menu > li > a > .ion {
+  color: var(--ai-muted);
+}
+
+.sidebar-menu > li.active > a > .fa,
+.sidebar-menu > li.active > a > .glyphicon {
+  color: var(--ai-accent) !important;
+}
+
+.sidebar-menu .treeview-menu {
+  background: var(--ai-surface-2) !important;
+  padding: 4px 0 !important;
+}
+
+.sidebar-menu .treeview-menu > li > a {
+  color: var(--ai-muted) !important;
+  padding: 8px 14px 8px 28px !important;
+}
+
+.sidebar-menu .treeview-menu > li > a:hover,
+.sidebar-menu .treeview-menu > li.active > a {
+  color: var(--ai-text) !important;
+}
+
+.user-panel {
+  border-bottom: 1px solid var(--ai-border) !important;
+  padding: 16px !important;
+}
+
+.user-panel > .info,
+.user-panel > .info > a {
+  color: var(--ai-text) !important;
+}
+
+/* ── Boxes / Cards ────────────────────────────────────────────────────── */
+
+.box {
+  background: var(--ai-surface) !important;
+  border: 1px solid var(--ai-border) !important;
+  border-radius: var(--ai-radius) !important;
+  box-shadow: none !important;
+  margin-bottom: 20px !important;
+}
+
+.box.box-primary {
+  border-top: 3px solid var(--ai-accent) !important;
+}
+
+.box.box-success { border-top-color: var(--ai-success) !important; }
+.box.box-warning { border-top-color: var(--ai-warning) !important; }
+.box.box-danger { border-top-color: var(--ai-danger) !important; }
+
+.box-header {
+  background: var(--ai-surface-2) !important;
+  border-bottom: 1px solid var(--ai-border) !important;
+  border-radius: var(--ai-radius) var(--ai-radius) 0 0 !important;
+  color: var(--ai-text) !important;
+  padding: 14px 18px !important;
+}
+
+.box-header .box-title {
+  color: var(--ai-text) !important;
+  font-size: 1rem !important;
+  font-weight: 600 !important;
+}
+
+.box-header .box-tools .btn {
+  border-radius: var(--ai-radius-sm) !important;
+}
+
+.box-body {
+  background: var(--ai-surface) !important;
+  color: var(--ai-text) !important;
+  padding: 18px !important;
+}
+
+.box-footer {
+  background: var(--ai-surface-2) !important;
+  border-top: 1px solid var(--ai-border) !important;
+  border-radius: 0 0 var(--ai-radius) var(--ai-radius) !important;
+  padding: 14px 18px !important;
+}
+
+/* ── Info boxes (dashboard stats) ─────────────────────────────────────── */
+
+.info-box {
+  background: var(--ai-surface) !important;
+  border: 1px solid var(--ai-border) !important;
+  border-radius: var(--ai-radius) !important;
+  box-shadow: none !important;
+  color: var(--ai-text) !important;
+}
+
+.info-box-icon {
+  background: var(--ai-surface-3) !important;
+  border-radius: var(--ai-radius) 0 0 var(--ai-radius) !important;
+  color: var(--ai-accent) !important;
+}
+
+.info-box-content {
+  margin-left: 90px !important;
+}
+
+.info-box-text {
+  color: var(--ai-muted) !important;
+  font-size: 0.75rem !important;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.info-box-number {
+  color: var(--ai-text) !important;
+  font-weight: 700 !important;
+}
+
+.small-box {
+  background: var(--ai-surface) !important;
+  border: 1px solid var(--ai-border) !important;
+  border-radius: var(--ai-radius) !important;
+  box-shadow: none !important;
+}
+
+.small-box > .inner {
+  color: var(--ai-text) !important;
+}
+
+.small-box > .inner h3,
+.small-box > .inner p {
+  color: var(--ai-text) !important;
+}
+
+.small-box > .inner p {
+  color: var(--ai-muted) !important;
+}
+
+.small-box .icon {
+  color: rgba(255, 255, 255, 0.06) !important;
+}
+
+.small-box-footer {
+  background: var(--ai-surface-2) !important;
+  border-top: 1px solid var(--ai-border) !important;
+  color: var(--ai-muted) !important;
+}
+
+/* ── Tables ───────────────────────────────────────────────────────────── */
+
+.table {
+  color: var(--ai-text) !important;
+}
+
+.table > thead > tr > th,
+.table > tbody > tr > th,
+.table > tfoot > tr > th {
+  background: var(--ai-surface-2) !important;
+  border-bottom: 1px solid var(--ai-border-strong) !important;
+  color: var(--ai-muted) !important;
+  font-size: 0.72rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 12px 14px !important;
+}
+
+.table > tbody > tr > td,
+.table > tfoot > tr > td {
+  border-top: 1px solid var(--ai-border) !important;
+  padding: 12px 14px !important;
+  vertical-align: middle !important;
+}
+
+.table > tbody > tr:hover > td {
+  background: var(--ai-surface-2) !important;
+}
+
+.table-striped > tbody > tr:nth-of-type(odd) > td {
+  background: rgba(255, 255, 255, 0.02) !important;
+}
+
+.table-striped > tbody > tr:nth-of-type(odd):hover > td {
+  background: var(--ai-surface-2) !important;
+}
+
+.dataTables_wrapper {
+  color: var(--ai-text) !important;
+}
+
+.dataTables_wrapper .dataTables_length,
+.dataTables_wrapper .dataTables_filter,
+.dataTables_wrapper .dataTables_info,
+.dataTables_wrapper .dataTables_paginate {
+  color: var(--ai-muted) !important;
+}
+
+.dataTables_wrapper .dataTables_filter input,
+.dataTables_wrapper .dataTables_length select {
+  background: var(--ai-surface-2) !important;
+  border: 1px solid var(--ai-border) !important;
+  border-radius: var(--ai-radius-sm) !important;
+  color: var(--ai-text) !important;
+  padding: 6px 10px !important;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button {
+  background: var(--ai-surface-2) !important;
+  border: 1px solid var(--ai-border) !important;
+  border-radius: var(--ai-radius-sm) !important;
+  color: var(--ai-muted) !important;
+  margin: 0 2px !important;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button.current,
+.dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+  background: var(--ai-accent-soft) !important;
+  border-color: var(--ai-accent) !important;
+  color: var(--ai-text) !important;
+}
+
+/* ── Forms ────────────────────────────────────────────────────────────── */
+
+.form-control {
+  background: var(--ai-surface-2) !important;
+  border: 1px solid var(--ai-border) !important;
+  border-radius: var(--ai-radius-sm) !important;
+  box-shadow: none !important;
+  color: var(--ai-text) !important;
+  height: auto !important;
+  padding: 10px 12px !important;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.form-control:focus {
+  border-color: var(--ai-accent) !important;
+  box-shadow: 0 0 0 3px var(--ai-accent-soft) !important;
+}
+
+.form-control::placeholder {
+  color: #71717a !important;
+}
+
+.form-group label,
+.control-label {
+  color: var(--ai-muted) !important;
+  font-size: 0.82rem !important;
+  font-weight: 600 !important;
+  margin-bottom: 6px !important;
+}
+
+.help-block {
+  color: #71717a !important;
+}
+
+.input-group-addon {
+  background: var(--ai-surface-3) !important;
+  border: 1px solid var(--ai-border) !important;
+  color: var(--ai-muted) !important;
+}
+
+select.form-control {
+  appearance: auto;
+}
+
+/* ── Buttons ──────────────────────────────────────────────────────────── */
+
+.btn {
+  border-radius: var(--ai-radius-sm) !important;
+  font-weight: 600 !important;
+  transition: background 0.15s, border-color 0.15s, transform 0.1s;
+}
+
+.btn:active {
+  transform: scale(0.98);
+}
+
+.btn-default {
+  background: var(--ai-surface-2) !important;
+  border-color: var(--ai-border-strong) !important;
+  color: var(--ai-text) !important;
+}
+
+.btn-default:hover {
+  background: var(--ai-surface-3) !important;
+  border-color: var(--ai-border-strong) !important;
+  color: var(--ai-text) !important;
+}
+
+.btn-primary {
+  background: var(--ai-accent) !important;
+  border-color: var(--ai-accent) !important;
+  color: #fff !important;
+}
+
+.btn-primary:hover,
+.btn-primary:focus {
+  background: #2563eb !important;
+  border-color: #2563eb !important;
+  color: #fff !important;
+}
+
+.btn-success {
+  background: var(--ai-success) !important;
+  border-color: var(--ai-success) !important;
+}
+
+.btn-warning {
+  background: var(--ai-warning) !important;
+  border-color: var(--ai-warning) !important;
+  color: #111 !important;
+}
+
+.btn-danger {
+  background: var(--ai-danger) !important;
+  border-color: var(--ai-danger) !important;
+}
+
+.btn-info {
+  background: #06b6d4 !important;
+  border-color: #06b6d4 !important;
+}
+
+/* ── Labels / Badges ──────────────────────────────────────────────────── */
+
+.label,
+.badge {
+  border-radius: 999px !important;
+  font-size: 0.72rem !important;
+  font-weight: 600 !important;
+  padding: 4px 10px !important;
+}
+
+.label-default,
+.badge {
+  background: var(--ai-surface-3) !important;
+  color: var(--ai-muted) !important;
+}
+
+.label-primary { background: var(--ai-accent) !important; color: #fff !important; }
+.label-success { background: var(--ai-success) !important; }
+.label-warning { background: var(--ai-warning) !important; color: #111 !important; }
+.label-danger { background: var(--ai-danger) !important; }
+
+/* ── Alerts ───────────────────────────────────────────────────────────── */
+
+.alert {
+  border-radius: var(--ai-radius) !important;
+  border-width: 1px !important;
+}
+
+.alert-success {
+  background: rgba(34, 197, 94, 0.12) !important;
+  border-color: rgba(34, 197, 94, 0.3) !important;
+  color: #86efac !important;
+}
+
+.alert-warning {
+  background: rgba(245, 158, 11, 0.12) !important;
+  border-color: rgba(245, 158, 11, 0.3) !important;
+  color: #fcd34d !important;
+}
+
+.alert-danger {
+  background: rgba(239, 68, 68, 0.12) !important;
+  border-color: rgba(239, 68, 68, 0.3) !important;
+  color: #fca5a5 !important;
+}
+
+.alert-info {
+  background: var(--ai-accent-soft) !important;
+  border-color: rgba(59, 130, 246, 0.3) !important;
+  color: #93c5fd !important;
+}
+
+/* ── Modals ───────────────────────────────────────────────────────────── */
+
+.modal-content {
+  background: var(--ai-surface) !important;
+  border: 1px solid var(--ai-border) !important;
+  border-radius: var(--ai-radius) !important;
+  box-shadow: var(--ai-shadow) !important;
+  color: var(--ai-text) !important;
+}
+
+.modal-header {
+  background: var(--ai-surface-2) !important;
+  border-bottom: 1px solid var(--ai-border) !important;
+  border-radius: var(--ai-radius) var(--ai-radius) 0 0 !important;
+}
+
+.modal-title {
+  color: var(--ai-text) !important;
+  font-weight: 600 !important;
+}
+
+.modal-body {
+  background: var(--ai-surface) !important;
+}
+
+.modal-footer {
+  background: var(--ai-surface-2) !important;
+  border-top: 1px solid var(--ai-border) !important;
+  border-radius: 0 0 var(--ai-radius) var(--ai-radius) !important;
+}
+
+.close {
+  color: var(--ai-muted) !important;
+  opacity: 1 !important;
+  text-shadow: none !important;
+}
+
+/* ── Nav tabs / pills ─────────────────────────────────────────────────── */
+
+.nav-tabs {
+  border-bottom: 1px solid var(--ai-border) !important;
+}
+
+.nav-tabs > li > a {
+  border-radius: var(--ai-radius-sm) var(--ai-radius-sm) 0 0 !important;
+  color: var(--ai-muted) !important;
+}
+
+.nav-tabs > li > a:hover {
+  background: var(--ai-surface-2) !important;
+  border-color: transparent !important;
+  color: var(--ai-text) !important;
+}
+
+.nav-tabs > li.active > a,
+.nav-tabs > li.active > a:hover,
+.nav-tabs > li.active > a:focus {
+  background: var(--ai-surface) !important;
+  border: 1px solid var(--ai-border) !important;
+  border-bottom-color: var(--ai-surface) !important;
+  color: var(--ai-text) !important;
+}
+
+.nav-pills > li > a {
+  border-radius: var(--ai-radius-sm) !important;
+  color: var(--ai-muted) !important;
+}
+
+.nav-pills > li.active > a {
+  background: var(--ai-accent) !important;
+  color: #fff !important;
+}
+
+/* ── Select2 ──────────────────────────────────────────────────────────── */
+
+.select2-container--default .select2-selection--single,
+.select2-container--default .select2-selection--multiple {
+  background: var(--ai-surface-2) !important;
+  border: 1px solid var(--ai-border) !important;
+  border-radius: var(--ai-radius-sm) !important;
+  min-height: 40px !important;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__rendered {
+  color: var(--ai-text) !important;
+  line-height: 38px !important;
+  padding-left: 12px !important;
+}
+
+.select2-container--default .select2-selection--multiple .select2-selection__choice {
+  background: var(--ai-surface-3) !important;
+  border: 1px solid var(--ai-border) !important;
+  border-radius: var(--ai-radius-sm) !important;
+  color: var(--ai-text) !important;
+}
+
+.select2-dropdown {
+  background: var(--ai-surface-2) !important;
+  border: 1px solid var(--ai-border) !important;
+  border-radius: var(--ai-radius-sm) !important;
+}
+
+.select2-container--default .select2-results__option--highlighted[aria-selected] {
+  background: var(--ai-accent) !important;
+}
+
+.select2-container--default .select2-results__option[aria-selected=true] {
+  background: var(--ai-surface-3) !important;
+}
+
+/* ── Callouts ─────────────────────────────────────────────────────────── */
+
+.callout {
+  background: var(--ai-surface-2) !important;
+  border-left-width: 4px !important;
+  border-radius: var(--ai-radius-sm) !important;
+  color: var(--ai-text) !important;
+}
+
+.callout.callout-info { border-left-color: var(--ai-accent) !important; }
+.callout.callout-success { border-left-color: var(--ai-success) !important; }
+.callout.callout-warning { border-left-color: var(--ai-warning) !important; }
+.callout.callout-danger { border-left-color: var(--ai-danger) !important; }
+
+/* ── Progress bars ────────────────────────────────────────────────────── */
+
+.progress {
+  background: var(--ai-surface-3) !important;
+  border-radius: 999px !important;
+  box-shadow: none !important;
+  height: 8px !important;
+}
+
+.progress-bar {
+  border-radius: 999px !important;
+}
+
+/* ── Footer ───────────────────────────────────────────────────────────── */
+
+.main-footer {
+  background: var(--ai-surface) !important;
+  border-top: 1px solid var(--ai-border) !important;
+  color: var(--ai-muted) !important;
+  padding: 14px 24px !important;
+}
+
+/* ── Well / Panel ─────────────────────────────────────────────────────── */
+
+.well {
+  background: var(--ai-surface-2) !important;
+  border: 1px solid var(--ai-border) !important;
+  border-radius: var(--ai-radius) !important;
+  box-shadow: none !important;
+  color: var(--ai-text) !important;
+}
+
+.panel {
+  background: var(--ai-surface) !important;
+  border: 1px solid var(--ai-border) !important;
+  border-radius: var(--ai-radius) !important;
+}
+
+.panel-heading {
+  background: var(--ai-surface-2) !important;
+  border-bottom: 1px solid var(--ai-border) !important;
+  color: var(--ai-text) !important;
+}
+
+.panel-body {
+  background: var(--ai-surface) !important;
+  color: var(--ai-text) !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   INFRASTRUCTURE PAGES — Nodes, Allocations, Server Create
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* Node list — clearer status & resource columns */
+table[data-identifier="admin-nodes-table"] tbody tr td:first-child,
+.box-body table tbody tr td code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.85em;
+}
+
+/* Allocation tables — monospace IPs/ports, zebra + hover */
+.box-body table tbody tr td:nth-child(1),
+.box-body table tbody tr td:nth-child(2) {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Server create wizard — step boxes */
+.nav-tabs-custom {
+  background: var(--ai-surface) !important;
+  border: 1px solid var(--ai-border) !important;
+  border-radius: var(--ai-radius) !important;
+  box-shadow: none !important;
+}
+
+.nav-tabs-custom > .nav-tabs {
+  background: var(--ai-surface-2) !important;
+  border-bottom: 1px solid var(--ai-border) !important;
+  border-radius: var(--ai-radius) var(--ai-radius) 0 0 !important;
+  padding: 8px 8px 0 !important;
+}
+
+.nav-tabs-custom > .nav-tabs > li > a {
+  border-radius: var(--ai-radius-sm) var(--ai-radius-sm) 0 0 !important;
+  margin-right: 4px !important;
+}
+
+.nav-tabs-custom > .nav-tabs > li.active > a {
+  background: var(--ai-surface) !important;
+  font-weight: 600;
+}
+
+.nav-tabs-custom > .tab-content {
+  background: var(--ai-surface) !important;
+  border-radius: 0 0 var(--ai-radius) var(--ai-radius) !important;
+  padding: 20px !important;
+}
+
+/* Node view — allocation block */
+.box.box-info {
+  border-top-color: var(--ai-accent) !important;
+}
+
+/* Resource usage bars on node pages */
+.box-body .progress-group {
+  margin-bottom: 14px;
+}
+
+.box-body .progress-text {
+  color: var(--ai-muted) !important;
+  font-size: 0.8rem !important;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+/* Inline code for FQDN, daemon tokens, etc. */
+code {
+  background: var(--ai-surface-3) !important;
+  border: 1px solid var(--ai-border) !important;
+  border-radius: 4px !important;
+  color: #e4e4e7 !important;
+  padding: 2px 6px !important;
+}
+
+pre {
+  background: var(--ai-surface-2) !important;
+  border: 1px solid var(--ai-border) !important;
+  border-radius: var(--ai-radius-sm) !important;
+  color: var(--ai-text) !important;
+}
+
+/* Checkbox / radio */
+.checkbox label,
+.radio label {
+  color: var(--ai-text) !important;
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: var(--ai-accent);
+}
+
+/* Pagination (Laravel) */
+.pagination > li > a,
+.pagination > li > span {
+  background: var(--ai-surface-2) !important;
+  border-color: var(--ai-border) !important;
+  color: var(--ai-muted) !important;
+}
+
+.pagination > .active > a,
+.pagination > .active > span {
+  background: var(--ai-accent) !important;
+  border-color: var(--ai-accent) !important;
+  color: #fff !important;
+}
+
+/* Breadcrumb */
+.breadcrumb {
+  background: var(--ai-surface-2) !important;
+  border: 1px solid var(--ai-border) !important;
+  border-radius: var(--ai-radius-sm) !important;
+}
+
+.breadcrumb > li + li:before {
+  color: var(--ai-muted) !important;
+}
+
+/* Empty states */
+.box-body .text-muted,
+.text-muted {
+  color: var(--ai-muted) !important;
+}
+
+/* ── Compact mode ─────────────────────────────────────────────────────── */
+
+html.ai-compact .content {
+  padding: 12px 16px 24px !important;
+}
+
+html.ai-compact .box {
+  margin-bottom: 14px !important;
+}
+
+html.ai-compact .box-body,
+html.ai-compact .box-header,
+html.ai-compact .box-footer {
+  padding: 12px 14px !important;
+}
+
+html.ai-compact .table > tbody > tr > td,
+html.ai-compact .table > thead > tr > th {
+  padding: 8px 10px !important;
+}
+
+html.ai-compact .sidebar-menu > li > a {
+  padding: 9px 12px !important;
+}
+
+/* ── Admin Infra settings page ────────────────────────────────────────── */
+
+.ai-admin {
+  max-width: 100%;
+  margin: 0 0 20px;
+  color: var(--ai-text);
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
+.ai-admin *,
+.ai-admin *::before,
+.ai-admin *::after {
+  box-sizing: border-box;
+}
+
+.ai-admin__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--ai-border-strong);
+}
+
+.ai-admin__header > div:first-child {
+  min-width: 0;
+  flex: 1;
+}
+
+.ai-admin__title {
+  margin: 0 0 6px;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--ai-text);
+  overflow-wrap: anywhere;
+}
+
+.ai-admin__subtitle {
+  margin: 0;
+  color: var(--ai-muted);
+  font-size: 14px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.ai-admin__version {
+  flex-shrink: 0;
+  background: var(--ai-accent-soft);
+  color: #93c5fd;
+  border: 1px solid color-mix(in srgb, var(--ai-accent) 35%, transparent);
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.ai-admin__alert {
+  border-radius: var(--ai-radius);
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.ai-admin__alert--ok {
+  background: rgba(34, 197, 94, 0.12);
+  border: 1px solid rgba(34, 197, 94, 0.35);
+  color: #bbf7d0;
+}
+
+.ai-admin__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.ai-admin__card {
+  background: var(--ai-surface-2);
+  border: 1px solid var(--ai-border-strong);
+  border-radius: var(--ai-radius);
+  padding: 18px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.ai-admin__card--wide {
+  grid-column: 1 / -1;
+}
+
+.ai-admin__card-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ai-muted);
+  margin-bottom: 14px;
+}
+
+.ai-admin__form {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ai-admin__label {
+  color: var(--ai-text);
+  font-size: 0.88rem;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.ai-admin__color-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.ai-admin__color-row input[type="color"] {
+  background: var(--ai-surface-3);
+  border: 1px solid var(--ai-border-strong);
+  border-radius: var(--ai-radius-sm);
+  cursor: pointer;
+  height: 42px;
+  padding: 4px;
+  width: 56px;
+  flex-shrink: 0;
+}
+
+.ai-admin__input {
+  background: var(--ai-surface-3) !important;
+  border: 1px solid var(--ai-border-strong) !important;
+  border-radius: var(--ai-radius-sm) !important;
+  color: var(--ai-text) !important;
+  font-family: var(--ap-font-mono, monospace);
+  font-size: 14px;
+  max-width: 140px;
+  padding: 10px 12px !important;
+}
+
+.ai-admin__hint {
+  color: var(--ai-muted);
+  font-size: 0.8rem;
+  line-height: 1.5;
+  margin: 6px 0 0;
+}
+
+.ai-admin__check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ai-text);
+  font-size: 0.88rem;
+  margin: 16px 0 0;
+  cursor: pointer;
+}
+
+.ai-admin__check input {
+  accent-color: var(--ai-accent);
+  margin: 0;
+}
+
+.ai-admin__btn {
+  align-self: flex-start;
+  background: var(--ai-accent);
+  border: none;
+  border-radius: var(--ai-radius-sm);
+  color: #fff;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  margin-top: 18px;
+  padding: 10px 18px;
+  transition: background 0.15s;
+}
+
+.ai-admin__btn:hover {
+  background: #2563eb;
+}
+
+.ai-admin__list,
+.ai-admin__steps {
+  color: var(--ai-muted);
+  font-size: 14px;
+  line-height: 1.65;
+  margin: 0;
+  padding-left: 18px;
+}
+
+.ai-admin__list li,
+.ai-admin__steps li {
+  margin-bottom: 6px;
+}
+
+.ai-admin__list li:last-child,
+.ai-admin__steps li:last-child {
+  margin-bottom: 0;
+}
+
+@media (max-width: 768px) {
+  .ai-admin__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ai-admin__header {
+    flex-direction: column;
+  }
+}
