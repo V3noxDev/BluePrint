@@ -21,7 +21,10 @@
 
     <div class="pl-admin__info-grid">
         <div class="pl-admin__info-card pl-admin__info-card--wide">
-            <div class="pl-admin__info-title"><i class="bi bi-info-circle"></i> Information</div>
+            <div class="pl-admin__info-title">
+                <svg class="pl-admin__icon" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/><path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.12c.176-.203.176-.492-.096-.754l-.13-.155 1.178-2.066.082-.145c.182-.29.11-.578-.062-.785-.18-.214-.5-.295-.84-.223l-.17.038.287-2.23zm-.034 6.878-.708.707a.5.5 0 0 1-.707-.707l.707-.708.708.708z"/></svg>
+                Information
+            </div>
             <ul class="pl-admin__info-list">
                 <li>
                     O <strong>MC Plugins Manager</strong> facilita instalar e gerenciar plugins
@@ -40,7 +43,10 @@
         </div>
 
         <div class="pl-admin__info-card">
-            <div class="pl-admin__info-title"><i class="bi bi-person-badge"></i> EULA</div>
+            <div class="pl-admin__info-title">
+                <svg class="pl-admin__icon" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M6.5 1A1.5 1.5 0 0 0 5 2.5V3H1.5A1.5 1.5 0 0 0 0 4.5v8A1.5 1.5 0 0 0 1.5 14h13a1.5 1.5 0 0 0 1.5-1.5v-8A1.5 1.5 0 0 0 14.5 3H11v-.5A1.5 1.5 0 0 0 9.5 1h-3zm0 1h3a.5.5 0 0 1 .5.5V3H6v-.5a.5.5 0 0 1 .5-.5zm1.886 6.914L15 7.151V12.5a.5.5 0 0 1-.5.5h-13a.5.5 0 0 1-.5-.5V7.15l6.614 1.764a1.5 1.5 0 0 0 .772 0zM1.5 4h13a.5.5 0 0 1 .5.5v1.616L8.129 7.948a.5.5 0 0 1-.258 0L1 6.116V4.5a.5.5 0 0 1 .5-.5z"/></svg>
+                EULA
+            </div>
             <p class="pl-admin__info-text">
                 Compartilhar ou redistribuir os assets baixados desta extensão é proibido e pode
                 resultar na revogação da licença. Você não possui direitos para distribuir os
@@ -49,7 +55,10 @@
         </div>
 
         <div class="pl-admin__info-card">
-            <div class="pl-admin__info-title"><i class="bi bi-journal-text"></i> Terms of Service</div>
+            <div class="pl-admin__info-title">
+                <svg class="pl-admin__icon" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M5 10.5a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 0 1h-2a.5.5 0 0 1-.5-.5zm0-2a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5zm0-2a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5z"/><path d="M3 0h10a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2v-1h1v1a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v1H1V2a2 2 0 0 1 2-2z"/><path d="M1 5v-.5a.5.5 0 0 1 1 0V5h.5a.5.5 0 0 1 0 1H1v.5a.5.5 0 0 1-1 0V6h-.5a.5.5 0 0 1 0-1H1V5z"/></svg>
+                Terms of Service
+            </div>
             <ol class="pl-admin__info-ol">
                 <li>Sem reembolsos.</li>
                 <li>Não revenda ou redistribua esta extensão.</li>
