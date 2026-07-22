@@ -1,0 +1,3 @@
+Navigation:
+  Routes:
+    - { Name: 'Plugins', Path: '/minecraft/plugins', Type: 'server', Component: 'sections/PluginsSection', AdminOnly: 'false' }

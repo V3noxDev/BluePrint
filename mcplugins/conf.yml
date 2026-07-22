@@ -1,0 +1,37 @@
+info:
+  name: "MC Plugins"
+  identifier: "mcplugins"
+  description: "Gerenciador de plugins Minecraft (Paper/Spigot) via CurseForge API — buscar, instalar, atualizar e remover."
+  flags: ""
+  version: "1.0.0"
+  target: "beta-2026-06"
+  author: "BluePrint"
+  icon: "data/icon.svg"
+  website: ""
+
+admin:
+  view: "admin/view.blade.php"
+  controller: "admin/controller.php"
+  css: "admin/admin.css"
+  wrapper: ""
+
+dashboard:
+  css: "components/dashboard.css"
+  wrapper: ""
+  components: "components"
+
+data:
+  directory: "data"
+  public: ""
+  console: ""
+
+requests:
+  views: ""
+  app: "app"
+  routers:
+    application: ""
+    client: "routes/client.php"
+    web: ""
+
+database:
+  migrations: "database/migrations"
