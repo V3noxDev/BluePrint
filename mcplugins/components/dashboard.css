@@ -8,25 +8,41 @@
     --pl-blue: #3b82f6;
     --pl-danger: #e11d48;
     width: 100%;
+    max-width: 100%;
     position: relative;
     color: var(--pl-text);
+    overflow-x: hidden;
+    box-sizing: border-box;
+}
+
+.pl-page *,
+.pl-page *::before,
+.pl-page *::after {
+    box-sizing: border-box;
 }
 
 /* ── Mode toggle (Browse / Manage) ── */
 
+.pl-mode-tabs,
 .pl-modes {
-    display: inline-flex;
+    display: flex;
+    width: 100%;
+    max-width: 100%;
     gap: 4px;
     padding: 4px;
     margin-bottom: 18px;
     background: #0f172a;
     border: 1px solid var(--pl-border);
     border-radius: 10px;
+    box-sizing: border-box;
 }
 
-.pl-mode-btn {
-    height: 36px;
-    padding: 0 18px;
+.pl-mode-btn,
+.pl-mode-tabs button {
+    flex: 1;
+    min-width: 0;
+    height: 40px;
+    padding: 0 12px;
     border: none;
     border-radius: 7px;
     background: transparent;
@@ -35,14 +51,17 @@
     font-weight: 600;
     cursor: pointer;
     transition: background 0.15s ease, color 0.15s ease;
+    white-space: nowrap;
 }
 
-.pl-mode-btn:hover:not(.is-on) {
+.pl-mode-btn:hover:not(.is-on),
+.pl-mode-tabs button:hover:not(.is-on) {
     color: var(--pl-text);
     background: rgba(255, 255, 255, 0.04);
 }
 
-.pl-mode-btn.is-on {
+.pl-mode-btn.is-on,
+.pl-mode-tabs button.is-on {
     background: var(--pl-blue);
     color: #fff;
 }
@@ -191,27 +210,41 @@
 
 /* ── Managed plugins ── */
 
+.pl-manage-list,
 .pl-managed-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    display: flex;
+    flex-direction: column;
     gap: 12px;
+    width: 100%;
 }
 
+.pl-manage-card,
 .pl-managed-card {
     display: flex;
-    align-items: center;
-    gap: 14px;
+    flex-direction: column;
+    gap: 12px;
     background: var(--pl-card);
     border: 1px solid var(--pl-border);
     border-radius: 12px;
     padding: 14px 16px;
     min-width: 0;
+    width: 100%;
+    box-sizing: border-box;
 }
 
+.pl-manage-card--update,
 .pl-managed-card--update {
     border-color: rgba(59, 130, 246, 0.45);
 }
 
+.pl-manage-card__top {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    min-width: 0;
+}
+
+.pl-manage-card__logo,
 .pl-managed-card__logo {
     width: 52px;
     height: 52px;
@@ -221,29 +254,50 @@
     flex-shrink: 0;
 }
 
+.pl-manage-card__logo-placeholder {
+    width: 52px;
+    height: 52px;
+    border-radius: 10px;
+    background: #0f172a;
+    border: 1px solid var(--pl-border);
+    color: var(--pl-muted);
+    font-size: 12px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.pl-manage-card__body,
 .pl-managed-card__body {
     flex: 1;
     min-width: 0;
 }
 
+.pl-manage-card__name-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+}
+
+.pl-manage-card__name,
 .pl-managed-card__name {
     font-size: 15px;
     font-weight: 700;
     line-height: 1.3;
-    display: -webkit-box;
-    -webkit-line-clamp: 1;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
+    overflow-wrap: anywhere;
 }
 
+.pl-manage-card__meta,
 .pl-managed-card__meta {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 8px;
     margin-top: 6px;
     font-size: 12px;
+    line-height: 1.5;
     color: var(--pl-muted);
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .pl-managed-card__file {
@@ -257,11 +311,14 @@
     max-width: 100%;
 }
 
+.pl-manage-card__actions,
 .pl-managed-card__actions {
     display: flex;
     align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
     gap: 8px;
-    flex-shrink: 0;
+    width: 100%;
 }
 
 /* Version & status badges */
@@ -278,7 +335,8 @@
     white-space: nowrap;
 }
 
-.pl-version-badge {
+.pl-version-badge,
+.pl-badge--version {
     background: #0f172a;
     border: 1px solid var(--pl-border);
     color: var(--pl-text);
@@ -671,18 +729,49 @@
     cursor: pointer;
 }
 
-.pl-modal__plugin {
+.pl-modal__plugin,
+.pl-modal__pack {
     display: flex;
     gap: 12px;
+    align-items: flex-start;
     margin-bottom: 14px;
+    min-width: 0;
 }
 
-.pl-modal__plugin img {
+.pl-modal__plugin img,
+.pl-modal__pack img {
     width: 56px;
     height: 56px;
     border-radius: 10px;
     object-fit: cover;
     background: #0f172a;
+    flex-shrink: 0;
+}
+
+.pl-modal__pack > div {
+    min-width: 0;
+    flex: 1;
+}
+
+.pl-modal--sm {
+    max-width: 440px;
+}
+
+.pl-modal__text {
+    margin: 0 0 14px;
+    font-size: 14px;
+    line-height: 1.55;
+    color: var(--pl-text);
+    overflow-wrap: anywhere;
+}
+
+.pl-modal__text code {
+    font-size: 12px;
+    background: #0f172a;
+    border: 1px solid var(--pl-border);
+    padding: 1px 6px;
+    border-radius: 4px;
+    word-break: break-all;
 }
 
 .pl-modal__name {
@@ -826,37 +915,84 @@
         grid-template-columns: 1fr;
     }
 
-    .pl-managed-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .pl-managed-card {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
+    .pl-manage-card__actions,
     .pl-managed-card__actions {
-        width: 100%;
-        justify-content: flex-end;
-        flex-wrap: wrap;
+        justify-content: stretch;
+    }
+
+    .pl-manage-card__actions .pl-btn,
+    .pl-managed-card__actions .pl-btn {
+        flex: 1;
+        min-width: calc(50% - 4px);
+    }
+
+    .pl-manage-card__actions .pl-btn--danger,
+    .pl-managed-card__actions .pl-btn--danger {
+        min-width: 100%;
     }
 
     .pl-detail-head {
         flex-direction: column;
     }
 
+    .pl-detail-head__actions {
+        width: 100%;
+        flex-wrap: wrap;
+    }
+
     .pl-filters {
         grid-template-columns: 1fr;
     }
 
+    .pl-mode-tabs,
     .pl-modes {
         display: flex;
         width: 100%;
     }
 
-    .pl-mode-btn {
+    .pl-mode-btn,
+    .pl-mode-tabs button {
         flex: 1;
-        padding: 0 12px;
+        padding: 0 8px;
+        font-size: 12px;
+    }
+
+    .pl-version {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .pl-version .pl-btn {
+        width: 100%;
+    }
+
+    .pl-card__actions {
+        flex-wrap: wrap;
+    }
+
+    .pl-card__actions .pl-btn {
+        flex: 1;
+        min-width: calc(50% - 4px);
+    }
+
+    .pl-modal {
+        padding: 16px;
+    }
+
+    .pl-modal__actions {
+        flex-direction: column-reverse;
+    }
+
+    .pl-modal__actions .pl-btn {
+        width: 100%;
+    }
+
+    .pl-toast {
+        left: 16px;
+        right: 16px;
+        top: auto;
+        bottom: 16px;
+        min-width: 0;
     }
 
     .pl-description {
