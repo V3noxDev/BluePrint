@@ -42,5 +42,5 @@ Gerenciador de plugins CurseForge (Paper / Spigot / Purpur):
 Tema escuro profissional para o painel administrativo:
 
 - Aplica em todo o **Admin** (sidebar, tabelas, modais, formulários)
-- Melhor UX em nodes, allocations e criação de servidores
+- Gráficos de RAM/disco no About do node + abas de alocações/servidores embaixo
 - Cor de destaque e modo compacto configuráveis na engrenagem

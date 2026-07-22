@@ -48,3 +48,11 @@
 @if($compact)
 <script>document.documentElement.classList.add('ai-compact');</script>
 @endif
+{!! $blueprint->importScript('/extensions/admininfra/node-view.js') !!}
+<script>
+    (function () {
+        if (new URLSearchParams(location.search).get('ai_embed') === '1' || window.self !== window.top) {
+            document.documentElement.classList.add('ai-embed');
+        }
+    })();
+</script>
