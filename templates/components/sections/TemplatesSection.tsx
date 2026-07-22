@@ -49,6 +49,25 @@ const parseEnumOptions = (rules: string): string[] => {
     return match[1].split(',').map((v) => v.trim()).filter(Boolean);
 };
 
+const formatApiError = (e: unknown): string => {
+    const err = e as {
+        response?: { data?: { error?: string; message?: string; errors?: Record<string, string[]> } };
+        message?: string;
+    };
+    const data = err.response?.data;
+    if (data?.error) return data.error;
+    if (data?.message) return data.message;
+    if (data?.errors) {
+        const first = Object.values(data.errors).flat()[0];
+        if (first) return first;
+    }
+    if (err.message) return err.message;
+    return 'Falha na requisição.';
+};
+
+const normalizeVariables = (variables: TemplateVariable[] | null | undefined): TemplateVariable[] =>
+    Array.isArray(variables) ? variables : [];
+
 const TemplatesSection = () => {
     const uuid = ServerContext.useStoreState((s) => s.server.data!.uuid);
 
@@ -99,7 +118,7 @@ const TemplatesSection = () => {
             );
             setAllocations(allocData.data ?? allocData ?? []);
         } catch (e: unknown) {
-            setError(e instanceof Error ? e.message : 'Erro ao carregar templates.');
+            setError(formatApiError(e));
         } finally {
             setLoading(false);
         }
@@ -115,34 +134,48 @@ const TemplatesSection = () => {
             return;
         }
         const init: Record<string, string> = {};
-        selected.variables.forEach((v) => {
+        normalizeVariables(selected.variables).forEach((v) => {
             init[v.env_variable] = v.default_value ?? '';
         });
         setValues(init);
     }, [selected]);
 
-    const isPortVariable = (v: TemplateVariable) =>
-        /port/i.test(v.name) || /port/i.test(v.env_variable) || /port/i.test(v.rules);
-
-    const isBooleanVariable = (v: TemplateVariable) => /boolean/i.test(v.rules);
+    const validateBeforeInstall = (): string | null => {
+        if (!selected) return 'Nenhum template selecionado.';
+        for (const v of normalizeVariables(selected.variables)) {
+            const val = values[v.env_variable];
+            if (v.rules.includes('required') && (val === undefined || val === null || val === '')) {
+                return `Preencha o campo "${v.name}".`;
+            }
+        }
+        return null;
+    };
 
     const handleInstall = async () => {
         if (!selected) return;
+        const validationError = validateBeforeInstall();
+        if (validationError) {
+            setError(validationError);
+            setShowConfirm(false);
+            return;
+        }
         setInstalling(true);
         setError(null);
         try {
-            await http.post(`/api/client/extensions/templates/servers/${uuid}/templates/install`, {
+            const { data: res } = await http.post(`/api/client/extensions/templates/servers/${uuid}/templates/install`, {
                 template_id: selected.id,
                 password: password || undefined,
                 variables: values,
             });
-            setSuccess(`Template "${selected.name}" instalado com sucesso!`);
+            if (res.success === false) {
+                throw new Error(res.error || res.message || 'Falha ao instalar template.');
+            }
+            setSuccess(res.message || `Template "${selected.name}" instalado com sucesso!`);
             setShowConfirm(false);
             setShowPassword(false);
             setPassword('');
         } catch (e: unknown) {
-            const err = e as { response?: { data?: { error?: string } } };
-            setError(err.response?.data?.error || 'Falha ao instalar template.');
+            setError(formatApiError(e));
             setShowConfirm(false);
         } finally {
             setInstalling(false);
@@ -151,12 +184,23 @@ const TemplatesSection = () => {
 
     const onInstallClick = () => {
         if (!selected) return;
+        const validationError = validateBeforeInstall();
+        if (validationError) {
+            setError(validationError);
+            return;
+        }
+        setError(null);
         if (selected.has_password) {
             setShowPassword(true);
             return;
         }
         setShowConfirm(true);
     };
+
+    const isPortVariable = (v: TemplateVariable) =>
+        /port/i.test(v.name) || /port/i.test(v.env_variable) || /port/i.test(v.rules);
+
+    const isBooleanVariable = (v: TemplateVariable) => /boolean/i.test(v.rules);
 
     const renderVariableField = (v: TemplateVariable) => {
         const enumOptions = parseEnumOptions(v.rules);
@@ -350,7 +394,7 @@ const TemplatesSection = () => {
                                 ) : null}
 
                                 <div className="tpl-vars">
-                                    {selected.variables.map((v) => (
+                                    {normalizeVariables(selected.variables).map((v) => (
                                         <div key={v.id} className="tpl-var">
                                             <label className="tpl-var__label" htmlFor={`var-${v.id}`}>
                                                 {v.name}

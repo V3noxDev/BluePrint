@@ -47,15 +47,16 @@ class TemplateContextBuilder
                 ] : null,
                 'allocations' => $allocations,
             ],
-            'egg' => [
+            'server_port' => $primary?->port ?? '',
+            'egg' => $server->egg ? [
                 'id' => $server->egg->id,
                 'name' => $server->egg->name,
                 'startup' => $server->egg->startup,
-            ],
-            'nest' => [
+            ] : null,
+            'nest' => $server->nest ? [
                 'id' => $server->nest->id,
                 'name' => $server->nest->name,
-            ],
+            ] : null,
         ];
 
         foreach ($userVariables as $key => $value) {
@@ -78,6 +79,7 @@ class TemplateContextBuilder
             ['$server[\'user\'][\'username\']', 'Username do dono'],
             ['$server[\'user\'][\'email\']', 'Email do dono'],
             ['$server[\'allocation\'][\'port\']', 'Porta principal'],
+            ['$server_port', 'Porta principal (atalho)'],
             ['$server[\'allocations\']', 'Array de allocations'],
             ['$egg[\'id\']', 'ID do egg'],
             ['$egg[\'name\']', 'Nome do egg'],

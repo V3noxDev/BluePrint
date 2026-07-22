@@ -22,10 +22,27 @@ class TemplateInstallService
         $template->load(['variables', 'steps']);
         $context = $this->contextBuilder->build($server, $userVariables);
 
+        $this->stopServer($server);
+
         $executed = 0;
-        foreach ($template->steps as $step) {
-            $this->executeStep($server, $step, $context);
-            ++$executed;
+        $currentStep = null;
+        try {
+            foreach ($template->steps as $step) {
+                $currentStep = $step;
+                $this->executeStep($server, $step, $context);
+                ++$executed;
+            }
+        } catch (\Throwable $e) {
+            Log::error('[templates] step failed', [
+                'server' => $server->uuid,
+                'template' => $template->id,
+                'step' => $executed + 1,
+                'action' => $currentStep?->action,
+                'file_path' => $currentStep?->file_path,
+                'error' => $e->getMessage(),
+            ]);
+
+            throw $e;
         }
 
         Log::info('[templates] install concluído', [
@@ -126,7 +143,11 @@ class TemplateInstallService
         $parts = explode('/', $path);
         $name = array_pop($parts);
         $parent = '/' . implode('/', $parts);
-        $repo->createDirectory($name, $parent === '/' ? '/' : $parent);
+        try {
+            $repo->createDirectory($name, $parent === '/' ? '/' : $parent);
+        } catch (\Throwable) {
+            // pasta pode já existir
+        }
     }
 
     private function actionPull(DaemonFileRepository $repo, string $path, string $url): void
@@ -211,6 +232,16 @@ class TemplateInstallService
             $signal = 'restart';
         }
         $this->power->setServer($server)->send($signal);
+    }
+
+    private function stopServer(Server $server): void
+    {
+        try {
+            $this->power->setServer($server)->send('stop');
+            usleep(500_000);
+        } catch (\Throwable) {
+            // servidor pode já estar parado
+        }
     }
 
     private function ensureParentDir(DaemonFileRepository $repo, string $path): void
