@@ -25,6 +25,7 @@ class TemplateInstallService
         $this->stopServer($server);
 
         $executed = 0;
+        $currentStep = null;
         try {
             foreach ($template->steps as $step) {
                 $currentStep = $step;
