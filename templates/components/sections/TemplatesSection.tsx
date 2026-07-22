@@ -65,14 +65,30 @@ const formatApiError = (e: unknown): string => {
     return 'Falha na requisição.';
 };
 
-const asArray = <T,>(value: unknown): T[] => (Array.isArray(value) ? value : []);
+const asArray = <T,>(value: unknown): T[] =>
+    Array.isArray(value) ? value.filter((item): item is T => item != null) : [];
 
-const normalizeVariables = (variables: unknown): TemplateVariable[] => asArray<TemplateVariable>(variables);
+const normalizeVariables = (variables: unknown): TemplateVariable[] =>
+    asArray<TemplateVariable>(variables).filter((v) => typeof v === 'object');
 
-const variableRules = (v: TemplateVariable): string => v.rules ?? '';
+const variableRules = (v: TemplateVariable | null | undefined): string => v?.rules ?? '';
+
+const fieldValue = (value: unknown): string => {
+    if (value === null || value === undefined) return '';
+    return String(value);
+};
+
+const variableKey = (v: TemplateVariable): string => v.env_variable || `var-${v.id}`;
+
+const isPortVariable = (v: TemplateVariable) => {
+    const rules = variableRules(v);
+    return /port/i.test(v.name || '') || /port/i.test(v.env_variable || '') || /port/i.test(rules);
+};
+
+const isBooleanVariable = (v: TemplateVariable) => /boolean/i.test(variableRules(v));
 
 const TemplatesSectionContent = () => {
-    const uuid = ServerContext.useStoreState((s) => s.server.data!.uuid);
+    const uuid = ServerContext.useStoreState((s) => s.server.data?.uuid);
 
     const [loading, setLoading] = useState(true);
     const [installing, setInstalling] = useState(false);
@@ -89,7 +105,7 @@ const TemplatesSectionContent = () => {
     const [success, setSuccess] = useState<string | null>(null);
 
     const selected = useMemo(
-        () => templates.find((t) => t.id === selectedId) ?? null,
+        () => templates.find((t) => t?.id === selectedId) ?? null,
         [templates, selectedId],
     );
 
@@ -109,6 +125,12 @@ const TemplatesSectionContent = () => {
     }, [filtered]);
 
     const load = useCallback(async () => {
+        if (!uuid) {
+            setLoading(false);
+            setError('Servidor não carregado. Recarregue a página.');
+            return;
+        }
+
         setLoading(true);
         setError(null);
         try {
@@ -150,18 +172,45 @@ const TemplatesSectionContent = () => {
         }
         const init: Record<string, string> = {};
         normalizeVariables(selected.variables).forEach((v) => {
-            if (v?.env_variable) {
-                init[v.env_variable] = v.default_value ?? '';
-            }
+            init[variableKey(v)] = fieldValue(v.default_value);
         });
         setValues(init);
     }, [selected]);
 
+    useEffect(() => {
+        if (!selected || allocations.length === 0) return;
+
+        const ports = allocations
+            .map((a) => (a?.port === null || a?.port === undefined ? '' : String(a.port)))
+            .filter(Boolean);
+        if (!ports.length) return;
+
+        setValues((prev) => {
+            let changed = false;
+            const next = { ...prev };
+
+            normalizeVariables(selected.variables).forEach((v) => {
+                if (!isPortVariable(v)) return;
+                const key = variableKey(v);
+                const current = fieldValue(next[key]);
+                if (!ports.includes(current)) {
+                    next[key] = ports.includes(fieldValue(v.default_value))
+                        ? fieldValue(v.default_value)
+                        : ports[0];
+                    changed = true;
+                }
+            });
+
+            return changed ? next : prev;
+        });
+    }, [allocations, selected]);
+
     const validateBeforeInstall = (): string | null => {
         if (!selected) return 'Nenhum template selecionado.';
         for (const v of normalizeVariables(selected.variables)) {
-            const val = values[v.env_variable];
-            if (variableRules(v).includes('required') && (val === undefined || val === null || val === '')) {
+            const key = variableKey(v);
+            const val = values[key];
+            if (variableRules(v).includes('required') && val === '') {
                 return `Preencha o campo "${v.name || v.env_variable}".`;
             }
         }
@@ -169,7 +218,7 @@ const TemplatesSectionContent = () => {
     };
 
     const handleInstall = async () => {
-        if (!selected) return;
+        if (!selected || !uuid) return;
         const validationError = validateBeforeInstall();
         if (validationError) {
             setError(validationError);
@@ -214,24 +263,25 @@ const TemplatesSectionContent = () => {
         setShowConfirm(true);
     };
 
-    const isPortVariable = (v: TemplateVariable) => {
-        const rules = variableRules(v);
-        return /port/i.test(v.name || '') || /port/i.test(v.env_variable || '') || /port/i.test(rules);
-    };
-
-    const isBooleanVariable = (v: TemplateVariable) => /boolean/i.test(variableRules(v));
-
     const renderVariableField = (v: TemplateVariable) => {
         const rules = variableRules(v);
         const enumOptions = parseEnumOptions(rules);
-        const fieldKey = v.env_variable || `var-${v.id}`;
+        const fieldKey = variableKey(v);
+        const currentValue = fieldValue(values[fieldKey]);
+        const usePortSelect = isPortVariable(v) && allocations.length > 0;
 
-        if (isPortVariable(v) && allocations.length > 0) {
+        if (usePortSelect) {
+            const ports = allocations
+                .map((a) => (a?.port === null || a?.port === undefined ? '' : String(a.port)))
+                .filter(Boolean);
+            const selectValue = ports.includes(currentValue) ? currentValue : ports[0] ?? '';
+
             return (
                 <select
+                    key={`${fieldKey}-select`}
                     id={`var-${v.id}`}
                     className="tpl-input"
-                    value={values[fieldKey] ?? ''}
+                    value={selectValue}
                     onChange={(e) =>
                         setValues((prev) => ({
                             ...prev,
@@ -240,11 +290,15 @@ const TemplatesSectionContent = () => {
                     }
                 >
                     <option value="">Selecione uma porta</option>
-                    {allocations.map((a) => (
-                        <option key={a.id} value={String(a.port)}>
-                            {a.text}
-                        </option>
-                    ))}
+                    {allocations.map((a) => {
+                        if (a?.port === null || a?.port === undefined) return null;
+                        const port = String(a.port);
+                        return (
+                            <option key={a.id ?? port} value={port}>
+                                {a.text || port}
+                            </option>
+                        );
+                    })}
                 </select>
             );
         }
@@ -252,11 +306,12 @@ const TemplatesSectionContent = () => {
         if (isPortVariable(v)) {
             return (
                 <input
+                    key={`${fieldKey}-number`}
                     id={`var-${v.id}`}
                     type="number"
                     className="tpl-input"
                     placeholder="Ex: 19132"
-                    value={values[fieldKey] ?? ''}
+                    value={currentValue}
                     onChange={(e) =>
                         setValues((prev) => ({
                             ...prev,
@@ -271,9 +326,10 @@ const TemplatesSectionContent = () => {
             return (
                 <label className="tpl-toggle">
                     <input
+                        key={`${fieldKey}-bool`}
                         id={`var-${v.id}`}
                         type="checkbox"
-                        checked={values[fieldKey] === '1' || values[fieldKey] === 'true'}
+                        checked={currentValue === '1' || currentValue === 'true'}
                         onChange={(e) =>
                             setValues((prev) => ({
                                 ...prev,
@@ -287,11 +343,14 @@ const TemplatesSectionContent = () => {
         }
 
         if (enumOptions.length > 0) {
+            const selectValue = enumOptions.includes(currentValue) ? currentValue : enumOptions[0];
+
             return (
                 <select
+                    key={`${fieldKey}-enum`}
                     id={`var-${v.id}`}
                     className="tpl-input"
-                    value={values[fieldKey] ?? enumOptions[0]}
+                    value={selectValue}
                     onChange={(e) =>
                         setValues((prev) => ({
                             ...prev,
@@ -310,10 +369,11 @@ const TemplatesSectionContent = () => {
 
         return (
             <input
+                key={`${fieldKey}-text`}
                 id={`var-${v.id}`}
                 type="text"
                 className="tpl-input"
-                value={values[fieldKey] ?? ''}
+                value={currentValue}
                 onChange={(e) =>
                     setValues((prev) => ({
                         ...prev,
@@ -352,7 +412,7 @@ const TemplatesSectionContent = () => {
                                 >
                                     Todos
                                 </button>
-                                {categories.map((c) => (
+                                {categories.filter(Boolean).map((c) => (
                                     <button
                                         key={c}
                                         type="button"
@@ -419,7 +479,7 @@ const TemplatesSectionContent = () => {
 
                                 <div className="tpl-vars">
                                     {normalizeVariables(selected.variables).map((v) => (
-                                        <div key={v.id} className="tpl-var">
+                                        <div key={v.id ?? variableKey(v)} className="tpl-var">
                                             <label className="tpl-var__label" htmlFor={`var-${v.id}`}>
                                                 {v.name || v.env_variable}
                                             </label>
