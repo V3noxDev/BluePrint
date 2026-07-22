@@ -1,0 +1,4 @@
+Server:
+  Files:
+    Browse:
+      AfterContent: 'elements/AdvancedMoveHost'
