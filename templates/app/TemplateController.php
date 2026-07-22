@@ -147,9 +147,7 @@ class TemplateController extends Controller
             ]),
         ];
 
-        if ($detailed) {
-            $data['full_description'] = $t->full_description;
-        }
+        $data['full_description'] = $t->full_description;
 
         return $data;
     }

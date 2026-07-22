@@ -114,9 +114,13 @@
 
 .tpl-card__desc {
     color: var(--tpl-muted);
+    display: -webkit-box;
     font-size: 0.8rem;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
     line-height: 1.4;
     margin-bottom: 6px;
+    overflow: hidden;
 }
 
 .tpl-card__meta {
@@ -156,6 +160,13 @@
     margin-bottom: 20px;
 }
 
+.tpl-detail__desc strong,
+.tpl-detail__html strong,
+.tpl-var__hint strong {
+    color: var(--tpl-text);
+    font-weight: 600;
+}
+
 .tpl-vars {
     display: flex;
     flex-direction: column;
@@ -190,6 +201,7 @@
     border-radius: 8px;
     color: var(--tpl-text);
     font-size: 0.88rem;
+    min-height: 44px;
     padding: 10px 12px;
     width: 100%;
 }
@@ -245,8 +257,10 @@
     cursor: pointer;
     font-size: 0.95rem;
     font-weight: 600;
+    min-height: 48px;
     padding: 12px 28px;
     transition: background 0.15s;
+    width: 100%;
 }
 
 .tpl-install-btn:hover:not(:disabled) {
@@ -336,5 +350,25 @@
 @media (max-width: 900px) {
     .tpl-layout {
         grid-template-columns: 1fr;
+    }
+
+    .tpl-filters {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 4px;
+    }
+
+    .tpl-filter {
+        flex-shrink: 0;
+        min-height: 36px;
+    }
+
+    .tpl-detail {
+        padding: 16px;
+    }
+
+    .tpl-card {
+        min-height: 44px;
     }
 }

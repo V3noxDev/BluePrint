@@ -44,7 +44,11 @@ Variáveis do servidor:
 {{ $server['user']['username'] }}
 ```
 
-## Exemplo de step Pull
+## Exemplo GeyserMC
+
+Arquivo pronto em `templates/data/geysermc.json`.
+
+**Admin → Template Installer → Importar JSON** e cole o conteúdo do arquivo.
 
 - **Ação:** pull
 - **File:** plugins/Geyser-Spigot.jar

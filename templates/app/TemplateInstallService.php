@@ -55,7 +55,7 @@ class TemplateInstallService
             'mkdir' => $this->actionMkdir($repo, $path),
             'pull' => $this->actionPull($repo, $path, $content),
             'unzip' => $this->actionUnzip($repo, $path),
-            'move' => $this->actionMove($repo, $path, $content),
+            'move' => $this->actionMove($repo, $path, $content, $context),
             'move_folder' => $this->actionMoveFolder($repo, $path, $content),
             'delete' => $this->actionDelete($repo, $path),
             'power' => $this->actionPower($server, $content),
@@ -162,10 +162,10 @@ class TemplateInstallService
         $repo->decompressFile($root === '/' ? '/' : $root, basename($fullPath));
     }
 
-    private function actionMove(DaemonFileRepository $repo, string $from, string $to): void
+    private function actionMove(DaemonFileRepository $repo, string $from, string $content, array $context): void
     {
-        $from = ltrim($from, '/');
-        $to = ltrim($this->renderer->render($to, []), '/');
+        $from = ltrim($this->renderPath($from, $context), '/');
+        $to = ltrim($this->renderer->render($content, $context), '/');
         $root = '/';
         if (str_contains($from, '/')) {
             $root = '/' . dirname($from);

@@ -56,11 +56,17 @@ class admininfraSettingsFormRequest extends AdminFormRequest
         ];
     }
 
-    public function normalize(): array
+    public function normalize(?array $only = null): array
     {
-        return [
+        $data = [
             'accent_color' => strtolower((string) $this->input('accent_color', '#3b82f6')),
             'compact_mode' => $this->input('compact_mode', '1') === '1' ? '1' : '0',
         ];
+
+        if ($only === null) {
+            return $data;
+        }
+
+        return array_intersect_key($data, array_flip($only));
     }
 }
