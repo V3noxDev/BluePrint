@@ -4,16 +4,15 @@ Blueprint addon que transforma o painel administrativo do Pterodactyl num tema e
 
 ## O que muda
 
-- **Tema escuro global** no admin (sidebar, header, boxes, tabelas, modais, formulários, Select2)
-- **Página About do node** com gráficos de RAM e disco:
-  - Configurado no node
-  - Limite com overallocation
-  - Alocado nos servidores (painel)
-  - **Uso real no node** (soma via Wings — não por container)
-- **Alocações e Servidores** em abas na parte inferior do About (sem ir nas abas de cima)
-- Remove o card **Total de Servidores** do About
-- **Cor de destaque** personalizável (padrão: azul `#3b82f6`)
-- **Modo compacto** opcional para painéis com muitas linhas/tabelas
+- **Tema escuro global** no admin (sidebar, header, boxes, tabelas, modais, formulários, Select2, SweetAlert)
+- **Página About do node** reorganizada:
+  - Card **Recursos & uso** em largura total com gráficos de RAM e disco
+  - Barras com rótulo: limite, alocado, uso real, configurado
+  - Skeleton de carregamento e badge de status Wings
+- **Gerenciamento** em abas inferiores: Alocações | Servidores (iframe embed)
+- Remove **Total de Servidores** do About
+- **Pré-visualização de cor** na página de configuração
+- **Modo compacto** opcional
 
 ## Instalação
 
