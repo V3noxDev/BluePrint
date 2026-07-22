@@ -1,0 +1,37 @@
+info:
+  name: "Panel Maintenance"
+  identifier: "panelmaintenance"
+  description: "Modo de manutenção do painel com página 503 personalizada em português — ative/desative pelo admin sem SSH."
+  flags: ""
+  version: "1.0.0"
+  target: "beta-2026-06"
+  author: "BluePrint"
+  icon: "data/icon.svg"
+  website: "https://blackhosting.com.br"
+
+admin:
+  view: "admin/view.blade.php"
+  controller: "admin/controller.php"
+  css: "admin/admin.css"
+  wrapper: ""
+
+dashboard:
+  css: ""
+  wrapper: ""
+  components: ""
+
+data:
+  directory: "data"
+  public: ""
+  console: ""
+
+requests:
+  views: "views"
+  app: "app"
+  routers:
+    application: ""
+    client: ""
+    web: ""
+
+database:
+  migrations: ""

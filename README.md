@@ -60,3 +60,11 @@ Interface avançada para mover/renomear no gerenciador de arquivos:
 - Navegação por pastas no modal
 - Preview do destino + criar pasta durante a movimentação
 - Substitui o modal padrão de mover/renomear do Pterodactyl
+
+### [Panel Maintenance](./panelmaintenance/)
+
+Modo de manutenção do painel com página 503 em português:
+
+- Ativar/desativar pelo admin (sem SSH)
+- Página personalizada com links Site, Loja e Discord
+- Token de bypass para admins
