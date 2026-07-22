@@ -19,7 +19,7 @@ class TemplateController extends Controller
 
     public function index(Request $request, Server $server): JsonResponse
     {
-        $this->authorize('control.console', $server);
+        $this->authorize('file.read', $server);
 
         $templates = InstallerTemplate::query()
             ->where('enabled', true)
@@ -34,15 +34,15 @@ class TemplateController extends Controller
         return response()->json([
             'success' => true,
             'data' => [
-                'templates' => $templates,
-                'categories' => $categories,
+                'templates' => $templates->values()->all(),
+                'categories' => $categories->values()->all(),
             ],
         ]);
     }
 
     public function show(Request $request, Server $server, int $template): JsonResponse
     {
-        $this->authorize('control.console', $server);
+        $this->authorize('file.read', $server);
 
         $model = InstallerTemplate::query()
             ->where('enabled', true)
@@ -57,7 +57,7 @@ class TemplateController extends Controller
 
     public function allocations(Request $request, Server $server): JsonResponse
     {
-        $this->authorize('control.console', $server);
+        $this->authorize('file.read', $server);
 
         $server->load('allocations');
 
@@ -191,9 +191,9 @@ class TemplateController extends Controller
                 'env_variable' => $v->env_variable,
                 'description' => $v->description,
                 'default_value' => $v->default_value,
-                'rules' => $v->rules,
-                'selectable' => $v->selectable,
-            ]),
+                'rules' => $v->rules ?? '',
+                'selectable' => (bool) $v->selectable,
+            ])->values()->all(),
         ];
 
         $data['full_description'] = $t->full_description;
