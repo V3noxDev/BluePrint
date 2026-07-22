@@ -28,3 +28,11 @@ Instalador de modpacks CurseForge (Forge / NeoForge / Fabric):
 - URL: `/server/{id}/minecraft/modpacks`
 - API Key configurável no admin
 - Busca, detalhes, versões e install com server pack
+
+### [MC Plugins](./mcplugins/)
+
+Gerenciador de plugins CurseForge (Paper / Spigot / Purpur):
+
+- URL: `/server/{id}/minecraft/plugins`
+- Buscar Plugins + Gerenciar Plugins
+- Instalar, atualizar e remover `.jar` em `/plugins`
