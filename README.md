@@ -44,3 +44,11 @@ Tema escuro profissional para o painel administrativo:
 - Aplica em todo o **Admin** (sidebar, tabelas, modais, formulários)
 - Gráficos de RAM/disco no About do node + abas de alocações/servidores embaixo
 - Cor de destaque e modo compacto configuráveis na engrenagem
+
+### [Template Installer](./templates/)
+
+Instalador de templates com variáveis e steps automáticos:
+
+- URL: `/server/{id}/minecraft/templates`
+- Admin: criar templates, variáveis, steps (pull/write/unzip/power)
+- Importar/exportar JSON

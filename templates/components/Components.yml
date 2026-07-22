@@ -1,0 +1,3 @@
+Navigation:
+  Routes:
+    - { Name: 'Templates', Path: '/minecraft/templates', Type: 'server', Component: 'sections/TemplatesSection', AdminOnly: 'false' }
