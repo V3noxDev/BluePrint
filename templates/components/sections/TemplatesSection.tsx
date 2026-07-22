@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { Component, useCallback, useEffect, useMemo, useState } from 'react';
 import { ServerContext } from '@/state/server';
 import http from '@/api/http';
 import Spinner from '@/components/elements/Spinner';
@@ -10,7 +10,7 @@ interface TemplateVariable {
     env_variable: string;
     description: string | null;
     default_value: string | null;
-    rules: string;
+    rules: string | null;
     selectable: boolean;
 }
 
@@ -43,8 +43,8 @@ const renderHtml = (value: string | null): React.ReactNode => {
     return <span dangerouslySetInnerHTML={{ __html: value }} />;
 };
 
-const parseEnumOptions = (rules: string): string[] => {
-    const match = rules.match(/in:([^|]+)/);
+const parseEnumOptions = (rules: string | null | undefined): string[] => {
+    const match = (rules ?? '').match(/in:([^|]+)/);
     if (!match) return [];
     return match[1].split(',').map((v) => v.trim()).filter(Boolean);
 };
@@ -65,10 +65,13 @@ const formatApiError = (e: unknown): string => {
     return 'Falha na requisição.';
 };
 
-const normalizeVariables = (variables: TemplateVariable[] | null | undefined): TemplateVariable[] =>
-    Array.isArray(variables) ? variables : [];
+const asArray = <T,>(value: unknown): T[] => (Array.isArray(value) ? value : []);
 
-const TemplatesSection = () => {
+const normalizeVariables = (variables: unknown): TemplateVariable[] => asArray<TemplateVariable>(variables);
+
+const variableRules = (v: TemplateVariable): string => v.rules ?? '';
+
+const TemplatesSectionContent = () => {
     const uuid = ServerContext.useStoreState((s) => s.server.data!.uuid);
 
     const [loading, setLoading] = useState(true);
@@ -110,15 +113,27 @@ const TemplatesSection = () => {
         setError(null);
         try {
             const { data } = await http.get(`/api/client/extensions/templates/servers/${uuid}/templates`);
-            const list: Template[] = data.data?.templates ?? data.templates ?? [];
-            setTemplates(list);
-            setCategories(data.data?.categories ?? data.categories ?? []);
+            if (data?.success === false) {
+                throw new Error(data.error || data.message || 'Não foi possível carregar os templates.');
+            }
+
+            const payload = data?.data ?? data ?? {};
+            setTemplates(asArray<Template>(payload.templates));
+            setCategories(asArray<string>(payload.categories));
+
             const { data: allocData } = await http.get(
                 `/api/client/extensions/templates/servers/${uuid}/templates/allocations`,
             );
-            setAllocations(allocData.data ?? allocData ?? []);
+            if (allocData?.success === false) {
+                setAllocations([]);
+            } else {
+                setAllocations(asArray<Allocation>(allocData?.data ?? allocData));
+            }
         } catch (e: unknown) {
             setError(formatApiError(e));
+            setTemplates([]);
+            setCategories([]);
+            setAllocations([]);
         } finally {
             setLoading(false);
         }
@@ -135,7 +150,9 @@ const TemplatesSection = () => {
         }
         const init: Record<string, string> = {};
         normalizeVariables(selected.variables).forEach((v) => {
-            init[v.env_variable] = v.default_value ?? '';
+            if (v?.env_variable) {
+                init[v.env_variable] = v.default_value ?? '';
+            }
         });
         setValues(init);
     }, [selected]);
@@ -144,8 +161,8 @@ const TemplatesSection = () => {
         if (!selected) return 'Nenhum template selecionado.';
         for (const v of normalizeVariables(selected.variables)) {
             const val = values[v.env_variable];
-            if (v.rules.includes('required') && (val === undefined || val === null || val === '')) {
-                return `Preencha o campo "${v.name}".`;
+            if (variableRules(v).includes('required') && (val === undefined || val === null || val === '')) {
+                return `Preencha o campo "${v.name || v.env_variable}".`;
             }
         }
         return null;
@@ -167,10 +184,10 @@ const TemplatesSection = () => {
                 password: password || undefined,
                 variables: values,
             });
-            if (res.success === false) {
+            if (res?.success === false) {
                 throw new Error(res.error || res.message || 'Falha ao instalar template.');
             }
-            setSuccess(res.message || `Template "${selected.name}" instalado com sucesso!`);
+            setSuccess(res?.message || `Template "${selected.name}" instalado com sucesso!`);
             setShowConfirm(false);
             setShowPassword(false);
             setPassword('');
@@ -197,24 +214,28 @@ const TemplatesSection = () => {
         setShowConfirm(true);
     };
 
-    const isPortVariable = (v: TemplateVariable) =>
-        /port/i.test(v.name) || /port/i.test(v.env_variable) || /port/i.test(v.rules);
+    const isPortVariable = (v: TemplateVariable) => {
+        const rules = variableRules(v);
+        return /port/i.test(v.name || '') || /port/i.test(v.env_variable || '') || /port/i.test(rules);
+    };
 
-    const isBooleanVariable = (v: TemplateVariable) => /boolean/i.test(v.rules);
+    const isBooleanVariable = (v: TemplateVariable) => /boolean/i.test(variableRules(v));
 
     const renderVariableField = (v: TemplateVariable) => {
-        const enumOptions = parseEnumOptions(v.rules);
+        const rules = variableRules(v);
+        const enumOptions = parseEnumOptions(rules);
+        const fieldKey = v.env_variable || `var-${v.id}`;
 
         if (isPortVariable(v) && allocations.length > 0) {
             return (
                 <select
                     id={`var-${v.id}`}
                     className="tpl-input"
-                    value={values[v.env_variable] ?? ''}
+                    value={values[fieldKey] ?? ''}
                     onChange={(e) =>
                         setValues((prev) => ({
                             ...prev,
-                            [v.env_variable]: e.target.value,
+                            [fieldKey]: e.target.value,
                         }))
                     }
                 >
@@ -235,11 +256,11 @@ const TemplatesSection = () => {
                     type="number"
                     className="tpl-input"
                     placeholder="Ex: 19132"
-                    value={values[v.env_variable] ?? ''}
+                    value={values[fieldKey] ?? ''}
                     onChange={(e) =>
                         setValues((prev) => ({
                             ...prev,
-                            [v.env_variable]: e.target.value,
+                            [fieldKey]: e.target.value,
                         }))
                     }
                 />
@@ -252,11 +273,11 @@ const TemplatesSection = () => {
                     <input
                         id={`var-${v.id}`}
                         type="checkbox"
-                        checked={values[v.env_variable] === '1' || values[v.env_variable] === 'true'}
+                        checked={values[fieldKey] === '1' || values[fieldKey] === 'true'}
                         onChange={(e) =>
                             setValues((prev) => ({
                                 ...prev,
-                                [v.env_variable]: e.target.checked ? '1' : '0',
+                                [fieldKey]: e.target.checked ? '1' : '0',
                             }))
                         }
                     />
@@ -270,11 +291,11 @@ const TemplatesSection = () => {
                 <select
                     id={`var-${v.id}`}
                     className="tpl-input"
-                    value={values[v.env_variable] ?? enumOptions[0]}
+                    value={values[fieldKey] ?? enumOptions[0]}
                     onChange={(e) =>
                         setValues((prev) => ({
                             ...prev,
-                            [v.env_variable]: e.target.value,
+                            [fieldKey]: e.target.value,
                         }))
                     }
                 >
@@ -292,11 +313,11 @@ const TemplatesSection = () => {
                 id={`var-${v.id}`}
                 type="text"
                 className="tpl-input"
-                value={values[v.env_variable] ?? ''}
+                value={values[fieldKey] ?? ''}
                 onChange={(e) =>
                     setValues((prev) => ({
                         ...prev,
-                        [v.env_variable]: e.target.value,
+                        [fieldKey]: e.target.value,
                     }))
                 }
             />
@@ -306,7 +327,10 @@ const TemplatesSection = () => {
     if (loading) {
         return (
             <PageContentBlock title="Templates">
-                <Spinner centered />
+                <div className="tpl-loading">
+                    <Spinner size="large" />
+                    <span>Carregando templates...</span>
+                </div>
             </PageContentBlock>
         );
     }
@@ -359,14 +383,14 @@ const TemplatesSection = () => {
                                             <img src={t.icon_url} alt="" className="tpl-card__icon" />
                                         ) : (
                                             <div className="tpl-card__icon tpl-card__icon--fallback">
-                                                {t.name.slice(0, 2).toUpperCase()}
+                                                {(t.name || '??').slice(0, 2).toUpperCase()}
                                             </div>
                                         )}
                                         <div className="tpl-card__body">
-                                            <div className="tpl-card__name">{t.name}</div>
+                                            <div className="tpl-card__name">{t.name || 'Template'}</div>
                                             <div className="tpl-card__desc">{stripHtml(t.description)}</div>
                                             <div className="tpl-card__meta">
-                                                {t.author} — {t.version}
+                                                {t.author || '—'} — {t.version || '1.0.0'}
                                             </div>
                                         </div>
                                     </button>
@@ -386,7 +410,7 @@ const TemplatesSection = () => {
                             </div>
                         ) : (
                             <>
-                                <h2 className="tpl-detail__title">{selected.name}</h2>
+                                <h2 className="tpl-detail__title">{selected.name || 'Template'}</h2>
                                 {selected.full_description ? (
                                     <div className="tpl-detail__html">{renderHtml(selected.full_description)}</div>
                                 ) : selected.description ? (
@@ -397,7 +421,7 @@ const TemplatesSection = () => {
                                     {normalizeVariables(selected.variables).map((v) => (
                                         <div key={v.id} className="tpl-var">
                                             <label className="tpl-var__label" htmlFor={`var-${v.id}`}>
-                                                {v.name}
+                                                {v.name || v.env_variable}
                                             </label>
                                             {v.description && (
                                                 <p className="tpl-var__hint">{renderHtml(v.description)}</p>
@@ -421,18 +445,29 @@ const TemplatesSection = () => {
                 </div>
 
                 {showConfirm && (
-                    <div className="tpl-modal-backdrop" onClick={() => setShowConfirm(false)}>
+                    <div className="tpl-modal-backdrop" onClick={() => !installing && setShowConfirm(false)}>
                         <div className="tpl-modal" onClick={(e) => e.stopPropagation()}>
                             <p>
                                 Tem certeza que deseja instalar este template? Isso pode sobrescrever
-                                arquivos existentes no servidor.
+                                arquivos existentes no servidor. O servidor pode ficar ligado — não será
+                                desligado automaticamente.
                             </p>
                             <div className="tpl-modal__actions">
-                                <button type="button" className="tpl-btn tpl-btn--muted" onClick={() => setShowConfirm(false)}>
+                                <button
+                                    type="button"
+                                    className="tpl-btn tpl-btn--muted"
+                                    disabled={installing}
+                                    onClick={() => setShowConfirm(false)}
+                                >
                                     Cancelar
                                 </button>
-                                <button type="button" className="tpl-btn tpl-btn--danger" onClick={handleInstall}>
-                                    Confirmar
+                                <button
+                                    type="button"
+                                    className="tpl-btn tpl-btn--danger"
+                                    disabled={installing}
+                                    onClick={handleInstall}
+                                >
+                                    {installing ? 'Instalando…' : 'Confirmar'}
                                 </button>
                             </div>
                         </div>
@@ -475,5 +510,35 @@ const TemplatesSection = () => {
         </PageContentBlock>
     );
 };
+
+type ErrorBoundaryState = { error: Error | null };
+
+class TemplatesErrorBoundary extends Component<{ children: React.ReactNode }, ErrorBoundaryState> {
+    state: ErrorBoundaryState = { error: null };
+
+    static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+        return { error };
+    }
+
+    render() {
+        if (this.state.error) {
+            return (
+                <PageContentBlock title="Templates">
+                    <div className="tpl-alert tpl-alert--error">
+                        Erro ao renderizar Templates: {this.state.error.message}
+                    </div>
+                </PageContentBlock>
+            );
+        }
+
+        return this.props.children;
+    }
+}
+
+const TemplatesSection = () => (
+    <TemplatesErrorBoundary>
+        <TemplatesSectionContent />
+    </TemplatesErrorBoundary>
+);
 
 export default TemplatesSection;

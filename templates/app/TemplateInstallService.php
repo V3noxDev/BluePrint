@@ -2,8 +2,8 @@
 
 namespace Pterodactyl\BlueprintFramework\Extensions\templates;
 
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
 use Pterodactyl\Models\Server;
 use Pterodactyl\Repositories\Wings\DaemonFileRepository;
 use Pterodactyl\Repositories\Wings\DaemonPowerRepository;
@@ -22,10 +22,11 @@ class TemplateInstallService
         $template->load(['variables', 'steps']);
         $context = $this->contextBuilder->build($server, $userVariables);
 
-        $this->stopServer($server);
-
+        // Não para o servidor automaticamente — isso derruba o painel React quando
+        // o servidor está online e pode deixar o Wings ocupado durante o stop.
         $executed = 0;
         $currentStep = null;
+
         try {
             foreach ($template->steps as $step) {
                 $currentStep = $step;
@@ -62,22 +63,55 @@ class TemplateInstallService
     {
         $path = $this->renderPath($step->file_path ?? '', $context);
         $content = $this->renderer->render($step->content ?? '', $context);
-        $repo = $this->files->setServer($server);
 
-        match ($step->action) {
-            'write' => $this->actionWrite($repo, $path, $content),
-            'replace' => $this->actionReplace($repo, $path, $content),
-            'append' => $this->actionAppend($repo, $path, $content),
-            'prepend' => $this->actionPrepend($repo, $path, $content),
-            'mkdir' => $this->actionMkdir($repo, $path),
-            'pull' => $this->actionPull($repo, $path, $content),
-            'unzip' => $this->actionUnzip($repo, $path),
-            'move' => $this->actionMove($repo, $path, $content, $context),
-            'move_folder' => $this->actionMoveFolder($repo, $path, $content),
-            'delete' => $this->actionDelete($repo, $path),
-            'power' => $this->actionPower($server, $content),
-            default => throw new \RuntimeException('Ação desconhecida: ' . $step->action),
-        };
+        if ($step->action === 'power') {
+            $this->actionPower($server, $content);
+
+            return;
+        }
+
+        $this->withWingsRetry(function () use ($server, $step, $path, $content) {
+            $repo = $this->files->setServer($server);
+
+            match ($step->action) {
+                'write' => $this->actionWrite($repo, $path, $content),
+                'replace' => $this->actionReplace($repo, $path, $content),
+                'append' => $this->actionAppend($repo, $path, $content),
+                'prepend' => $this->actionPrepend($repo, $path, $content),
+                'mkdir' => $this->actionMkdir($repo, $path),
+                'pull' => $this->actionPull($repo, $path, $content),
+                'unzip' => $this->actionUnzip($repo, $path),
+                'move' => $this->actionMove($repo, $path, $content, $context),
+                'move_folder' => $this->actionMoveFolder($repo, $path, $content),
+                'delete' => $this->actionDelete($repo, $path),
+                default => throw new \RuntimeException('Ação desconhecida: ' . $step->action),
+            };
+        });
+    }
+
+    private function withWingsRetry(callable $callback, int $attempts = 3): void
+    {
+        $last = null;
+
+        for ($i = 0; $i < $attempts; $i++) {
+            try {
+                $callback();
+
+                return;
+            } catch (\Throwable $e) {
+                $last = $e;
+                Log::warning('[templates] wings retry', [
+                    'attempt' => $i + 1,
+                    'error' => $e->getMessage(),
+                ]);
+
+                if ($i < $attempts - 1) {
+                    usleep(800_000);
+                }
+            }
+        }
+
+        throw $last ?? new \RuntimeException('Falha ao comunicar com o Wings.');
     }
 
     private function renderPath(string $path, array $context): string
@@ -88,10 +122,18 @@ class TemplateInstallService
         return $rendered === '' ? '/' : $rendered;
     }
 
+    private function wingsPath(string $path): string
+    {
+        $path = '/' . ltrim($path, '/');
+
+        return $path === '/' ? '/' : rtrim($path, '/');
+    }
+
     private function actionWrite(DaemonFileRepository $repo, string $path, string $content): void
     {
-        $this->ensureParentDir($repo, $path);
-        $repo->putContent('/' . ltrim($path, '/'), $content);
+        $fullPath = $this->wingsPath($path);
+        $this->ensureParentDir($repo, $fullPath);
+        $repo->putContent($fullPath, $content);
     }
 
     private function actionReplace(DaemonFileRepository $repo, string $path, string $content): void
@@ -99,38 +141,38 @@ class TemplateInstallService
         $lines = explode("\n", $content, 2);
         $search = $lines[0] ?? '';
         $replace = $lines[1] ?? '';
-        $fullPath = '/' . ltrim($path, '/');
+        $fullPath = $this->wingsPath($path);
 
         try {
             $existing = $repo->getContent($fullPath);
             $updated = str_replace($search, $replace, $existing);
             $repo->putContent($fullPath, $updated);
         } catch (\Throwable) {
-            // file may not exist yet
+            // arquivo pode não existir ainda
         }
     }
 
     private function actionAppend(DaemonFileRepository $repo, string $path, string $content): void
     {
-        $fullPath = '/' . ltrim($path, '/');
+        $fullPath = $this->wingsPath($path);
         $existing = '';
         try {
             $existing = $repo->getContent($fullPath);
         } catch (\Throwable) {
         }
-        $this->ensureParentDir($repo, $path);
+        $this->ensureParentDir($repo, $fullPath);
         $repo->putContent($fullPath, $existing . $content);
     }
 
     private function actionPrepend(DaemonFileRepository $repo, string $path, string $content): void
     {
-        $fullPath = '/' . ltrim($path, '/');
+        $fullPath = $this->wingsPath($path);
         $existing = '';
         try {
             $existing = $repo->getContent($fullPath);
         } catch (\Throwable) {
         }
-        $this->ensureParentDir($repo, $path);
+        $this->ensureParentDir($repo, $fullPath);
         $repo->putContent($fullPath, $content . $existing);
     }
 
@@ -140,11 +182,13 @@ class TemplateInstallService
         if ($path === '') {
             return;
         }
+
         $parts = explode('/', $path);
         $name = array_pop($parts);
-        $parent = '/' . implode('/', $parts);
+        $parent = $parts ? '/' . implode('/', $parts) : '/';
+
         try {
-            $repo->createDirectory($name, $parent === '/' ? '/' : $parent);
+            $repo->createDirectory($name, $parent);
         } catch (\Throwable) {
             // pasta pode já existir
         }
@@ -157,29 +201,37 @@ class TemplateInstallService
             throw new \RuntimeException('URL vazia no step pull.');
         }
 
-        $directory = '/';
-        $filename = null;
+        $fullPath = $this->wingsPath($path);
+        $this->ensureParentDir($repo, ltrim($fullPath, '/'));
 
-        if (str_contains($path, '/')) {
-            $directory = '/' . dirname($path);
-            $filename = basename($path);
-            if ($directory === '/.') {
-                $directory = '/';
-            }
-        } elseif ($path !== '' && $path !== '/') {
-            $filename = $path;
+        // Baixa pelo painel e envia via API de arquivos — não usa remote pull do Wings
+        // (evita falhas de conexão e não mata o servidor).
+        $response = Http::timeout(180)
+            ->withOptions(['allow_redirects' => true])
+            ->withHeaders(['User-Agent' => 'BluePrint-TemplateInstaller/1.0'])
+            ->get($url);
+
+        if (!$response->successful()) {
+            throw new \RuntimeException('Falha ao baixar arquivo (HTTP ' . $response->status() . '): ' . $url);
         }
 
-        $repo->pull($url, $directory, array_filter([
-            'filename' => $filename,
-            'foreground' => true,
-        ]));
+        $body = $response->body();
+        if ($body === '') {
+            throw new \RuntimeException('Download retornou arquivo vazio: ' . $url);
+        }
+
+        $repo->putContent($fullPath, $body);
+
+        Log::info('[templates] pull via painel', [
+            'path' => $fullPath,
+            'bytes' => strlen($body),
+        ]);
     }
 
     private function actionUnzip(DaemonFileRepository $repo, string $path): void
     {
-        $fullPath = '/' . ltrim($path, '/');
-        $root = '/' . trim(dirname($fullPath), '.');
+        $fullPath = $this->wingsPath($path);
+        $root = '/' . trim(dirname(ltrim($fullPath, '/')), '.');
         $repo->decompressFile($root === '/' ? '/' : $root, basename($fullPath));
     }
 
@@ -234,33 +286,12 @@ class TemplateInstallService
         $this->power->setServer($server)->send($signal);
     }
 
-    private function stopServer(Server $server): void
-    {
-        try {
-            $this->power->setServer($server)->send('stop');
-            usleep(500_000);
-        } catch (\Throwable) {
-            // servidor pode já estar parado
-        }
-    }
-
     private function ensureParentDir(DaemonFileRepository $repo, string $path): void
     {
         $dir = dirname(ltrim($path, '/'));
         if ($dir === '.' || $dir === '') {
             return;
         }
-        $parts = explode('/', $dir);
-        $current = '';
-        foreach ($parts as $part) {
-            if ($part === '') {
-                continue;
-            }
-            try {
-                $repo->createDirectory($part, $current === '' ? '/' : '/' . $current);
-            } catch (\Throwable) {
-            }
-            $current = $current === '' ? $part : $current . '/' . $part;
-        }
+        $this->actionMkdir($repo, $dir);
     }
 }

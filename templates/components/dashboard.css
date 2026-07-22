@@ -1,5 +1,3 @@
-/* Template Installer — client dashboard */
-
 .tpl-page {
     --tpl-bg: #0f1419;
     --tpl-surface: #1a2332;
@@ -294,6 +292,16 @@
     color: var(--tpl-muted);
     font-size: 0.88rem;
     padding: 20px 8px;
+}
+
+.tpl-loading {
+    align-items: center;
+    color: var(--tpl-muted);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    justify-content: center;
+    min-height: 280px;
 }
 
 .tpl-modal-backdrop {

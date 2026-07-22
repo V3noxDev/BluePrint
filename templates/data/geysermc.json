@@ -4,7 +4,7 @@
   "icon_url": "https://geysermc.org/img/apple-touch-icon.png",
   "category": "Plugins",
   "description": "Permite jogadores <strong>Bedrock</strong> entrarem no seu servidor <strong>Java</strong>.",
-  "full_description": "<p>Instala o <strong>GeyserMC</strong> e o <strong>Floodgate</strong> automaticamente.</p><p>Antes de instalar, crie uma allocation na aba <strong>Rede</strong> para a porta Bedrock (ex: 19132).</p><p><strong>Spigot/Paper:</strong> use tipo <code>spigot</code>.<br><strong>BungeeCord:</strong> use <code>bungeecord</code>.<br><strong>Velocity:</strong> use <code>velocity</code>.</p>",
+  "full_description": "<p>Instala o <strong>GeyserMC</strong> e o <strong>Floodgate</strong> automaticamente.</p><p>Após instalar, <strong>reinicie o servidor manualmente</strong>.</p><p>Antes de instalar, crie uma allocation na aba <strong>Rede</strong> para a porta Bedrock (ex: 19132).</p>",
   "password": null,
   "password_description": null,
   "version": "1.2.0",
@@ -54,12 +54,6 @@
       "action": "write",
       "file_path": "plugins/geyser-{{ $geyser_type }}/config.yml",
       "content": "# Gerado pelo Template Installer\nbedrock:\n  port: {{ $bedrock_port }}\n  clone-remote-port: false\nremote:\n  address: 127.0.0.1\n  port: {{ $server_port }}\n  auth-type: floodgate\n"
-    },
-    {
-      "sort_order": 4,
-      "action": "power",
-      "file_path": null,
-      "content": "restart"
     }
   ]
 }
