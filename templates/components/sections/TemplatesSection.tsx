@@ -449,7 +449,8 @@ const TemplatesSectionContent = () => {
                         <div className="tpl-modal" onClick={(e) => e.stopPropagation()}>
                             <p>
                                 Tem certeza que deseja instalar este template? Isso pode sobrescrever
-                                arquivos existentes no servidor.
+                                arquivos existentes no servidor. O servidor pode ficar ligado — não será
+                                desligado automaticamente.
                             </p>
                             <div className="tpl-modal__actions">
                                 <button

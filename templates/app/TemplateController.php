@@ -138,7 +138,7 @@ class TemplateController extends Controller
 
             return response()->json([
                 'success' => false,
-                'error' => 'Não foi possível conectar ao Wings. Verifique se o node está online.',
+                'error' => 'Não foi possível comunicar com o Wings. Verifique se o node está online e se api.disable_remote_download está false no config.yml do Wings.',
             ], 502);
         } catch (\Throwable $e) {
             Log::error('[templates] install failed', [
