@@ -11,7 +11,7 @@
                 e demais telas de infraestrutura com melhor contraste e legibilidade.
             </p>
         </div>
-        <span class="ai-admin__version">v1.0.0</span>
+        <span class="ai-admin__version">v1.1.0</span>
     </div>
 
     @if(session('success'))
@@ -65,9 +65,9 @@
             <div class="ai-admin__card-title">O que melhora</div>
             <ul class="ai-admin__list">
                 <li>Sidebar e header em preto/cinza escuro</li>
+                <li>Gráficos de RAM e disco no About do node</li>
+                <li>Alocações e servidores em abas na parte inferior</li>
                 <li>Cards, modais e formulários com alto contraste</li>
-                <li>Tabelas de nodes, servidores e allocations legíveis</li>
-                <li>Select2, inputs e badges estilizados</li>
                 <li>Portas e IPs em fonte monoespaçada</li>
             </ul>
         </div>
