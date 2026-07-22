@@ -137,7 +137,7 @@ class CurseForgeClient
 
         $mapped = $this->mapPlugin($json['data']);
         $desc = $this->request('GET', '/v1/mods/' . $modId . '/description');
-        $mapped['description_html'] = $desc['data'] ?? '';
+        $mapped['description_html'] = MarkdownRenderer::fromHtml((string) ($desc['data'] ?? ''), 'curseforge-md');
 
         return $mapped;
     }

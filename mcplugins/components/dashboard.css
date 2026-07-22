@@ -653,6 +653,49 @@
     color: #93c5fd;
 }
 
+.pl-description h1,
+.pl-description h2,
+.pl-description h3,
+.pl-description h4,
+.pl-description h5,
+.pl-description h6 {
+    margin: 1.25em 0 0.5em;
+    line-height: 1.3;
+    font-weight: 700;
+    color: var(--pl-text);
+}
+
+.pl-description h1 { font-size: 1.5rem; }
+.pl-description h2 { font-size: 1.3rem; }
+.pl-description h3 { font-size: 1.15rem; }
+.pl-description h4,
+.pl-description h5,
+.pl-description h6 { font-size: 1rem; }
+
+.pl-description ul,
+.pl-description ol {
+    margin: 0.75em 0;
+    padding-left: 1.5em;
+}
+
+.pl-description li {
+    margin: 0.35em 0;
+}
+
+.pl-description blockquote {
+    margin: 1em 0;
+    padding: 0.75em 1em;
+    border-left: 3px solid var(--pl-blue);
+    background: rgba(37, 99, 235, 0.08);
+    border-radius: 0 8px 8px 0;
+}
+
+.pl-description hr {
+    border: 0;
+    border-top: 1px solid var(--pl-border);
+    margin: 1.25em 0;
+}
+
 /* ── Version list ── */
 
 .pl-versions {

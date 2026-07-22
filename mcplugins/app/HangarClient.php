@@ -217,7 +217,7 @@ class HangarClient
     {
         $mapped = $this->mapPlugin($project);
         $body = (string) ($project['mainPageContent'] ?? $project['description'] ?? '');
-        $mapped['description_html'] = $this->markdownToSimpleHtml($body);
+        $mapped['description_html'] = MarkdownRenderer::toHtml($body, 'hangar-md');
 
         return $mapped;
     }
@@ -254,19 +254,5 @@ class HangarClient
             'platform' => $platform,
             'project_id' => $owner . '/' . $slug,
         ];
-    }
-
-    private function markdownToSimpleHtml(string $md): string
-    {
-        if ($md === '') {
-            return '<p>Sem descrição.</p>';
-        }
-
-        $html = htmlspecialchars($md, ENT_QUOTES, 'UTF-8');
-        $html = preg_replace('/\*\*(.+?)\*\*/s', '<strong>$1</strong>', $html);
-        $html = preg_replace('/\*(.+?)\*/s', '<em>$1</em>', $html);
-        $html = nl2br($html);
-
-        return '<div class="hangar-md">' . $html . '</div>';
     }
 }
