@@ -34,6 +34,21 @@ interface Allocation {
     port: number;
 }
 
+const stripHtml = (value: string | null): string =>
+    (value || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+
+const renderHtml = (value: string | null): React.ReactNode => {
+    if (!value) return null;
+    if (!/<[a-z][\s\S]*>/i.test(value)) return value;
+    return <span dangerouslySetInnerHTML={{ __html: value }} />;
+};
+
+const parseEnumOptions = (rules: string): string[] => {
+    const match = rules.match(/in:([^|]+)/);
+    if (!match) return [];
+    return match[1].split(',').map((v) => v.trim()).filter(Boolean);
+};
+
 const TemplatesSection = () => {
     const uuid = ServerContext.useStoreState((s) => s.server.data!.uuid);
 
@@ -143,6 +158,107 @@ const TemplatesSection = () => {
         setShowConfirm(true);
     };
 
+    const renderVariableField = (v: TemplateVariable) => {
+        const enumOptions = parseEnumOptions(v.rules);
+
+        if (isPortVariable(v) && allocations.length > 0) {
+            return (
+                <select
+                    id={`var-${v.id}`}
+                    className="tpl-input"
+                    value={values[v.env_variable] ?? ''}
+                    onChange={(e) =>
+                        setValues((prev) => ({
+                            ...prev,
+                            [v.env_variable]: e.target.value,
+                        }))
+                    }
+                >
+                    <option value="">Selecione uma porta</option>
+                    {allocations.map((a) => (
+                        <option key={a.id} value={String(a.port)}>
+                            {a.text}
+                        </option>
+                    ))}
+                </select>
+            );
+        }
+
+        if (isPortVariable(v)) {
+            return (
+                <input
+                    id={`var-${v.id}`}
+                    type="number"
+                    className="tpl-input"
+                    placeholder="Ex: 19132"
+                    value={values[v.env_variable] ?? ''}
+                    onChange={(e) =>
+                        setValues((prev) => ({
+                            ...prev,
+                            [v.env_variable]: e.target.value,
+                        }))
+                    }
+                />
+            );
+        }
+
+        if (isBooleanVariable(v)) {
+            return (
+                <label className="tpl-toggle">
+                    <input
+                        id={`var-${v.id}`}
+                        type="checkbox"
+                        checked={values[v.env_variable] === '1' || values[v.env_variable] === 'true'}
+                        onChange={(e) =>
+                            setValues((prev) => ({
+                                ...prev,
+                                [v.env_variable]: e.target.checked ? '1' : '0',
+                            }))
+                        }
+                    />
+                    <span className="tpl-toggle__track" />
+                </label>
+            );
+        }
+
+        if (enumOptions.length > 0) {
+            return (
+                <select
+                    id={`var-${v.id}`}
+                    className="tpl-input"
+                    value={values[v.env_variable] ?? enumOptions[0]}
+                    onChange={(e) =>
+                        setValues((prev) => ({
+                            ...prev,
+                            [v.env_variable]: e.target.value,
+                        }))
+                    }
+                >
+                    {enumOptions.map((opt) => (
+                        <option key={opt} value={opt}>
+                            {opt}
+                        </option>
+                    ))}
+                </select>
+            );
+        }
+
+        return (
+            <input
+                id={`var-${v.id}`}
+                type="text"
+                className="tpl-input"
+                value={values[v.env_variable] ?? ''}
+                onChange={(e) =>
+                    setValues((prev) => ({
+                        ...prev,
+                        [v.env_variable]: e.target.value,
+                    }))
+                }
+            />
+        );
+    };
+
     if (loading) {
         return (
             <PageContentBlock title="Templates">
@@ -204,7 +320,7 @@ const TemplatesSection = () => {
                                         )}
                                         <div className="tpl-card__body">
                                             <div className="tpl-card__name">{t.name}</div>
-                                            <div className="tpl-card__desc">{t.description}</div>
+                                            <div className="tpl-card__desc">{stripHtml(t.description)}</div>
                                             <div className="tpl-card__meta">
                                                 {t.author} — {t.version}
                                             </div>
@@ -227,15 +343,11 @@ const TemplatesSection = () => {
                         ) : (
                             <>
                                 <h2 className="tpl-detail__title">{selected.name}</h2>
-                                {selected.full_description && (
-                                    <div
-                                        className="tpl-detail__html"
-                                        dangerouslySetInnerHTML={{ __html: selected.full_description }}
-                                    />
-                                )}
-                                {!selected.full_description && selected.description && (
-                                    <p className="tpl-detail__desc">{selected.description}</p>
-                                )}
+                                {selected.full_description ? (
+                                    <div className="tpl-detail__html">{renderHtml(selected.full_description)}</div>
+                                ) : selected.description ? (
+                                    <div className="tpl-detail__desc">{renderHtml(selected.description)}</div>
+                                ) : null}
 
                                 <div className="tpl-vars">
                                     {selected.variables.map((v) => (
@@ -244,56 +356,9 @@ const TemplatesSection = () => {
                                                 {v.name}
                                             </label>
                                             {v.description && (
-                                                <p className="tpl-var__hint">{v.description}</p>
+                                                <p className="tpl-var__hint">{renderHtml(v.description)}</p>
                                             )}
-                                            {isPortVariable(v) && allocations.length > 0 ? (
-                                                <select
-                                                    id={`var-${v.id}`}
-                                                    className="tpl-input"
-                                                    value={values[v.env_variable] ?? ''}
-                                                    onChange={(e) =>
-                                                        setValues((prev) => ({
-                                                            ...prev,
-                                                            [v.env_variable]: e.target.value,
-                                                        }))
-                                                    }
-                                                >
-                                                    <option value="">Selecione uma porta</option>
-                                                    {allocations.map((a) => (
-                                                        <option key={a.id} value={String(a.port)}>
-                                                            {a.text}
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                            ) : isBooleanVariable(v) ? (
-                                                <label className="tpl-toggle">
-                                                    <input
-                                                        id={`var-${v.id}`}
-                                                        type="checkbox"
-                                                        checked={values[v.env_variable] === '1' || values[v.env_variable] === 'true'}
-                                                        onChange={(e) =>
-                                                            setValues((prev) => ({
-                                                                ...prev,
-                                                                [v.env_variable]: e.target.checked ? '1' : '0',
-                                                            }))
-                                                        }
-                                                    />
-                                                    <span className="tpl-toggle__track" />
-                                                </label>
-                                            ) : (
-                                                <input
-                                                    id={`var-${v.id}`}
-                                                    type="text"
-                                                    className="tpl-input"
-                                                    value={values[v.env_variable] ?? ''}
-                                                    onChange={(e) =>
-                                                        setValues((prev) => ({
-                                                            ...prev,
-                                                            [v.env_variable]: e.target.value,
-                                                        }))
-                                                    }
-                                                />
-                                            )}
+                                            {renderVariableField(v)}
                                         </div>
                                     ))}
                                 </div>
@@ -333,12 +398,9 @@ const TemplatesSection = () => {
                 {showPassword && selected && (
                     <div className="tpl-modal-backdrop" onClick={() => setShowPassword(false)}>
                         <div className="tpl-modal" onClick={(e) => e.stopPropagation()}>
-                            <h3>Template Password Required</h3>
+                            <h3>Senha do template</h3>
                             {selected.password_description && (
-                                <div
-                                    className="tpl-detail__html"
-                                    dangerouslySetInnerHTML={{ __html: selected.password_description }}
-                                />
+                                <div className="tpl-detail__html">{renderHtml(selected.password_description)}</div>
                             )}
                             <input
                                 type="password"
