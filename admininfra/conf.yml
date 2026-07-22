@@ -3,7 +3,7 @@ info:
   identifier: "admininfra"
   description: "Tema escuro profissional para o painel admin — nodes, allocations, criação de servidores e infraestrutura mais legível."
   flags: ""
-  version: "1.1.0"
+  version: "1.2.0"
   target: "beta-2026-06"
   author: "BluePrint"
   icon: "data/icon.svg"
