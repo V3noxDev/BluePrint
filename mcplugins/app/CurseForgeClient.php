@@ -30,6 +30,9 @@ class CurseForgeClient
         'folia' => 'Folia',
     ];
 
+    /** Loaders padrão para Bukkit Plugins quando a API não retorna loaders na busca */
+    public const DEFAULT_PLUGIN_LOADERS = ['Paper', 'Spigot', 'Bukkit', 'Purpur', 'Folia'];
+
     public const SORTS = [
         1 => 'Destaques',
         2 => 'Popularidade',
@@ -106,11 +109,15 @@ class CurseForgeClient
         $loader = strtolower((string) ($params['loader'] ?? ''));
         if ($loader !== '' && $loader !== '0') {
             $items = array_values(array_filter($items, function ($item) use ($loader) {
+                if (empty($item['loaders'])) {
+                    return true;
+                }
                 foreach ($item['loaders'] as $l) {
                     if (stripos($l, $loader) !== false) {
                         return true;
                     }
                 }
+
                 return false;
             }));
         }
@@ -130,7 +137,7 @@ class CurseForgeClient
 
         $mapped = $this->mapPlugin($json['data']);
         $desc = $this->request('GET', '/v1/mods/' . $modId . '/description');
-        $mapped['description_html'] = $desc['data'] ?? '';
+        $mapped['description_html'] = MarkdownRenderer::fromHtml((string) ($desc['data'] ?? ''), 'curseforge-md');
 
         return $mapped;
     }
@@ -199,6 +206,13 @@ class CurseForgeClient
                 } elseif (preg_match('/^\d/', (string) $v)) {
                     $gameVersions[(string) $v] = true;
                 }
+            }
+        }
+
+        $classId = (int) ($mod['classId'] ?? self::CLASS_PLUGINS);
+        if ($classId === self::CLASS_PLUGINS && empty($loaders)) {
+            foreach (self::DEFAULT_PLUGIN_LOADERS as $defaultLoader) {
+                $loaders[$defaultLoader] = true;
             }
         }
 

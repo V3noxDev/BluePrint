@@ -184,15 +184,26 @@ class PluginInstallService
 
     public function listManaged(Server $server): array
     {
+        return $this->buildManagedList($server, sync: false);
+    }
+
+    public function syncManaged(Server $server): array
+    {
+        return $this->buildManagedList($server, sync: true);
+    }
+
+    private function buildManagedList(Server $server, bool $sync): array
+    {
         $meta = $this->getAllInstalledMeta($server);
         $diskFiles = $this->listPluginJars($server);
         $items = [];
         $identified = 0;
+        $enriched = 0;
 
         foreach ($diskFiles as $fileName) {
             $record = $meta[$fileName] ?? null;
 
-            if (!$record && $identified < 10) {
+            if ($sync && !$record && $identified < 15) {
                 $record = $this->identify->identify($fileName);
                 if ($record) {
                     $this->saveInstalledRecord($server, $fileName, $record);
@@ -205,11 +216,15 @@ class PluginInstallService
             $latestVersion = null;
             $updateAvailable = false;
 
-            if ($record && !empty($record['plugin_id'])) {
-                $provider = (string) ($record['provider'] ?? 'modrinth');
-                $record = $this->enrichRecord($provider, $record);
-                if (!empty($record['logo'])) {
-                    $this->saveInstalledRecord($server, $fileName, $record);
+            if ($sync && $record && !empty($record['plugin_id'])) {
+                $provider = (string) ($record['provider'] ?? 'spigot');
+                if (empty($record['logo']) && $enriched < 20) {
+                    $record = $this->enrichRecord($provider, $record);
+                    if (!empty($record['logo'])) {
+                        $this->saveInstalledRecord($server, $fileName, $record);
+                        $meta[$fileName] = $record;
+                    }
+                    $enriched++;
                 }
 
                 $update = $this->checkUpdate(

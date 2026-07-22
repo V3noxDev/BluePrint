@@ -143,23 +143,42 @@ class ModrinthClient
     private function mapPlugin(array $hit): array
     {
         $author = $hit['author'] ?? ($hit['team'] ?? 'Desconhecido');
+        $loaders = array_map(
+            fn ($l) => ucfirst(strtolower((string) $l)),
+            $hit['loaders'] ?? []
+        );
+        if ($loaders === []) {
+            $loaders = array_values(array_filter(
+                $hit['categories'] ?? [],
+                fn ($c) => in_array(strtolower((string) $c), ['paper', 'spigot', 'bukkit', 'purpur', 'folia', 'bungeecord', 'velocity'], true)
+            ));
+            $loaders = array_map(fn ($l) => ucfirst(strtolower((string) $l)), $loaders);
+        }
+
+        $gameVersions = $hit['game_versions'] ?? [];
+        if ($gameVersions === [] && !empty($hit['versions'])) {
+            $gameVersions = array_values(array_filter(
+                $hit['versions'],
+                fn ($v) => is_string($v) && preg_match('/^\d/', $v)
+            ));
+        }
 
         return [
-            'id' => (string) ($hit['project_id'] ?? $hit['slug'] ?? ''),
+            'id' => (string) ($hit['project_id'] ?? $hit['slug'] ?? $hit['id'] ?? ''),
             'slug' => (string) ($hit['slug'] ?? ''),
-            'name' => (string) ($hit['title'] ?? 'Plugin'),
+            'name' => (string) ($hit['title'] ?? $hit['name'] ?? 'Plugin'),
             'summary' => (string) ($hit['description'] ?? ''),
             'author' => is_string($author) ? $author : 'Desconhecido',
             'authors' => [is_string($author) ? $author : 'Desconhecido'],
             'download_count' => (int) ($hit['downloads'] ?? 0),
             'thumbs_up' => (int) ($hit['follows'] ?? 0),
             'logo' => $hit['icon_url'] ?? null,
-            'url' => 'https://modrinth.com/plugin/' . ($hit['slug'] ?? $hit['project_id'] ?? ''),
+            'url' => 'https://modrinth.com/plugin/' . ($hit['slug'] ?? $hit['project_id'] ?? $hit['id'] ?? ''),
             'categories' => $hit['categories'] ?? [],
-            'loaders' => array_values(array_filter($hit['categories'] ?? [], fn ($c) => in_array(strtolower($c), ['paper', 'spigot', 'bukkit', 'purpur', 'folia', 'bungeecord', 'velocity'], true))),
-            'game_versions' => $hit['versions'] ?? [],
-            'date_created' => $hit['date_created'] ?? null,
-            'date_modified' => $hit['date_modified'] ?? null,
+            'loaders' => $loaders,
+            'game_versions' => $gameVersions,
+            'date_created' => $hit['date_created'] ?? ($hit['published'] ?? null),
+            'date_modified' => $hit['date_modified'] ?? ($hit['updated'] ?? null),
             'provider' => 'modrinth',
         ];
     }
@@ -168,7 +187,10 @@ class ModrinthClient
     {
         $mapped = $this->mapPlugin($project);
         $mapped['id'] = (string) ($project['id'] ?? $mapped['id']);
-        $mapped['description_html'] = $this->markdownToSimpleHtml((string) ($project['body'] ?? $project['description'] ?? ''));
+        $mapped['description_html'] = MarkdownRenderer::toHtml(
+            (string) ($project['body'] ?? $project['description'] ?? ''),
+            'modrinth-md'
+        );
         $mapped['main_file_id'] = null;
 
         return $mapped;
@@ -195,19 +217,5 @@ class ModrinthClient
             'game_versions' => $version['game_versions'] ?? [],
             'download_url' => $primary['url'] ?? null,
         ];
-    }
-
-    private function markdownToSimpleHtml(string $md): string
-    {
-        if ($md === '') {
-            return '<p>Sem descrição.</p>';
-        }
-
-        $html = htmlspecialchars($md, ENT_QUOTES, 'UTF-8');
-        $html = preg_replace('/\*\*(.+?)\*\*/s', '<strong>$1</strong>', $html);
-        $html = preg_replace('/\*(.+?)\*/s', '<em>$1</em>', $html);
-        $html = nl2br($html);
-
-        return '<div class="modrinth-md">' . $html . '</div>';
     }
 }

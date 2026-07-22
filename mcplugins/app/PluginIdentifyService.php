@@ -17,7 +17,7 @@ class PluginIdentifyService
             return null;
         }
 
-        foreach (['modrinth', 'hangar', 'spigot'] as $provider) {
+        foreach (['spigot', 'modrinth', 'hangar'] as $provider) {
             $match = match ($provider) {
                 'hangar' => $this->searchHangar($query, $fileName),
                 'spigot' => $this->searchSpigot($query, $fileName),

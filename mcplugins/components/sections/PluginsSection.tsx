@@ -168,6 +168,7 @@ const PluginsSection = () => {
     const [filesLoading, setFilesLoading] = useState(false);
 
     const [installedLoading, setInstalledLoading] = useState(false);
+    const [installedSyncing, setInstalledSyncing] = useState(false);
     const [installed, setInstalled] = useState<InstalledPlugin[]>([]);
     const [installedError, setInstalledError] = useState<string | null>(null);
     const [manageSearch, setManageSearch] = useState('');
@@ -274,6 +275,24 @@ const PluginsSection = () => {
             setInstalledError(err?.response?.data?.message || 'Erro ao carregar plugins instalados.');
         } finally {
             setInstalledLoading(false);
+        }
+    }, [apiBase]);
+
+    const syncInstalled = useCallback(async () => {
+        setInstalledSyncing(true);
+        setInstalledError(null);
+        try {
+            const { data: res } = await http.post(`${apiBase}/sync`);
+            if (!res.success) {
+                setInstalledError(res.message || 'Falha ao sincronizar plugins.');
+                return;
+            }
+            setInstalled(res.data.plugins || []);
+            showToast('success', res.message || 'Plugins sincronizados!');
+        } catch (err: any) {
+            setInstalledError(err?.response?.data?.message || 'Erro ao sincronizar plugins.');
+        } finally {
+            setInstalledSyncing(false);
         }
     }, [apiBase]);
 
@@ -754,6 +773,24 @@ const PluginsSection = () => {
                                         value={manageSearch}
                                         onChange={(e) => setManageSearch(e.target.value)}
                                     />
+                                </div>
+                                <div className={'pl-manage-field pl-manage-field--action'}>
+                                    <label>&nbsp;</label>
+                                    <button
+                                        type={'button'}
+                                        className={'pl-btn pl-btn--primary'}
+                                        disabled={installedSyncing}
+                                        onClick={() => syncInstalled()}
+                                    >
+                                        {installedSyncing ? (
+                                            <>
+                                                <Spinner size={'small'} />
+                                                Sincronizando...
+                                            </>
+                                        ) : (
+                                            'Sincronizar'
+                                        )}
+                                    </button>
                                 </div>
                             </div>
                         )}
