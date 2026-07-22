@@ -17,6 +17,7 @@ class PluginInstallService
         private ModrinthClient $modrinth,
         private HangarClient $hangar,
         private SpigotClient $spigot,
+        private PluginIdentifyService $identify,
         private DaemonFileRepository $files,
         private DaemonPowerRepository $power,
         private BlueprintExtensionLibrary $blueprint,
@@ -186,33 +187,57 @@ class PluginInstallService
         $meta = $this->getAllInstalledMeta($server);
         $diskFiles = $this->listPluginJars($server);
         $items = [];
+        $identified = 0;
 
         foreach ($diskFiles as $fileName) {
             $record = $meta[$fileName] ?? null;
+
+            if (!$record && $identified < 10) {
+                $record = $this->identify->identify($fileName);
+                if ($record) {
+                    $this->saveInstalledRecord($server, $fileName, $record);
+                    $meta[$fileName] = $record;
+                    $identified++;
+                }
+            }
+
             $latestFileId = null;
+            $latestVersion = null;
             $updateAvailable = false;
 
             if ($record && !empty($record['plugin_id'])) {
-                $provider = (string) ($record['provider'] ?? 'curseforge');
-                $update = $this->checkUpdate($provider, $record['plugin_id'], $record['file_id'] ?? null);
+                $provider = (string) ($record['provider'] ?? 'modrinth');
+                $record = $this->enrichRecord($provider, $record);
+                if (!empty($record['logo'])) {
+                    $this->saveInstalledRecord($server, $fileName, $record);
+                }
+
+                $update = $this->checkUpdate(
+                    $provider,
+                    $record['plugin_id'],
+                    $record['file_id'] ?? null,
+                    $record['version'] ?? null,
+                );
                 if ($update) {
                     $updateAvailable = (bool) ($update['available'] ?? false);
                     $latestFileId = $update['latest_file_id'] ?? null;
+                    $latestVersion = $update['latest_version'] ?? null;
                 }
             }
 
             $items[] = [
                 'file_name' => $fileName,
                 'name' => $record['name'] ?? $this->guessNameFromFile($fileName),
-                'version' => $record['version'] ?? null,
+                'version' => $record['version'] ?? $this->guessVersionFromFileName($fileName),
                 'provider' => $record['provider'] ?? null,
                 'plugin_id' => $record['plugin_id'] ?? null,
                 'file_id' => $record['file_id'] ?? null,
                 'logo' => $record['logo'] ?? null,
                 'installed_at' => $record['installed_at'] ?? null,
-                'tracked' => $record !== null,
+                'tracked' => $record !== null && !empty($record['plugin_id']),
                 'update_available' => $updateAvailable,
                 'latest_file_id' => $latestFileId,
+                'latest_version' => $latestVersion,
             ];
         }
 
@@ -221,11 +246,31 @@ class PluginInstallService
         return $items;
     }
 
-  /**
-   * @return array{available: bool, latest_file_id?: string|int}|null
-   */
-    private function checkUpdate(string $provider, string|int $pluginId, string|int|null $currentFileId): ?array
+    private function enrichRecord(string $provider, array $record): array
     {
+        if (!empty($record['logo'])) {
+            return $record;
+        }
+
+        $plugin = $this->fetchPlugin($provider, $record['plugin_id']);
+        if ($plugin) {
+            $record['logo'] = $plugin['logo'] ?? null;
+            $record['name'] = $record['name'] ?: ($plugin['name'] ?? $record['name']);
+            $record['summary'] = $record['summary'] ?: ($plugin['summary'] ?? '');
+        }
+
+        return $record;
+    }
+
+  /**
+   * @return array{available: bool, latest_file_id?: string|int, latest_version?: string}|null
+   */
+    private function checkUpdate(
+        string $provider,
+        string|int $pluginId,
+        string|int|null $currentFileId,
+        ?string $currentVersion = null,
+    ): ?array {
         try {
             if ($provider === 'modrinth') {
                 $versions = $this->modrinth->getVersions((string) $pluginId);
@@ -233,11 +278,19 @@ class PluginInstallService
                 if (!$latest) {
                     return null;
                 }
-                if ((string) $latest['id'] === (string) $currentFileId) {
-                    return ['available' => false];
+                $latestName = (string) ($latest['display_name'] ?? $latest['id']);
+                if ($currentFileId && (string) $latest['id'] === (string) $currentFileId) {
+                    return ['available' => false, 'latest_version' => $latestName];
+                }
+                if (!$currentFileId && $currentVersion && $this->versionsMatch($currentVersion, $latestName)) {
+                    return ['available' => false, 'latest_version' => $latestName];
                 }
 
-                return ['available' => true, 'latest_file_id' => $latest['id']];
+                return [
+                    'available' => true,
+                    'latest_file_id' => $latest['id'],
+                    'latest_version' => $latestName,
+                ];
             }
 
             if ($provider === 'hangar') {
@@ -246,11 +299,19 @@ class PluginInstallService
                 if (!$latest) {
                     return null;
                 }
-                if ((string) $latest['id'] === (string) $currentFileId) {
-                    return ['available' => false];
+                $latestName = (string) ($latest['display_name'] ?? $latest['id']);
+                if ($currentFileId && (string) $latest['id'] === (string) $currentFileId) {
+                    return ['available' => false, 'latest_version' => $latestName];
+                }
+                if (!$currentFileId && $currentVersion && $this->versionsMatch($currentVersion, $latestName)) {
+                    return ['available' => false, 'latest_version' => $latestName];
                 }
 
-                return ['available' => true, 'latest_file_id' => $latest['id']];
+                return [
+                    'available' => true,
+                    'latest_file_id' => $latest['id'],
+                    'latest_version' => $latestName,
+                ];
             }
 
             if ($provider === 'spigot') {
@@ -259,11 +320,19 @@ class PluginInstallService
                 if (!$latest) {
                     return null;
                 }
-                if ((string) $latest['id'] === (string) $currentFileId) {
-                    return ['available' => false];
+                $latestName = (string) ($latest['display_name'] ?? $latest['id']);
+                if ($currentFileId && (string) $latest['id'] === (string) $currentFileId) {
+                    return ['available' => false, 'latest_version' => $latestName];
+                }
+                if (!$currentFileId && $currentVersion && $this->versionsMatch($currentVersion, $latestName)) {
+                    return ['available' => false, 'latest_version' => $latestName];
                 }
 
-                return ['available' => true, 'latest_file_id' => $latest['id']];
+                return [
+                    'available' => true,
+                    'latest_file_id' => $latest['id'],
+                    'latest_version' => $latestName,
+                ];
             }
 
             if (!$this->curse->hasApiKey()) {
@@ -273,14 +342,37 @@ class PluginInstallService
             $plugin = $this->curse->getPlugin((int) $pluginId);
             if ($plugin && !empty($plugin['main_file_id'])) {
                 $latestFileId = (int) $plugin['main_file_id'];
+                $latestFile = $this->curse->getFile((int) $pluginId, $latestFileId);
+                $latestName = (string) ($latestFile['display_name'] ?? $latestFileId);
                 if ($latestFileId > 0 && (string) $latestFileId !== (string) $currentFileId) {
-                    return ['available' => true, 'latest_file_id' => $latestFileId];
+                    return [
+                        'available' => true,
+                        'latest_file_id' => $latestFileId,
+                        'latest_version' => $latestName,
+                    ];
                 }
 
-                return ['available' => false];
+                return ['available' => false, 'latest_version' => $latestName];
             }
         } catch (\Throwable $e) {
             Log::debug('[mcplugins] checkUpdate: ' . $e->getMessage());
+        }
+
+        return null;
+    }
+
+    private function versionsMatch(string $current, string $latest): bool
+    {
+        $a = strtolower(preg_replace('/[^a-z0-9.]+/i', '', $current) ?? '');
+        $b = strtolower(preg_replace('/[^a-z0-9.]+/i', '', $latest) ?? '');
+
+        return $a !== '' && ($a === $b || str_contains($b, $a) || str_contains($a, $b));
+    }
+
+    private function guessVersionFromFileName(string $fileName): ?string
+    {
+        if (preg_match('/(\d+\.\d+(?:\.\d+)*(?:[-.][\w]+)?)/', pathinfo($fileName, PATHINFO_FILENAME), $m)) {
+            return $m[1];
         }
 
         return null;
@@ -321,29 +413,68 @@ class PluginInstallService
         return 'installed_map:' . $server->uuid;
     }
 
+    private const META_FILE = '/plugins/.mcplugins-meta.json';
+
     private function getAllInstalledMeta(Server $server): array
     {
+        $db = [];
         $raw = $this->blueprint->dbGet('mcplugins', $this->metaKey($server));
-        if (!$raw) {
+        if ($raw) {
+            $db = is_string($raw) ? json_decode($raw, true) : $raw;
+            $db = is_array($db) ? $db : [];
+        }
+
+        $file = $this->getFileMeta($server);
+
+        return array_merge($file, $db);
+    }
+
+    private function getFileMeta(Server $server): array
+    {
+        try {
+            $raw = $this->files->setServer($server)->getContent(self::META_FILE);
+            $data = json_decode($raw, true);
+
+            return is_array($data) ? $data : [];
+        } catch (\Throwable) {
             return [];
         }
-        $data = is_string($raw) ? json_decode($raw, true) : $raw;
-
-        return is_array($data) ? $data : [];
     }
 
     private function saveInstalledRecord(Server $server, string $fileName, array $record): void
     {
+        $key = basename($fileName);
         $map = $this->getAllInstalledMeta($server);
-        $map[basename($fileName)] = $record;
+        $map[$key] = $record;
+
         $this->blueprint->dbSet('mcplugins', $this->metaKey($server), json_encode($map));
+
+        try {
+            $this->files->setServer($server)->putContent(
+                self::META_FILE,
+                json_encode($map, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)
+            );
+        } catch (\Throwable $e) {
+            Log::debug('[mcplugins] meta file write: ' . $e->getMessage());
+        }
     }
 
     private function removeInstalledRecord(Server $server, string $fileName): void
     {
+        $key = basename($fileName);
         $map = $this->getAllInstalledMeta($server);
-        unset($map[basename($fileName)]);
+        unset($map[$key]);
+
         $this->blueprint->dbSet('mcplugins', $this->metaKey($server), json_encode($map));
+
+        try {
+            $this->files->setServer($server)->putContent(
+                self::META_FILE,
+                json_encode($map, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)
+            );
+        } catch (\Throwable) {
+            // opcional
+        }
     }
 
     private function findInstalledByPluginId(Server $server, string $provider, string|int $pluginId): ?array

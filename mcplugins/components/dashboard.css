@@ -208,13 +208,44 @@
     margin-top: auto;
 }
 
-/* ── Managed plugins ── */
+/* ── Managed plugins (Stellar-style grid) ── */
 
-.pl-manage-list,
-.pl-managed-grid {
+.pl-manage-toolbar {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    gap: 12px;
+    margin-bottom: 16px;
+    padding: 14px;
+    background: #0f172a;
+    border: 1px solid var(--pl-border);
+    border-radius: 12px;
+}
+
+.pl-manage-field {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 6px;
+    min-width: 0;
+}
+
+.pl-manage-field--grow {
+    flex: 1;
+}
+
+.pl-manage-field label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--pl-muted);
+}
+
+.pl-manage-grid,
+.pl-manage-list,
+.pl-managed-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
     width: 100%;
 }
 
@@ -222,103 +253,145 @@
 .pl-managed-card {
     display: flex;
     flex-direction: column;
-    gap: 12px;
     background: var(--pl-card);
     border: 1px solid var(--pl-border);
-    border-radius: 12px;
-    padding: 14px 16px;
+    border-radius: 14px;
+    overflow: hidden;
     min-width: 0;
-    width: 100%;
-    box-sizing: border-box;
 }
 
 .pl-manage-card--update,
 .pl-managed-card--update {
-    border-color: rgba(59, 130, 246, 0.45);
+    border-color: rgba(59, 130, 246, 0.5);
+    box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.15);
 }
 
-.pl-manage-card__top {
+.pl-manage-card__head {
     display: flex;
-    align-items: flex-start;
     gap: 12px;
+    padding: 14px 14px 10px;
     min-width: 0;
 }
 
+.pl-manage-card__info {
+    flex: 1;
+    min-width: 0;
+}
+
+.pl-manage-card__name {
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1.3;
+    margin-bottom: 8px;
+    overflow-wrap: anywhere;
+}
+
+.pl-manage-card__versions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+
+.pl-ver {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.pl-ver--current {
+    background: #0f172a;
+    border: 1px solid var(--pl-border);
+    color: var(--pl-text);
+}
+
+.pl-ver--new {
+    background: rgba(59, 130, 246, 0.15);
+    border: 1px solid rgba(59, 130, 246, 0.45);
+    color: #93c5fd;
+}
+
+.pl-ver__icon {
+    font-size: 10px;
+    line-height: 1;
+}
+
+.pl-manage-card__file {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 11px;
+    color: var(--pl-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.pl-manage-card__footer {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0;
+    border-top: 1px solid var(--pl-border);
+    margin-top: auto;
+}
+
+.pl-manage-card__footer .pl-btn {
+    height: 40px;
+    border-radius: 0;
+    border: none;
+    border-right: 1px solid var(--pl-border);
+    font-size: 12px;
+}
+
+.pl-manage-card__footer .pl-btn:last-child {
+    border-right: none;
+}
+
+.pl-btn--block {
+    width: 100%;
+}
+
+.pl-btn--update-ready:not(:disabled) {
+    color: #93c5fd;
+    background: rgba(59, 130, 246, 0.08);
+}
+
+.pl-logo-fallback,
+.pl-manage-card__logo-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #1e3a5f, #2563eb);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
 .pl-manage-card__logo,
-.pl-managed-card__logo {
+.pl-managed-card__logo,
+.pl-card__logo,
+.pl-detail-head__logo {
     width: 52px;
     height: 52px;
-    border-radius: 10px;
+    border-radius: 12px;
     object-fit: cover;
     background: #0f172a;
     flex-shrink: 0;
 }
 
-.pl-manage-card__logo-placeholder {
-    width: 52px;
-    height: 52px;
-    border-radius: 10px;
-    background: #0f172a;
-    border: 1px solid var(--pl-border);
-    color: var(--pl-muted);
-    font-size: 12px;
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
+.pl-detail-head__logo {
+    width: 72px;
+    height: 72px;
 }
 
-.pl-manage-card__body,
-.pl-managed-card__body {
-    flex: 1;
-    min-width: 0;
-}
-
-.pl-manage-card__name-row {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 6px;
-}
-
-.pl-manage-card__name,
-.pl-managed-card__name {
-    font-size: 15px;
-    font-weight: 700;
-    line-height: 1.3;
-    overflow-wrap: anywhere;
-}
-
-.pl-manage-card__meta,
-.pl-managed-card__meta {
-    margin-top: 6px;
-    font-size: 12px;
-    line-height: 1.5;
-    color: var(--pl-muted);
-    overflow-wrap: anywhere;
-    word-break: break-word;
-}
-
-.pl-managed-card__file {
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    font-size: 11px;
-    color: var(--pl-muted);
-    opacity: 0.85;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    max-width: 100%;
-}
-
-.pl-manage-card__actions,
-.pl-managed-card__actions {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    flex-wrap: wrap;
-    gap: 8px;
-    width: 100%;
+.pl-card__logo {
+    width: 56px;
+    height: 56px;
 }
 
 /* Version & status badges */
@@ -897,7 +970,8 @@
 /* ── Responsive ── */
 
 @media (max-width: 1100px) {
-    .pl-grid {
+    .pl-grid,
+    .pl-manage-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
@@ -911,24 +985,26 @@
 }
 
 @media (max-width: 700px) {
-    .pl-grid {
+    .pl-grid,
+    .pl-manage-grid {
         grid-template-columns: 1fr;
     }
 
-    .pl-manage-card__actions,
-    .pl-managed-card__actions {
-        justify-content: stretch;
+    .pl-manage-toolbar {
+        grid-template-columns: 1fr;
     }
 
-    .pl-manage-card__actions .pl-btn,
-    .pl-managed-card__actions .pl-btn {
-        flex: 1;
-        min-width: calc(50% - 4px);
+    .pl-manage-card__footer {
+        grid-template-columns: 1fr;
     }
 
-    .pl-manage-card__actions .pl-btn--danger,
-    .pl-managed-card__actions .pl-btn--danger {
-        min-width: 100%;
+    .pl-manage-card__footer .pl-btn {
+        border-right: none;
+        border-bottom: 1px solid var(--pl-border);
+    }
+
+    .pl-manage-card__footer .pl-btn:last-child {
+        border-bottom: none;
     }
 
     .pl-detail-head {

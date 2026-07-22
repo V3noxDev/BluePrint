@@ -53,6 +53,7 @@ interface InstalledPlugin {
     tracked: boolean;
     update_available: boolean;
     latest_file_id: string | number | null;
+    latest_version: string | null;
 }
 
 interface FiltersMeta {
@@ -63,6 +64,40 @@ interface FiltersMeta {
     provider: Provider;
     curseforge_configured?: boolean;
 }
+
+const pluginInitials = (name: string) => {
+    const parts = name.trim().split(/\s+/).filter(Boolean);
+    if (parts.length >= 2) {
+        return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+
+    return (name.slice(0, 2) || 'PL').toUpperCase();
+};
+
+const PluginLogo = ({
+    name,
+    logo,
+    className,
+}: {
+    name: string;
+    logo: string | null;
+    className: string;
+}) => {
+    const [failed, setFailed] = useState(false);
+
+    if (logo && !failed) {
+        return (
+            <img
+                className={className}
+                src={logo}
+                alt={name}
+                onError={() => setFailed(true)}
+            />
+        );
+    }
+
+    return <div className={`${className} pl-logo-fallback`}>{pluginInitials(name)}</div>;
+};
 
 const formatCount = (n: number) =>
     new Intl.NumberFormat('pt-BR', { notation: n >= 10000 ? 'compact' : 'standard' }).format(n);
@@ -133,6 +168,8 @@ const PluginsSection = () => {
     const [installedLoading, setInstalledLoading] = useState(false);
     const [installed, setInstalled] = useState<InstalledPlugin[]>([]);
     const [installedError, setInstalledError] = useState<string | null>(null);
+    const [manageSearch, setManageSearch] = useState('');
+    const [manageSort, setManageSort] = useState<'name' | 'updates'>('name');
 
     const [installModal, setInstallModal] = useState<{ plugin: PluginCard; files: PluginFile[] } | null>(
         null
@@ -158,6 +195,26 @@ const PluginsSection = () => {
     };
 
     const providerQuery = (p: Provider = provider) => `provider=${encodeURIComponent(p)}`;
+
+    const filteredInstalled = useMemo(() => {
+        let list = [...installed];
+        const q = manageSearch.trim().toLowerCase();
+        if (q) {
+            list = list.filter(
+                (item) =>
+                    item.name.toLowerCase().includes(q) ||
+                    item.file_name.toLowerCase().includes(q) ||
+                    (item.version || '').toLowerCase().includes(q)
+            );
+        }
+        if (manageSort === 'updates') {
+            list.sort((a, b) => Number(b.update_available) - Number(a.update_available));
+        } else {
+            list.sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+        }
+
+        return list;
+    }, [installed, manageSearch, manageSort]);
 
     const loadList = useCallback(async () => {
         setLoading(true);
@@ -484,10 +541,10 @@ const PluginsSection = () => {
                         </button>
 
                         <div className={'pl-detail-head'}>
-                            <img
+                            <PluginLogo
+                                name={selected.name}
+                                logo={selected.logo}
                                 className={'pl-detail-head__logo'}
-                                src={selected.logo || ''}
-                                alt={selected.name}
                             />
                             <div className={'pl-detail-head__body'}>
                                 <h2>{selected.name}</h2>
@@ -670,97 +727,105 @@ const PluginsSection = () => {
                             </div>
                         )}
 
-                        <div className={'pl-manage-list'}>
-                            {installed.map((item) => (
+                        {installed.length > 0 && (
+                            <div className={'pl-manage-toolbar'}>
+                                <div className={'pl-manage-field'}>
+                                    <label>Ordenar</label>
+                                    <select
+                                        className={'pl-select'}
+                                        value={manageSort}
+                                        onChange={(e) =>
+                                            setManageSort(e.target.value as 'name' | 'updates')
+                                        }
+                                    >
+                                        <option value={'name'}>
+                                            Todos os plugins ({installed.length})
+                                        </option>
+                                        <option value={'updates'}>Atualizações primeiro</option>
+                                    </select>
+                                </div>
+                                <div className={'pl-manage-field pl-manage-field--grow'}>
+                                    <label>Buscar</label>
+                                    <input
+                                        className={'pl-input'}
+                                        placeholder={'Buscar plugins instalados...'}
+                                        value={manageSearch}
+                                        onChange={(e) => setManageSearch(e.target.value)}
+                                    />
+                                </div>
+                            </div>
+                        )}
+
+                        <div className={'pl-manage-grid'}>
+                            {filteredInstalled.map((item) => (
                                 <div
                                     key={item.file_name}
                                     className={`pl-manage-card${item.update_available ? ' pl-manage-card--update' : ''}`}
                                 >
-                                    <div className={'pl-manage-card__top'}>
-                                        {item.logo ? (
-                                            <img
-                                                className={'pl-manage-card__logo'}
-                                                src={item.logo}
-                                                alt={item.name}
-                                                onError={(e) => {
-                                                    (e.target as HTMLImageElement).style.display =
-                                                        'none';
-                                                }}
-                                            />
-                                        ) : (
-                                            <div className={'pl-manage-card__logo-placeholder'}>
-                                                PL
-                                            </div>
-                                        )}
-                                        <div className={'pl-manage-card__body'}>
-                                            <div className={'pl-manage-card__name-row'}>
-                                                <span className={'pl-manage-card__name'}>
-                                                    {item.name}
-                                                </span>
+                                    <div className={'pl-manage-card__head'}>
+                                        <PluginLogo
+                                            name={item.name}
+                                            logo={item.logo}
+                                            className={'pl-manage-card__logo'}
+                                        />
+                                        <div className={'pl-manage-card__info'}>
+                                            <div className={'pl-manage-card__name'}>{item.name}</div>
+                                            <div className={'pl-manage-card__versions'}>
                                                 {item.version && (
-                                                    <span className={'pl-badge pl-badge--version'}>
+                                                    <span className={'pl-ver pl-ver--current'}>
+                                                        <span className={'pl-ver__icon'}>📌</span>
                                                         {item.version}
                                                     </span>
                                                 )}
-                                                {item.update_available && (
-                                                    <span className={'pl-badge pl-badge--update'}>
-                                                        Atualização disponível
+                                                {item.update_available && item.latest_version && (
+                                                    <span className={'pl-ver pl-ver--new'}>
+                                                        <span className={'pl-ver__icon'}>↻</span>
+                                                        {item.latest_version}
                                                     </span>
                                                 )}
                                             </div>
-                                            <div className={'pl-manage-card__meta'}>
+                                            <div className={'pl-manage-card__file'}>
                                                 {item.file_name}
-                                                {item.provider && (
-                                                    <> · {providerLabel(item.provider)}</>
-                                                )}
-                                                {item.installed_at && (
-                                                    <> · Instalado {timeAgo(item.installed_at)}</>
-                                                )}
-                                                {!item.tracked && <> · Não rastreado</>}
                                             </div>
                                         </div>
                                     </div>
-                                    <div className={'pl-manage-card__actions'}>
-                                        {item.update_available && item.plugin_id && (
-                                            <button
-                                                type={'button'}
-                                                className={'pl-btn pl-btn--primary'}
-                                                onClick={() => openUpdate(item)}
-                                            >
-                                                Atualizar
-                                            </button>
-                                        )}
-                                        {item.plugin_id ? (
-                                            <button
-                                                type={'button'}
-                                                className={'pl-btn pl-btn--ghost'}
-                                                onClick={() =>
-                                                    openDetails(cardFromInstalled(item), 'manage')
-                                                }
-                                            >
-                                                Detalhes
-                                            </button>
-                                        ) : (
-                                            <button
-                                                type={'button'}
-                                                className={'pl-btn pl-btn--ghost'}
-                                                disabled
-                                                title={'Plugin não rastreado pelo gerenciador'}
-                                            >
-                                                Detalhes
-                                            </button>
-                                        )}
+                                    <div className={'pl-manage-card__footer'}>
                                         <button
                                             type={'button'}
-                                            className={'pl-btn pl-btn--danger'}
+                                            className={`pl-btn pl-btn--ghost pl-btn--block${item.update_available ? ' pl-btn--update-ready' : ''}`}
+                                            disabled={!item.update_available || !item.plugin_id}
+                                            onClick={() => item.plugin_id && openUpdate(item)}
+                                        >
+                                            ↻ Atualizar
+                                        </button>
+                                        <button
+                                            type={'button'}
+                                            className={'pl-btn pl-btn--ghost pl-btn--block'}
+                                            disabled={!item.plugin_id}
+                                            onClick={() =>
+                                                item.plugin_id &&
+                                                openDetails(cardFromInstalled(item), 'manage')
+                                            }
+                                        >
+                                            ℹ Detalhes
+                                        </button>
+                                        <button
+                                            type={'button'}
+                                            className={'pl-btn pl-btn--danger pl-btn--block'}
                                             onClick={() => setDeleteModal(item)}
                                         >
-                                            Remover
+                                            🗑 Remover
                                         </button>
                                     </div>
                                 </div>
                             ))}
                         </div>
+
+                        {installed.length > 0 && filteredInstalled.length === 0 && (
+                            <div className={'pl-empty'}>
+                                <p>Nenhum plugin encontrado com essa busca.</p>
+                            </div>
+                        )}
                     </>
                 ) : view === 'home' ? (
                     <>
@@ -893,13 +958,10 @@ const PluginsSection = () => {
                             {plugins.map((plugin) => (
                                 <div key={`${provider}-${plugin.id}`} className={'pl-card'}>
                                     <div className={'pl-card__top'}>
-                                        <img
+                                        <PluginLogo
+                                            name={plugin.name}
+                                            logo={plugin.logo}
                                             className={'pl-card__logo'}
-                                            src={plugin.logo || ''}
-                                            alt={plugin.name}
-                                            onError={(e) => {
-                                                (e.target as HTMLImageElement).style.opacity = '0.2';
-                                            }}
                                         />
                                         <div>
                                             <div className={'pl-card__name'}>{plugin.name}</div>
