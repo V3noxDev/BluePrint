@@ -4,10 +4,10 @@
   "icon_url": "https://geysermc.org/img/apple-touch-icon.png",
   "category": "Plugins",
   "description": "Permite jogadores <strong>Bedrock</strong> entrarem no seu servidor <strong>Java</strong>.",
-  "full_description": "<p>O GeyserMC faz a ponte entre <strong>Minecraft Bedrock</strong> e <strong>Java Edition</strong> no mesmo servidor.</p><p><strong>BungeeCord:</strong> se usar <code>bungeecord</code>, edite o step do Floodgate para <code>.../downloads/bungee</code>.</p><p>Com <strong>Incluir Floodgate</strong> desligado, remova o step de download do Floodgate no admin.</p>",
+  "full_description": "<p>Instala o <strong>GeyserMC</strong> e o <strong>Floodgate</strong> automaticamente.</p><p>Antes de instalar, crie uma allocation na aba <strong>Rede</strong> para a porta Bedrock (ex: 19132).</p><p><strong>Spigot/Paper:</strong> use tipo <code>spigot</code>.<br><strong>BungeeCord:</strong> use <code>bungeecord</code>.<br><strong>Velocity:</strong> use <code>velocity</code>.</p>",
   "password": null,
   "password_description": null,
-  "version": "1.1.0",
+  "version": "1.2.0",
   "author": "BluePrint",
   "enabled": true,
   "variables": [
@@ -15,7 +15,7 @@
       "sort_order": 0,
       "name": "Porta Bedrock",
       "env_variable": "bedrock_port",
-      "description": "Porta para conexão Bedrock. Atribua a porta na aba Rede (Network) antes de instalar.",
+      "description": "Porta UDP para jogadores Bedrock. Deve estar criada na aba Rede do servidor.",
       "default_value": "19132",
       "rules": "required|integer|min:1|max:65535",
       "selectable": true
@@ -24,18 +24,9 @@
       "sort_order": 1,
       "name": "Tipo do GeyserMC",
       "env_variable": "geyser_type",
-      "description": "Tipo do plugin GeyserMC conforme sua plataforma.",
+      "description": "Plataforma do seu servidor.",
       "default_value": "spigot",
       "rules": "required|string|in:spigot,bungeecord,velocity",
-      "selectable": true
-    },
-    {
-      "sort_order": 2,
-      "name": "Incluir Floodgate",
-      "env_variable": "include_floodgate",
-      "description": "Inclui o Floodgate para jogadores Bedrock entrarem sem conta Java premium.",
-      "default_value": "1",
-      "rules": "required|boolean",
       "selectable": true
     }
   ],
@@ -49,19 +40,19 @@
     {
       "sort_order": 1,
       "action": "pull",
-      "file_path": "plugins/Geyser-{{ $geyser_type }}.jar",
+      "file_path": "plugins/geyser-{{ $geyser_type }}.jar",
       "content": "https://download.geysermc.org/v2/projects/geyser/versions/latest/builds/latest/downloads/{{ $geyser_type }}"
     },
     {
       "sort_order": 2,
       "action": "pull",
-      "file_path": "plugins/floodgate-spigot.jar",
+      "file_path": "plugins/floodgate-{{ $geyser_type }}.jar",
       "content": "https://download.geysermc.org/v2/projects/floodgate/versions/latest/builds/latest/downloads/{{ $geyser_type }}"
     },
     {
       "sort_order": 3,
       "action": "write",
-      "file_path": "plugins/Geyser-{{ $geyser_type }}/config.yml",
+      "file_path": "plugins/geyser-{{ $geyser_type }}/config.yml",
       "content": "# Gerado pelo Template Installer\nbedrock:\n  port: {{ $bedrock_port }}\n  clone-remote-port: false\nremote:\n  address: 127.0.0.1\n  port: {{ $server_port }}\n  auth-type: floodgate\n"
     },
     {
