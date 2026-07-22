@@ -33,7 +33,12 @@ class SpigotClient
                 ->get(self::SPIGET_BASE . $path, array_filter($query, fn ($v) => $v !== null && $v !== ''));
 
             if (!$response->successful()) {
-                Log::warning('[mcplugins] Spigot/Spiget HTTP ' . $response->status() . ' ' . $path);
+                // Spiget retorna 404 quando a busca não encontra recursos — comportamento normal.
+                $isSearchMiss = $response->status() === 404 && str_contains($path, '/search/resources/');
+                if (!$isSearchMiss) {
+                    Log::warning('[mcplugins] Spigot/Spiget HTTP ' . $response->status() . ' ' . $path);
+                }
+
                 return null;
             }
 

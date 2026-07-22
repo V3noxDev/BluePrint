@@ -12,24 +12,68 @@ class PluginIdentifyService
 
     public function identify(string $fileName): ?array
     {
-        $query = $this->guessSearchQuery($fileName);
-        if ($query === '') {
+        if ($this->shouldSkipIdentify($fileName)) {
             return null;
         }
 
-        foreach (['spigot', 'modrinth', 'hangar'] as $provider) {
-            $match = match ($provider) {
-                'hangar' => $this->searchHangar($query, $fileName),
-                'spigot' => $this->searchSpigot($query, $fileName),
-                default => $this->searchModrinth($query, $fileName),
-            };
+        foreach ($this->guessSearchQueries($fileName) as $query) {
+            foreach (['spigot', 'modrinth', 'hangar'] as $provider) {
+                $match = match ($provider) {
+                    'hangar' => $this->searchHangar($query, $fileName),
+                    'spigot' => $this->searchSpigot($query, $fileName),
+                    default => $this->searchModrinth($query, $fileName),
+                };
 
-            if ($match) {
-                return $match;
+                if ($match) {
+                    return $match;
+                }
             }
         }
 
         return null;
+    }
+
+    private function shouldSkipIdentify(string $fileName): bool
+    {
+        $base = strtolower(pathinfo($fileName, PATHINFO_FILENAME));
+
+        // Plugins locais/customizados — não existem nas APIs públicas.
+        if (preg_match('/^(roma|custom|local)[-_]/i', $base)) {
+            return true;
+        }
+
+        return strlen($base) < 3;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function guessSearchQueries(string $fileName): array
+    {
+        $queries = [];
+        $primary = $this->guessSearchQuery($fileName);
+        if ($primary !== '') {
+            $queries[] = $primary;
+        }
+
+        $parts = preg_split('/[\s_-]+/', $primary) ?: [];
+        $parts = array_values(array_filter($parts, fn ($p) => strlen($p) > 2));
+
+        if (count($parts) > 1) {
+            $queries[] = $parts[0];
+            $queries[] = implode(' ', array_slice($parts, 0, 2));
+        }
+
+        $camel = $this->splitCamelCase($primary);
+        if ($camel !== '' && $camel !== $primary) {
+            $queries[] = $camel;
+            $camelParts = preg_split('/\s+/', $camel) ?: [];
+            if (count($camelParts) > 1) {
+                $queries[] = $camelParts[0];
+            }
+        }
+
+        return array_values(array_unique(array_filter(array_map('trim', $queries))));
     }
 
     private function searchModrinth(string $query, string $fileName): ?array
@@ -111,15 +155,17 @@ class PluginIdentifyService
     private function guessSearchQuery(string $fileName): string
     {
         $base = pathinfo($fileName, PATHINFO_FILENAME);
+        $base = preg_replace('/\s*\([^)]*\)\s*/', ' ', $base) ?? $base;
+        $base = preg_replace('/[-_\s]+v?\d+(\.\d+)+([-.][\w]+)?$/i', '', $base) ?? $base;
         $base = preg_replace('/-(?:bukkit|spigot|paper|purpur|folia)(?:-|$)/i', '-', $base) ?? $base;
-        $base = preg_replace('/-?\d+(\.\d+)+([-.][\w]+)?$/i', '', $base) ?? $base;
+        $base = preg_replace('/\s+(?:bundle|plugin|core|lite|pro)$/i', '', $base) ?? $base;
         $base = trim($base, '-_ ');
 
         if ($base === '') {
             return '';
         }
 
-        $parts = preg_split('/[-_]+/', $base) ?: [];
+        $parts = preg_split('/[-_\s]+/', $base) ?: [];
         $parts = array_values(array_filter($parts, fn ($p) => strlen($p) > 1 && !is_numeric($p)));
 
         if (count($parts) >= 2) {
@@ -127,6 +173,13 @@ class PluginIdentifyService
         }
 
         return $parts[0] ?? $base;
+    }
+
+    private function splitCamelCase(string $value): string
+    {
+        $split = preg_replace('/([a-z])([A-Z])/', '$1 $2', $value) ?? $value;
+
+        return trim(preg_replace('/\s+/', ' ', $split) ?? $split);
     }
 
     private function guessVersionFromFile(string $fileName): ?string

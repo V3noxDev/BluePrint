@@ -3,7 +3,7 @@ info:
   identifier: "mcplugins"
   description: "Gerenciador de plugins Minecraft — buscar no Modrinth, Hangar, SpigotMC e CurseForge; instalar, atualizar e remover."
   flags: ""
-  version: "1.0.0"
+  version: "1.0.1"
   target: "beta-2026-06"
   author: "BluePrint"
   icon: "data/icon.svg"
