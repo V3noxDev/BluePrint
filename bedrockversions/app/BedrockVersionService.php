@@ -3,8 +3,10 @@
 namespace Pterodactyl\BlueprintFramework\Extensions\bedrockversions;
 
 use Carbon\Carbon;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Pterodactyl\BlueprintFramework\Libraries\ExtensionLibrary\Admin\BlueprintAdminLibrary as BlueprintExtensionLibrary;
 
 class BedrockVersionService
@@ -31,6 +33,7 @@ class BedrockVersionService
         }
 
         try {
+            $this->ensureSchema();
             $this->importFullCatalog();
             $this->importLatestFromMojang();
             $this->recomputeLatestFlags();
@@ -499,5 +502,37 @@ class BedrockVersionService
         usort($groups, fn ($a, $b) => version_compare($b['version'], $a['version']));
 
         return $groups;
+    }
+
+    /**
+     * Repara instalações antigas onde a tabela existe sem colunas novas
+     * (ex.: mojang_build_id) — evita falha no sync antes da migration rodar.
+     */
+    private function ensureSchema(): void
+    {
+        if (!Schema::hasTable('bedrock_versions')) {
+            return;
+        }
+
+        $needsMojang = !Schema::hasColumn('bedrock_versions', 'mojang_build_id');
+        $needsReleased = !Schema::hasColumn('bedrock_versions', 'released_at');
+
+        if (!$needsMojang && !$needsReleased) {
+            return;
+        }
+
+        Schema::table('bedrock_versions', function (Blueprint $table) use ($needsMojang, $needsReleased) {
+            if ($needsMojang) {
+                $table->string('mojang_build_id', 64)->nullable();
+            }
+            if ($needsReleased) {
+                $table->timestamp('released_at')->nullable();
+            }
+        });
+
+        Log::info('[bedrockversions] colunas ausentes adicionadas automaticamente', [
+            'mojang_build_id' => $needsMojang,
+            'released_at' => $needsReleased,
+        ]);
     }
 }
