@@ -26,14 +26,9 @@ Blueprint addon para instalar **modpacks CurseForge** em servidores Minecraft (F
 
 ## Wings
 
-Para o download funcionar, no `config.yml` do Wings:
+O download do CurseForge é feito **pelo painel** (PHP) e enviado ao servidor via API — não usa `remote pull` do Wings.
 
-```yaml
-api:
-  disable_remote_download: false
-```
-
-Reinicie o Wings depois.
+O Wings só precisa estar **online** para receber arquivos e descompactar o zip.
 
 ## Requisitos
 
