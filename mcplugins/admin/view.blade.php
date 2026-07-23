@@ -121,8 +121,9 @@
         <div class="pl-admin__card">
             <div class="pl-admin__card-title">Wings</div>
             <p class="pl-admin__hint">
-                Download remoto ativo:
-                <code>api.disable_remote_download: false</code>
+                Pull remoto (opcional, mais rápido):
+                <code>api.disable_remote_download: false</code>.
+                Com pull desativado, o painel baixa e envia o .jar automaticamente.
             </p>
         </div>
     </div>
