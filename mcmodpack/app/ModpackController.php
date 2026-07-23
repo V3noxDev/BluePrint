@@ -142,6 +142,13 @@ class ModpackController extends Controller
                 'message' => 'Não foi possível comunicar com o Wings. Verifique se o node está online.',
             ], 502);
         } catch (\Throwable $e) {
+            Log::error('[mcmodpack] install failed', [
+                'server' => $server->uuid,
+                'modpack_id' => $data['modpack_id'] ?? null,
+                'file_id' => $data['file_id'] ?? null,
+                'error' => $e->getMessage(),
+            ]);
+
             return response()->json([
                 'success' => false,
                 'message' => 'Erro ao instalar o modpack: ' . $e->getMessage(),
