@@ -75,6 +75,7 @@
             flex-shrink: 0;
             width: 88px;
             height: 88px;
+            object-fit: contain;
             filter: drop-shadow(0 8px 24px rgba(249, 115, 22, 0.35));
             animation: pm-float 4s ease-in-out infinite;
         }
@@ -157,14 +158,14 @@
 </head>
 <body>
     <main class="pm-screen">
-        <div class="pm-cone" aria-hidden="true">
-            <svg viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M48 10L18 82h60L48 10z" fill="#f97316"/>
-                <path d="M26 68h44L48 28 26 68z" fill="#fff" opacity="0.95"/>
-                <path d="M32 56h32L48 36 32 56z" fill="#f97316" opacity="0.85"/>
-                <rect x="14" y="78" width="68" height="8" rx="2" fill="#52525b"/>
-            </svg>
-        </div>
+        <img
+            class="pm-cone"
+            src="/assets/svgs/processonegado.svg"
+            alt=""
+            width="88"
+            height="88"
+            aria-hidden="true"
+        />
 
         <div class="pm-content">
             <h1 class="pm-title">
