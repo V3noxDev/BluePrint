@@ -53,7 +53,7 @@ class PluginInstallService
             $this->deletePluginFile($server, $existing['file_name']);
         }
 
-        $this->deliverPlugin($server, $url, $filename);
+        $this->deliverPlugin($server, $provider, $pluginId, $fileId, $url, $filename);
 
         $record = [
             'provider' => $provider,
@@ -134,7 +134,7 @@ class PluginInstallService
         }
 
         return [
-            $this->spigot->getDownloadUrl($pluginId, $fileId),
+            $this->spigot->resolveDownloadUrl((int) $pluginId, (int) $fileId),
             basename($file['file_name'] ?: 'plugin.jar'),
             $file,
         ];
@@ -155,7 +155,7 @@ class PluginInstallService
         }
 
         return [
-            $this->curse->getDownloadUrl($pluginId, $fileId) ?: ($file['download_url'] ?? null),
+            $this->curse->fetchFreshDownloadUrl($pluginId, $fileId),
             basename($file['file_name'] ?: 'plugin-' . $fileId . '.jar'),
             $file,
         ];
@@ -171,18 +171,29 @@ class PluginInstallService
         };
     }
 
-    private function deliverPlugin(Server $server, string $url, string $filename): void
-    {
+    private const USER_AGENT = 'MCPlugins/1.0 (Blueprint; +https://github.com/V3noxDev/BluePrint)';
+
+    private function deliverPlugin(
+        Server $server,
+        string $provider,
+        string|int $pluginId,
+        string|int $fileId,
+        string $url,
+        string $filename
+    ): void {
         $url = trim($url);
         if ($url === '') {
             throw new \RuntimeException('URL de download vazia.');
         }
+
+        $url = $this->refreshDownloadUrl($provider, $pluginId, $fileId, $url);
 
         try {
             $this->pullFromWings($server, $url, $filename);
             Log::info('[mcplugins] plugin entregue via Wings pull', array(
                 'server' => $server->uuid,
                 'file' => $filename,
+                'provider' => $provider,
             ));
 
             return;
@@ -190,11 +201,12 @@ class PluginInstallService
             Log::warning('[mcplugins] pull remoto falhou, usando download via painel', array(
                 'server' => $server->uuid,
                 'file' => $filename,
+                'provider' => $provider,
                 'error' => $pullError->getMessage(),
             ));
         }
 
-        $this->downloadViaPanel($server, $url, $filename);
+        $this->downloadViaPanel($server, $provider, $pluginId, $fileId, $url, $filename);
     }
 
     private function pullFromWings(Server $server, string $url, string $filename): void
@@ -236,31 +248,57 @@ class PluginInstallService
         }
     }
 
-    private function downloadViaPanel(Server $server, string $url, string $filename): void
-    {
+    private function downloadViaPanel(
+        Server $server,
+        string $provider,
+        string|int $pluginId,
+        string|int $fileId,
+        string $url,
+        string $filename
+    ): void {
+        $url = $this->refreshDownloadUrl($provider, $pluginId, $fileId, $url);
+
         Log::info('[mcplugins] baixando plugin via painel', array(
             'server' => $server->uuid,
             'file' => $filename,
+            'provider' => $provider,
         ));
 
-        $response = Http::timeout(self::DOWNLOAD_TIMEOUT)
-            ->withOptions(array(
-                'allow_redirects' => true,
-            ))
-            ->withHeaders(array(
-                'User-Agent' => 'BluePrint-MCPlugins/1.0',
-                'Accept' => '*/*',
-            ))
-            ->get($url);
+        $body = null;
+        $lastStatus = 0;
 
-        if (!$response->successful()) {
-            throw new \RuntimeException('Falha ao baixar plugin (HTTP ' . $response->status() . ').');
+        foreach ($this->downloadHeaderSets($provider, $url) as $index => $headers) {
+            $response = Http::timeout(self::DOWNLOAD_TIMEOUT)
+                ->withOptions(array(
+                    'allow_redirects' => true,
+                    'http_errors' => false,
+                ))
+                ->withHeaders($headers)
+                ->get($url);
+
+            $lastStatus = $response->status();
+            if ($response->successful()) {
+                $body = $response->body();
+                break;
+            }
+
+            Log::warning('[mcplugins] download tentativa falhou', array(
+                'attempt' => $index + 1,
+                'status' => $lastStatus,
+                'provider' => $provider,
+            ));
         }
 
-        $body = $response->body();
+        if ($body === null) {
+            throw new \RuntimeException(
+                'Falha ao baixar plugin (HTTP ' . $lastStatus . '). '
+                . $this->downloadErrorHint($provider, $lastStatus)
+            );
+        }
+
         $size = strlen($body);
-        if ($size < 100) {
-            throw new \RuntimeException('Download retornou arquivo vazio ou inválido.');
+        if ($size < 100 || !str_starts_with($body, "PK")) {
+            throw new \RuntimeException('Download retornou arquivo inválido (não é um .jar).');
         }
 
         if ($size > self::MAX_PUT_BYTES) {
@@ -277,7 +315,107 @@ class PluginInstallService
             'server' => $server->uuid,
             'file' => $path,
             'bytes' => $size,
+            'provider' => $provider,
         ));
+    }
+
+    private function refreshDownloadUrl(
+        string $provider,
+        string|int $pluginId,
+        string|int $fileId,
+        string $fallback
+    ): string {
+        $fresh = match ($provider) {
+            'modrinth' => $this->modrinth->getDownloadUrl((string) $fileId),
+            'hangar' => ($file = $this->hangar->getVersion((string) $pluginId, (string) $fileId))
+                ? ($file['download_url'] ?? null)
+                : null,
+            'spigot' => $this->spigot->resolveDownloadUrl((int) $pluginId, (int) $fileId),
+            'curseforge' => $this->curse->fetchFreshDownloadUrl((int) $pluginId, (int) $fileId),
+            default => null,
+        };
+
+        return is_string($fresh) && $fresh !== '' ? $fresh : $fallback;
+    }
+
+    /**
+     * @return array<int, array<string, string>>
+     */
+    private function downloadHeaderSets(string $provider, string $url): array
+    {
+        $sets = array();
+        $host = strtolower((string) parse_url($url, PHP_URL_HOST));
+
+        $standard = array(
+            'User-Agent' => self::USER_AGENT,
+            'Accept' => '*/*',
+        );
+        $sets[] = $standard;
+
+        if ($provider === 'curseforge' || str_contains($host, 'forgecdn.net') || str_contains($host, 'curseforge.com')) {
+            $cf = $standard;
+            $key = $this->curse->getApiKey();
+            if ($key !== '') {
+                $cf['x-api-key'] = $key;
+            }
+            $sets[] = $cf;
+        }
+
+        if ($provider === 'modrinth' || str_contains($host, 'modrinth.com')) {
+            $sets[] = array(
+                'User-Agent' => self::USER_AGENT,
+                'Accept' => 'application/octet-stream, application/java-archive, */*',
+            );
+        }
+
+        if ($provider === 'spigot' || str_contains($host, 'spiget.org') || str_contains($host, 'cdn.spiget.org')) {
+            $sets[] = array(
+                'User-Agent' => self::USER_AGENT,
+                'Spiget-User-Agent' => self::USER_AGENT,
+                'Accept' => 'application/java-archive, application/octet-stream, */*',
+            );
+        }
+
+        if ($provider === 'hangar' || str_contains($host, 'hangar.papermc.io') || str_contains($host, 'papermc.io')) {
+            $sets[] = array(
+                'User-Agent' => self::USER_AGENT,
+                'Accept' => 'application/java-archive, application/octet-stream, */*',
+            );
+        }
+
+        $sets[] = array(
+            'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+            'Accept' => '*/*',
+        );
+
+        if ($provider === 'curseforge' || str_contains($host, 'forgecdn.net')) {
+            $browserCf = array(
+                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+                'Accept' => '*/*',
+            );
+            $key = $this->curse->getApiKey();
+            if ($key !== '') {
+                $browserCf['x-api-key'] = $key;
+            }
+            $sets[] = $browserCf;
+        }
+
+        return $sets;
+    }
+
+    private function downloadErrorHint(string $provider, int $status): string
+    {
+        if ($status !== 403) {
+            return '';
+        }
+
+        return match ($provider) {
+            'curseforge' => 'CurseForge bloqueou o download — confirme a API Key em Admin → Extensions → MC Plugins.',
+            'modrinth' => 'Modrinth bloqueou o download — o provedor exige User-Agent válido.',
+            'spigot' => 'Spigot bloqueou o download — atualize para mcplugins v1.0.3+ (usa API Spiget proxy).',
+            'hangar' => 'Hangar bloqueou o download — tente outra versão ou plataforma.',
+            default => 'O provedor bloqueou o download (403).',
+        };
     }
 
     private function formatBytes(int $bytes): string

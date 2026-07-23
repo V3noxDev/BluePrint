@@ -174,7 +174,85 @@ class SpigotClient
 
     public function getDownloadUrl(int $resourceId, int $versionId): ?string
     {
-        return self::SPIGET_BASE . '/resources/' . $resourceId . '/versions/' . $versionId . '/download';
+        if ($resourceId < 1 || $versionId < 1) {
+            return null;
+        }
+
+        return self::SPIGET_BASE . '/resources/' . $resourceId . '/versions/' . $versionId . '/download/proxy';
+    }
+
+    /**
+     * Resolve a melhor URL de download: jar externo direto ou proxy Spiget (contorna Cloudflare 403).
+     */
+    public function resolveDownloadUrl(int $resourceId, int $versionId): ?string
+    {
+        if ($resourceId < 1 || $versionId < 1) {
+            return null;
+        }
+
+        $direct = $this->findDirectDownloadUrl($resourceId);
+        if ($direct !== null) {
+            return $direct;
+        }
+
+        return $this->getDownloadUrl($resourceId, $versionId);
+    }
+
+    public function isExternalResource(int $resourceId): bool
+    {
+        $json = $this->spigetRequest('/resources/' . $resourceId);
+        if (is_array($json)) {
+            return !empty($json['external']);
+        }
+
+        $detail = $this->spigotRequest(['action' => 'getResource', 'id' => $resourceId]);
+
+        return is_array($detail) && !empty($detail['external_download_url']);
+    }
+
+    private function findDirectDownloadUrl(int $resourceId): ?string
+    {
+        $json = $this->spigetRequest('/resources/' . $resourceId);
+        if (is_array($json)) {
+            $externalUrl = $json['file']['externalUrl'] ?? null;
+            if ($this->isDirectArtifactUrl(is_string($externalUrl) ? $externalUrl : null)) {
+                return $externalUrl;
+            }
+        }
+
+        $detail = $this->spigotRequest(['action' => 'getResource', 'id' => $resourceId]);
+        if (is_array($detail)) {
+            $externalUrl = $detail['external_download_url'] ?? null;
+            if ($this->isDirectArtifactUrl(is_string($externalUrl) ? $externalUrl : null)) {
+                return $externalUrl;
+            }
+        }
+
+        return null;
+    }
+
+    private function isDirectArtifactUrl(?string $url): bool
+    {
+        if ($url === null || trim($url) === '') {
+            return false;
+        }
+
+        $url = trim($url);
+        $path = strtolower((string) parse_url($url, PHP_URL_PATH));
+
+        if (str_ends_with($path, '.jar') || str_ends_with($path, '.zip')) {
+            return true;
+        }
+
+        if (str_contains($url, 'github.com') && str_contains($url, '/releases/download/')) {
+            return true;
+        }
+
+        if (str_contains($url, 'cdn.spiget.org')) {
+            return true;
+        }
+
+        return false;
     }
 
     private function mapSort(string $sort): string
@@ -256,8 +334,9 @@ class SpigotClient
             'file_date' => isset($version['releaseDate']) ? date('c', (int) $version['releaseDate']) : null,
             'loaders' => ['Spigot', 'Paper'],
             'game_versions' => [],
-            'download_url' => $this->getDownloadUrl($resourceId, $versionId),
+            'download_url' => $this->resolveDownloadUrl($resourceId, $versionId),
             'resource_id' => $resourceId,
+            'external' => (bool) ($version['external'] ?? false),
         ];
     }
 

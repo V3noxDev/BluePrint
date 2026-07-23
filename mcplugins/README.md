@@ -36,9 +36,19 @@ Blueprint addon para gerenciar **plugins Minecraft** (Paper / Spigot / Purpur).
 Ordem de tentativa na instalação:
 
 1. **Pull remoto** — Wings baixa da URL do provedor (rápido quando funciona)
-2. **Download via painel** — PHP baixa e envia com `putContent` (fallback automático)
+2. **Download via painel** — PHP baixa com headers corretos por provedor e envia com `putContent`
 
-Funciona mesmo com `api.disable_remote_download: true` no Wings — o fallback via painel não depende de pull remoto.
+### SpigotMC / Spiget
+
+Downloads usam a **API Spiget** (`api.spiget.org`), não o site SpigotMC diretamente (Cloudflare bloqueia com 403).
+
+Ordem:
+1. URL externa direta (`.jar` no GitHub etc.), quando disponível
+2. **Spiget proxy** — `/resources/{id}/versions/{version}/download/proxy` (contorna Cloudflare)
+
+Documentação: [spiget.org](https://spiget.org/) · [Swagger API](https://raw.githubusercontent.com/SpiGetOrg/Documentation/master/swagger.yml)
+
+Funciona mesmo com `api.disable_remote_download: true` no Wings.
 
 ### Config Wings recomendada
 
