@@ -4,6 +4,7 @@ namespace Pterodactyl\BlueprintFramework\Extensions\mcmodpack;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
+use GuzzleHttp\Psr7\LazyOpenStream;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Pterodactyl\Models\Server;
@@ -260,7 +261,7 @@ class ModpackInstallService
 
         $this->withWingsRetry(function () use ($server, $remotePath, $localPath) {
             $this->uploadFromPath($server, $remotePath, $localPath);
-        });
+        }, 1);
     }
 
     private function uploadFromPath(Server $server, string $remotePath, string $localPath): void
@@ -274,11 +275,6 @@ class ModpackInstallService
             throw new \RuntimeException('Arquivo local está vazio.');
         }
 
-        $handle = fopen($localPath, 'rb');
-        if ($handle === false) {
-            throw new \RuntimeException('Não foi possível abrir o arquivo para upload.');
-        }
-
         try {
             $client = $this->wingsClient($server, self::WINGS_TIMEOUT);
             $response = $client->post(
@@ -286,7 +282,7 @@ class ModpackInstallService
                 array(
                     'query' => array('file' => $remotePath),
                     'headers' => array('Content-Type' => 'application/octet-stream'),
-                    'body' => $handle,
+                    'body' => new LazyOpenStream($localPath, 'r'),
                 )
             );
 
@@ -301,8 +297,6 @@ class ModpackInstallService
             ));
         } catch (GuzzleException $e) {
             throw new \RuntimeException('Falha ao enviar arquivo ao Wings: ' . $e->getMessage(), 0, $e);
-        } finally {
-            fclose($handle);
         }
     }
 
