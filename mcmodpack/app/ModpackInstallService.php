@@ -4,12 +4,12 @@ namespace Pterodactyl\BlueprintFramework\Extensions\mcmodpack;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
-use GuzzleHttp\Psr7\LazyOpenStream;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Pterodactyl\Models\Server;
 use Pterodactyl\Repositories\Wings\DaemonFileRepository;
 use Pterodactyl\BlueprintFramework\Libraries\ExtensionLibrary\Admin\BlueprintAdminLibrary as BlueprintExtensionLibrary;
+use Symfony\Component\Process\Process;
 
 class ModpackInstallService
 {
@@ -91,9 +91,12 @@ class ModpackInstallService
         $this->deliverArchive($server, $downloadUrl, $archiveName);
 
         Log::info('[mcmodpack] descompactando zip');
-        $this->withWingsRetry(function () use ($server, $archiveName) {
+        try {
             $this->files->setServer($server)->decompressFile('/', $archiveName);
-        });
+            Log::info('[mcmodpack] zip descompactado');
+        } catch (\Throwable $e) {
+            throw new \RuntimeException('Falha ao descompactar o modpack no Wings: ' . $e->getMessage(), 0, $e);
+        }
 
         try {
             $this->files->setServer($server)->deleteFiles('/', array($archiveName));
@@ -252,37 +255,91 @@ class ModpackInstallService
             if ($content === false) {
                 throw new \RuntimeException('Falha ao ler arquivo baixado.');
             }
-            $this->withWingsRetry(function () use ($server, $remotePath, $content) {
-                $this->files->setServer($server)->putContent($remotePath, $content);
-            });
+            $this->files->setServer($server)->putContent($remotePath, $content);
 
             return;
         }
 
-        $this->withWingsRetry(function () use ($server, $remotePath, $localPath) {
-            $this->uploadFromPath($server, $remotePath, $localPath);
-        }, 1);
+        if ($this->uploadLargeViaCurl($server, $remotePath, $localPath, $size)) {
+            return;
+        }
+
+        Log::warning('[mcmodpack] curl indisponível ou falhou, tentando upload Guzzle');
+        $this->uploadLargeViaGuzzle($server, $remotePath, $localPath, $size);
     }
 
-    private function uploadFromPath(Server $server, string $remotePath, string $localPath): void
+    private function uploadLargeViaCurl(Server $server, string $remotePath, string $localPath, int $size): bool
+    {
+        if (!is_file($localPath)) {
+            return false;
+        }
+
+        $curl = Process::findExecutable('curl');
+        if ($curl === null) {
+            return false;
+        }
+
+        try {
+            $server->loadMissing('node');
+            $node = $server->node;
+            $base = rtrim($node->getConnectionAddress(), '/');
+            $target = $base . sprintf(
+                '/api/servers/%s/files/write?file=%s',
+                $server->uuid,
+                rawurlencode($remotePath)
+            );
+
+            $process = new Process(array(
+                $curl,
+                '-sfS',
+                '-X', 'POST',
+                '-H', 'Authorization: Bearer ' . $node->getDecryptedKey(),
+                '-H', 'Content-Type: application/octet-stream',
+                '--data-binary', '@' . $localPath,
+                '--max-time', (string) self::WINGS_TIMEOUT,
+                $target,
+            ));
+            $process->setTimeout(self::WINGS_TIMEOUT + 30);
+            $process->run();
+
+            if (!$process->isSuccessful()) {
+                Log::warning('[mcmodpack] curl upload falhou', array(
+                    'exit' => $process->getExitCode(),
+                    'error' => trim($process->getErrorOutput() ?: $process->getOutput()),
+                ));
+
+                return false;
+            }
+
+            Log::info('[mcmodpack] upload curl concluído', array(
+                'server' => $server->uuid,
+                'path' => $remotePath,
+                'bytes' => $size,
+            ));
+
+            return true;
+        } catch (\Throwable $e) {
+            Log::warning('[mcmodpack] curl upload exception: ' . $e->getMessage());
+
+            return false;
+        }
+    }
+
+    private function uploadLargeViaGuzzle(Server $server, string $remotePath, string $localPath, int $size): void
     {
         if (!is_file($localPath)) {
             throw new \RuntimeException('Arquivo local não encontrado para upload.');
         }
 
-        $size = filesize($localPath);
-        if ($size === false || $size < 1) {
-            throw new \RuntimeException('Arquivo local está vazio.');
-        }
-
         try {
             $client = $this->wingsClient($server, self::WINGS_TIMEOUT);
-            $response = $client->post(
+            $response = $client->request(
+                'POST',
                 sprintf('/api/servers/%s/files/write', $server->uuid),
                 array(
                     'query' => array('file' => $remotePath),
                     'headers' => array('Content-Type' => 'application/octet-stream'),
-                    'body' => new LazyOpenStream($localPath, 'r'),
+                    'body' => fopen($localPath, 'rb'),
                 )
             );
 
@@ -290,7 +347,7 @@ class ModpackInstallService
                 throw new \RuntimeException('Wings recusou o upload (HTTP ' . $response->getStatusCode() . ').');
             }
 
-            Log::info('[mcmodpack] upload stream concluído', array(
+            Log::info('[mcmodpack] upload guzzle concluído', array(
                 'server' => $server->uuid,
                 'path' => $remotePath,
                 'bytes' => $size,
