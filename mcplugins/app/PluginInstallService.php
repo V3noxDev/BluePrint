@@ -134,7 +134,7 @@ class PluginInstallService
         }
 
         return [
-            $this->spigot->getDownloadUrl($pluginId, $fileId),
+            $this->spigot->resolveDownloadUrl((int) $pluginId, (int) $fileId),
             basename($file['file_name'] ?: 'plugin.jar'),
             $file,
         ];
@@ -327,8 +327,10 @@ class PluginInstallService
     ): string {
         $fresh = match ($provider) {
             'modrinth' => $this->modrinth->getDownloadUrl((string) $fileId),
-            'hangar' => $this->hangar->getVersion((string) $pluginId, (string) $fileId)['download_url'] ?? null,
-            'spigot' => $this->spigot->getDownloadUrl((int) $pluginId, (int) $fileId),
+            'hangar' => ($file = $this->hangar->getVersion((string) $pluginId, (string) $fileId))
+                ? ($file['download_url'] ?? null)
+                : null,
+            'spigot' => $this->spigot->resolveDownloadUrl((int) $pluginId, (int) $fileId),
             'curseforge' => $this->curse->fetchFreshDownloadUrl((int) $pluginId, (int) $fileId),
             default => null,
         };
@@ -366,9 +368,10 @@ class PluginInstallService
             );
         }
 
-        if ($provider === 'spigot' || str_contains($host, 'spiget.org')) {
+        if ($provider === 'spigot' || str_contains($host, 'spiget.org') || str_contains($host, 'cdn.spiget.org')) {
             $sets[] = array(
                 'User-Agent' => self::USER_AGENT,
+                'Spiget-User-Agent' => self::USER_AGENT,
                 'Accept' => 'application/java-archive, application/octet-stream, */*',
             );
         }
@@ -409,7 +412,7 @@ class PluginInstallService
         return match ($provider) {
             'curseforge' => 'CurseForge bloqueou o download — confirme a API Key em Admin → Extensions → MC Plugins.',
             'modrinth' => 'Modrinth bloqueou o download — o provedor exige User-Agent válido.',
-            'spigot' => 'Spigot/Spiget bloqueou o download — plugins externos podem não ser suportados.',
+            'spigot' => 'Spigot bloqueou o download — atualize para mcplugins v1.0.3+ (usa API Spiget proxy).',
             'hangar' => 'Hangar bloqueou o download — tente outra versão ou plataforma.',
             default => 'O provedor bloqueou o download (403).',
         };
