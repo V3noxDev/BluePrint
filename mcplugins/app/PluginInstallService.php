@@ -2,6 +2,8 @@
 
 namespace Pterodactyl\BlueprintFramework\Extensions\mcplugins;
 
+use GuzzleHttp\Exception\RequestException;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Pterodactyl\Models\Server;
 use Pterodactyl\Repositories\Wings\DaemonFileRepository;
@@ -11,6 +13,9 @@ use Pterodactyl\BlueprintFramework\Libraries\ExtensionLibrary\Admin\BlueprintAdm
 class PluginInstallService
 {
     public const PLUGINS_DIR = '/plugins';
+    private const PULL_TIMEOUT = 300;
+    private const DOWNLOAD_TIMEOUT = 180;
+    private const MAX_PUT_BYTES = 33554432;
 
     public function __construct(
         private CurseForgeClient $curse,
@@ -48,10 +53,7 @@ class PluginInstallService
             $this->deletePluginFile($server, $existing['file_name']);
         }
 
-        $this->files->setServer($server)->pull($url, self::PLUGINS_DIR, [
-            'filename' => $filename,
-            'foreground' => true,
-        ]);
+        $this->deliverPlugin($server, $url, $filename);
 
         $record = [
             'provider' => $provider,
@@ -167,6 +169,127 @@ class PluginInstallService
             'spigot' => $this->spigot->getPlugin((int) $pluginId),
             default => $this->curse->getPlugin((int) $pluginId),
         };
+    }
+
+    private function deliverPlugin(Server $server, string $url, string $filename): void
+    {
+        $url = trim($url);
+        if ($url === '') {
+            throw new \RuntimeException('URL de download vazia.');
+        }
+
+        try {
+            $this->pullFromWings($server, $url, $filename);
+            Log::info('[mcplugins] plugin entregue via Wings pull', array(
+                'server' => $server->uuid,
+                'file' => $filename,
+            ));
+
+            return;
+        } catch (\Throwable $pullError) {
+            Log::warning('[mcplugins] pull remoto falhou, usando download via painel', array(
+                'server' => $server->uuid,
+                'file' => $filename,
+                'error' => $pullError->getMessage(),
+            ));
+        }
+
+        $this->downloadViaPanel($server, $url, $filename);
+    }
+
+    private function pullFromWings(Server $server, string $url, string $filename): void
+    {
+        try {
+            $response = $this->files->setServer($server)->getHttpClient()->post(
+                sprintf('/api/servers/%s/files/pull', $server->uuid),
+                array(
+                    'json' => array_filter(array(
+                        'url' => $url,
+                        'root' => self::PLUGINS_DIR,
+                        'file_name' => basename($filename),
+                        'foreground' => true,
+                    ), function ($value) {
+                        return $value !== null && $value !== '';
+                    }),
+                    'timeout' => self::PULL_TIMEOUT,
+                    'connect_timeout' => 30,
+                )
+            );
+
+            if ($response->getStatusCode() >= 400) {
+                throw new \RuntimeException('Wings recusou pull remoto (HTTP ' . $response->getStatusCode() . ').');
+            }
+        } catch (RequestException $e) {
+            $detail = $e->getMessage();
+            if ($e->hasResponse()) {
+                $body = trim((string) $e->getResponse()->getBody());
+                if ($body !== '') {
+                    $detail = $body;
+                }
+            }
+
+            if (stripos($detail, 'disable_remote_download') !== false) {
+                throw new \RuntimeException('Pull remoto desativado no Wings (api.disable_remote_download).');
+            }
+
+            throw new \RuntimeException('Wings pull falhou: ' . $detail, 0, $e);
+        }
+    }
+
+    private function downloadViaPanel(Server $server, string $url, string $filename): void
+    {
+        Log::info('[mcplugins] baixando plugin via painel', array(
+            'server' => $server->uuid,
+            'file' => $filename,
+        ));
+
+        $response = Http::timeout(self::DOWNLOAD_TIMEOUT)
+            ->withOptions(array(
+                'allow_redirects' => true,
+            ))
+            ->withHeaders(array(
+                'User-Agent' => 'BluePrint-MCPlugins/1.0',
+                'Accept' => '*/*',
+            ))
+            ->get($url);
+
+        if (!$response->successful()) {
+            throw new \RuntimeException('Falha ao baixar plugin (HTTP ' . $response->status() . ').');
+        }
+
+        $body = $response->body();
+        $size = strlen($body);
+        if ($size < 100) {
+            throw new \RuntimeException('Download retornou arquivo vazio ou inválido.');
+        }
+
+        if ($size > self::MAX_PUT_BYTES) {
+            throw new \RuntimeException(
+                'Plugin muito grande (' . $this->formatBytes($size) . '). '
+                . 'Ative api.disable_remote_download: false no Wings ou aumente api.upload_limit.'
+            );
+        }
+
+        $path = 'plugins/' . basename($filename);
+        $this->files->setServer($server)->putContent($path, $body);
+
+        Log::info('[mcplugins] plugin enviado via painel', array(
+            'server' => $server->uuid,
+            'file' => $path,
+            'bytes' => $size,
+        ));
+    }
+
+    private function formatBytes(int $bytes): string
+    {
+        if ($bytes < 1024) {
+            return $bytes . ' B';
+        }
+        if ($bytes < 1048576) {
+            return round($bytes / 1024, 1) . ' KB';
+        }
+
+        return round($bytes / 1048576, 1) . ' MB';
     }
 
     public function update(Server $server, string $provider, string|int $pluginId, string|int $fileId): array

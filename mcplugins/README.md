@@ -31,12 +31,25 @@ Blueprint addon para gerenciar **plugins Minecraft** (Paper / Spigot / Purpur).
 2. Admin → Extensions → **MC Plugins** → salvar key
 3. Sem key no CurseForge: o painel mostra *“Não encontramos nenhum plugin”* nesse provedor
 
-## Wings
+## Entrega de arquivos ao Wings
+
+Ordem de tentativa na instalação:
+
+1. **Pull remoto** — Wings baixa da URL do provedor (rápido quando funciona)
+2. **Download via painel** — PHP baixa e envia com `putContent` (fallback automático)
+
+Funciona mesmo com `api.disable_remote_download: true` no Wings — o fallback via painel não depende de pull remoto.
+
+### Config Wings recomendada
 
 ```yaml
+# /etc/pterodactyl/config.yml
 api:
-  disable_remote_download: false
+  disable_remote_download: false   # opcional — pull direto fica mais rápido
+  upload_limit: 100                # suficiente para plugins .jar
 ```
+
+Reinicie o Wings após alterar: `systemctl restart wings`
 
 ## Instalação
 
@@ -45,7 +58,8 @@ cp -r mcplugins /var/www/pterodactyl/.blueprint/dev/
 cd /var/www/pterodactyl
 blueprint -build
 blueprint -install mcplugins.blueprint
-php artisan migrate
+php artisan migrate --force
+php artisan cache:clear
 ```
 
 ## Licença
