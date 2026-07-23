@@ -78,6 +78,21 @@ const timeAgo = (iso?: string | null) => {
     return `${Math.floor(months / 12)} anos atrás`;
 };
 
+const formatApiError = (err: unknown): string => {
+    const e = err as {
+        response?: { status?: number; data?: { message?: string; error?: string } };
+        message?: string;
+    };
+    const data = e.response?.data;
+    if (data?.message) return data.message;
+    if (data?.error) return data.error;
+    if (e.response?.status === 404) {
+        return 'Addon MC Modpacks não encontrado. Rode blueprint -install mcmodpack.blueprint';
+    }
+    if (e.message) return e.message;
+    return 'Erro ao carregar modpacks.';
+};
+
 const ModpacksSection = () => {
     const uuid = ServerContext.useStoreState((s) => s.server.data!.uuid);
 
@@ -133,11 +148,12 @@ const ModpacksSection = () => {
             );
             if (!res.success) {
                 setError(res.message || 'Falha ao carregar modpacks.');
+                setModpacks([]);
                 return;
             }
             setApiConfigured(!!res.data.api_configured);
             setEmptyMessage(res.data.message || null);
-            setModpacks(res.data.modpacks || []);
+            setModpacks(Array.isArray(res.data.modpacks) ? res.data.modpacks : []);
             setInstalled(res.data.installed || null);
             setFiltersMeta(res.data.filters || null);
             setPagination({
@@ -145,8 +161,9 @@ const ModpacksSection = () => {
                 pageSize: res.data.pagination?.pageSize ?? 20,
                 totalCount: res.data.pagination?.totalCount ?? 0,
             });
-        } catch (err: any) {
-            setError(err?.response?.data?.message || 'Erro ao carregar modpacks.');
+        } catch (err: unknown) {
+            setError(formatApiError(err));
+            setModpacks([]);
         } finally {
             setLoading(false);
         }
@@ -421,7 +438,7 @@ const ModpacksSection = () => {
 
                         {error && <div className={'mp-alert mp-alert--error'}>{error}</div>}
 
-                        {!apiConfigured && (
+                        {!error && !apiConfigured && (
                             <div className={'mp-empty'}>
                                 <h3>Não encontramos nenhum modpack</h3>
                                 <p>
@@ -431,7 +448,7 @@ const ModpacksSection = () => {
                             </div>
                         )}
 
-                        {apiConfigured && modpacks.length === 0 && (
+                        {!error && apiConfigured && modpacks.length === 0 && (
                             <div className={'mp-empty'}>
                                 <h3>Não encontramos nenhum modpack</h3>
                                 <p>{emptyMessage || 'Tente outros filtros ou outra busca.'}</p>

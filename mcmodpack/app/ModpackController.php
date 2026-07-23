@@ -4,111 +4,141 @@ namespace Pterodactyl\BlueprintFramework\Extensions\mcmodpack;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Log;
 use Pterodactyl\Models\Server;
 use Pterodactyl\Http\Controllers\Controller;
 use Pterodactyl\Exceptions\Http\Connection\DaemonConnectionException;
+use Pterodactyl\BlueprintFramework\Libraries\ExtensionLibrary\Admin\BlueprintAdminLibrary as BlueprintExtensionLibrary;
 
 class ModpackController extends Controller
 {
     public function __construct(
         private CurseForgeClient $curse,
-        private ModpackInstallService $installer,
+        private BlueprintExtensionLibrary $blueprint,
     ) {}
 
     public function index(Request $request, Server $server): JsonResponse
     {
-        $this->authorize('file.read', $server);
+        try {
+            $this->authorize('file.read', $server);
 
-        $hasKey = $this->curse->hasApiKey();
-        $installed = $this->installer->getInstalled($server);
+            $hasKey = $this->curse->hasApiKey();
+            $installed = $this->readInstalled($server);
 
-        if (!$hasKey) {
+            if (!$hasKey) {
+                return response()->json([
+                    'success' => true,
+                    'data' => [
+                        'api_configured' => false,
+                        'message' => 'Configure a API Key do CurseForge em Admin → Extensions → MC Modpacks.',
+                        'installed' => $installed,
+                        'modpacks' => [],
+                        'pagination' => ['index' => 0, 'pageSize' => 20, 'resultCount' => 0, 'totalCount' => 0],
+                        'filters' => $this->filterMeta(),
+                    ],
+                ]);
+            }
+
+            $search = $this->curse->searchModpacks([
+                'search' => $request->query('search'),
+                'game_version' => $request->query('game_version'),
+                'loader' => $request->query('loader'),
+                'sort' => $request->query('sort', 2),
+                'page_size' => $request->query('page_size', 20),
+                'index' => $request->query('index', 0),
+            ]);
+
+            $message = null;
+            if (!empty($search['error'])) {
+                $message = $search['error'];
+            } elseif (empty($search['data'])) {
+                $message = 'Não encontramos nenhum modpack com esses filtros.';
+            }
+
             return response()->json([
                 'success' => true,
                 'data' => [
-                    'api_configured' => false,
-                    'message' => 'Não encontramos nenhum modpack. Configure a API Key do CurseForge na área admin do Blueprint.',
+                    'api_configured' => true,
+                    'message' => $message,
                     'installed' => $installed,
-                    'modpacks' => [],
-                    'pagination' => ['index' => 0, 'pageSize' => 20, 'resultCount' => 0, 'totalCount' => 0],
+                    'modpacks' => $search['data'],
+                    'pagination' => $search['pagination'],
                     'filters' => $this->filterMeta(),
                 ],
             ]);
+        } catch (\Throwable $e) {
+            Log::error('[mcmodpack] index failed', [
+                'server' => $server->uuid ?? null,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro ao carregar modpacks: ' . $e->getMessage(),
+            ], 500);
         }
-
-        $search = $this->curse->searchModpacks([
-            'search' => $request->query('search'),
-            'game_version' => $request->query('game_version'),
-            'loader' => $request->query('loader'),
-            'sort' => $request->query('sort', 2),
-            'page_size' => $request->query('page_size', 20),
-            'index' => $request->query('index', 0),
-        ]);
-
-        $message = null;
-        if (empty($search['data'])) {
-            $message = 'Não encontramos nenhum modpack com esses filtros.';
-        }
-
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'api_configured' => true,
-                'message' => $message,
-                'installed' => $installed,
-                'modpacks' => $search['data'],
-                'pagination' => $search['pagination'],
-                'filters' => $this->filterMeta(),
-            ],
-        ]);
     }
 
     public function show(Request $request, Server $server, int $modpack): JsonResponse
     {
-        $this->authorize('file.read', $server);
+        try {
+            $this->authorize('file.read', $server);
 
-        if (!$this->curse->hasApiKey()) {
+            if (!$this->curse->hasApiKey()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'API Key do CurseForge não configurada.',
+                ], 422);
+            }
+
+            $data = $this->curse->getModpack($modpack);
+            if (!$data) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Modpack não encontrado.',
+                ], 404);
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => $data,
+            ]);
+        } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'API Key do CurseForge não configurada.',
-            ], 422);
+                'message' => 'Erro ao carregar modpack: ' . $e->getMessage(),
+            ], 500);
         }
-
-        $data = $this->curse->getModpack($modpack);
-        if (!$data) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Modpack não encontrado.',
-            ], 404);
-        }
-
-        return response()->json([
-            'success' => true,
-            'data' => $data,
-        ]);
     }
 
     public function files(Request $request, Server $server, int $modpack): JsonResponse
     {
-        $this->authorize('file.read', $server);
+        try {
+            $this->authorize('file.read', $server);
 
-        if (!$this->curse->hasApiKey()) {
+            if (!$this->curse->hasApiKey()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'API Key do CurseForge não configurada.',
+                ], 422);
+            }
+
+            $files = $this->curse->getFiles(
+                $modpack,
+                (int) $request->query('index', 0),
+                (int) $request->query('page_size', 50)
+            );
+
+            return response()->json([
+                'success' => true,
+                'data' => $files,
+            ]);
+        } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'API Key do CurseForge não configurada.',
-            ], 422);
+                'message' => 'Erro ao carregar versões: ' . $e->getMessage(),
+            ], 500);
         }
-
-        $files = $this->curse->getFiles(
-            $modpack,
-            (int) $request->query('index', 0),
-            (int) $request->query('page_size', 50)
-        );
-
-        return response()->json([
-            'success' => true,
-            'data' => $files,
-        ]);
     }
 
     public function install(Request $request, Server $server): JsonResponse
@@ -123,7 +153,10 @@ class ModpackController extends Controller
         ]);
 
         try {
-            $result = $this->installer->install(
+            /** @var ModpackInstallService $installer */
+            $installer = app(ModpackInstallService::class);
+
+            $result = $installer->install(
                 $server,
                 (int) $data['modpack_id'],
                 (int) $data['file_id'],
@@ -154,6 +187,18 @@ class ModpackController extends Controller
                 'message' => 'Erro ao instalar o modpack: ' . $e->getMessage(),
             ], 500);
         }
+    }
+
+    private function readInstalled(Server $server): ?array
+    {
+        $raw = $this->blueprint->dbGet('mcmodpack', 'installed:' . $server->uuid);
+        if (!$raw) {
+            return null;
+        }
+
+        $data = is_string($raw) ? json_decode($raw, true) : $raw;
+
+        return is_array($data) ? $data : null;
     }
 
     private function filterMeta(): array

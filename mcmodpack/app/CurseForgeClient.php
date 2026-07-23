@@ -58,8 +58,11 @@ class CurseForgeClient
                 ->send($method, self::BASE . $path, ['query' => array_filter($query, fn ($v) => $v !== null && $v !== '')]);
 
             if (!$response->successful()) {
-                Log::warning('[mcmodpack] CurseForge HTTP ' . $response->status() . ' ' . $path);
-                return null;
+                Log::warning('[mcmodpack] CurseForge HTTP ' . $response->status() . ' ' . $path, [
+                    'body' => substr((string) $response->body(), 0, 500),
+                ]);
+
+                return ['_error' => true, '_status' => $response->status()];
             }
 
             return $response->json();
