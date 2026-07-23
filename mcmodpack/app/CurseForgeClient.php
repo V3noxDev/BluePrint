@@ -5,7 +5,7 @@ namespace Pterodactyl\BlueprintFramework\Extensions\mcmodpack;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Pterodactyl\BlueprintFramework\Libraries\ExtensionLibrary\Admin\BlueprintExtensionLibrary as BlueprintExtensionLibrary;
+use Pterodactyl\BlueprintFramework\Libraries\ExtensionLibrary\Admin\BlueprintAdminLibrary as BlueprintExtensionLibrary;
 
 class CurseForgeClient
 {
@@ -61,7 +61,10 @@ class CurseForgeClient
 
         try {
             $response = Http::timeout(20)
-                ->connectTimeout(8)
+                ->withOptions(array(
+                    'connect_timeout' => 8,
+                    'allow_redirects' => true,
+                ))
                 ->withHeaders(array(
                     'Accept' => 'application/json',
                     'x-api-key' => $key,
@@ -112,35 +115,48 @@ class CurseForgeClient
 
         $cacheKey = 'mcmodpack:search:' . md5(json_encode($query));
 
-        return Cache::remember($cacheKey, self::CACHE_SEARCH, function () use ($query) {
-            $json = $this->request('GET', '/v1/mods/search', $query);
-            if (!$json || !empty($json['_error'])) {
-                $status = (int) ($json['_status'] ?? 0);
-                $hint = $status === 403
-                    ? 'API Key do CurseForge inválida ou expirada.'
-                    : 'CurseForge API indisponível. Tente novamente.';
+        return $this->remember($cacheKey, self::CACHE_SEARCH, function () use ($query) {
+            return $this->fetchSearchResults($query);
+        });
+    }
 
-                return array(
-                    'data' => array(),
-                    'pagination' => array('index' => 0, 'pageSize' => 20, 'resultCount' => 0, 'totalCount' => 0),
-                    'error' => $hint,
-                );
-            }
+    private function fetchSearchResults(array $query): array
+    {
+        $json = $this->request('GET', '/v1/mods/search', $query);
+        if (!is_array($json)) {
+            return array(
+                'data' => array(),
+                'pagination' => array('index' => 0, 'pageSize' => 20, 'resultCount' => 0, 'totalCount' => 0),
+                'error' => 'CurseForge API indisponível. Tente novamente.',
+            );
+        }
+
+        if (!empty($json['_error'])) {
+            $status = (int) ($json['_status'] ?? 0);
+            $hint = $status === 403
+                ? 'API Key do CurseForge inválida ou expirada.'
+                : 'CurseForge API indisponível. Tente novamente.';
 
             return array(
-                'data' => array_map(array($this, 'mapModpack'), $json['data'] ?? array()),
-                'pagination' => $json['pagination'] ?? array('index' => 0, 'pageSize' => 20, 'resultCount' => 0, 'totalCount' => 0),
+                'data' => array(),
+                'pagination' => array('index' => 0, 'pageSize' => 20, 'resultCount' => 0, 'totalCount' => 0),
+                'error' => $hint,
             );
-        });
+        }
+
+        return array(
+            'data' => array_map(array($this, 'mapModpack'), $json['data'] ?? array()),
+            'pagination' => $json['pagination'] ?? array('index' => 0, 'pageSize' => 20, 'resultCount' => 0, 'totalCount' => 0),
+        );
     }
 
     public function getModpackSummary(int $modId): ?array
     {
         $cacheKey = 'mcmodpack:mod:' . $modId;
 
-        return Cache::remember($cacheKey, self::CACHE_MOD, function () use ($modId) {
+        return $this->remember($cacheKey, self::CACHE_MOD, function () use ($modId) {
             $json = $this->request('GET', '/v1/mods/' . $modId);
-            if (!$json || empty($json['data'])) {
+            if (!is_array($json) || empty($json['data'])) {
                 return null;
             }
 
@@ -155,11 +171,13 @@ class CurseForgeClient
             return null;
         }
 
+        $mapped = array_merge(array(), $mapped);
         $descKey = 'mcmodpack:desc:' . $modId;
-        $mapped['description_html'] = Cache::remember($descKey, self::CACHE_MOD, function () use ($modId) {
+        $mapped['description_html'] = $this->remember($descKey, self::CACHE_MOD, function () use ($modId) {
             $desc = $this->request('GET', '/v1/mods/' . $modId . '/description');
+            $html = is_array($desc) ? (string) ($desc['data'] ?? '') : '';
 
-            return MarkdownRenderer::fromHtml((string) ($desc['data'] ?? ''), 'curseforge-md');
+            return MarkdownRenderer::fromHtml($html, 'curseforge-md');
         });
 
         return $mapped;
@@ -170,13 +188,13 @@ class CurseForgeClient
         $pageSize = min(50, max(1, $pageSize));
         $cacheKey = 'mcmodpack:files:' . $modId . ':' . $index . ':' . $pageSize;
 
-        return Cache::remember($cacheKey, self::CACHE_FILES, function () use ($modId, $index, $pageSize) {
+        return $this->remember($cacheKey, self::CACHE_FILES, function () use ($modId, $index, $pageSize) {
             $json = $this->request('GET', '/v1/mods/' . $modId . '/files', array(
                 'index' => $index,
                 'pageSize' => $pageSize,
             ));
 
-            if (!$json) {
+            if (!is_array($json)) {
                 return array(
                     'data' => array(),
                     'pagination' => array('index' => 0, 'pageSize' => 50, 'resultCount' => 0, 'totalCount' => 0),
@@ -196,9 +214,9 @@ class CurseForgeClient
     {
         $cacheKey = 'mcmodpack:file:' . $modId . ':' . $fileId;
 
-        return Cache::remember($cacheKey, self::CACHE_FILES, function () use ($modId, $fileId) {
+        return $this->remember($cacheKey, self::CACHE_FILES, function () use ($modId, $fileId) {
             $json = $this->request('GET', '/v1/mods/' . $modId . '/files/' . $fileId);
-            if (!$json || empty($json['data'])) {
+            if (!is_array($json) || empty($json['data'])) {
                 return null;
             }
 
@@ -210,12 +228,32 @@ class CurseForgeClient
     {
         $cacheKey = 'mcmodpack:dl:' . $modId . ':' . $fileId;
 
-        return Cache::remember($cacheKey, self::CACHE_DOWNLOAD, function () use ($modId, $fileId) {
+        return $this->remember($cacheKey, self::CACHE_DOWNLOAD, function () use ($modId, $fileId) {
             $json = $this->request('GET', '/v1/mods/' . $modId . '/files/' . $fileId . '/download-url');
+            if (!is_array($json)) {
+                return null;
+            }
+
             $url = $json['data'] ?? null;
 
             return is_string($url) && $url !== '' ? $url : null;
         });
+    }
+
+    /**
+     * @template T
+     * @param callable():T $callback
+     * @return T
+     */
+    private function remember(string $key, int $ttl, callable $callback)
+    {
+        try {
+            return Cache::remember($key, $ttl, $callback);
+        } catch (\Throwable $e) {
+            Log::warning('[mcmodpack] cache indisponível, usando API direta: ' . $e->getMessage());
+
+            return $callback();
+        }
     }
 
     public function mapModpack(array $mod): array

@@ -147,16 +147,16 @@ class ModpackController extends Controller
 
     public function install(Request $request, Server $server): JsonResponse
     {
-        $this->authorize('file.update', $server);
-
-        $data = $request->validate([
-            'modpack_id' => 'required|integer|min:1',
-            'file_id' => 'required|integer|min:1',
-            'wipe' => 'nullable|boolean',
-            'accept_eula' => 'nullable|boolean',
-        ]);
-
         try {
+            $this->authorize('file.update', $server);
+
+            $data = $request->validate([
+                'modpack_id' => 'required|integer|min:1',
+                'file_id' => 'required|integer|min:1',
+                'wipe' => 'nullable|boolean',
+                'accept_eula' => 'nullable|boolean',
+            ]);
+
             /** @var ModpackInstallService $installer */
             $installer = app(ModpackInstallService::class);
 
@@ -165,7 +165,7 @@ class ModpackController extends Controller
                 (int) $data['modpack_id'],
                 (int) $data['file_id'],
                 (bool) ($data['wipe'] ?? false),
-                (bool) ($data['accept_eula'] ?? false),
+                (bool) ($data['accept_eula'] ?? false)
             );
 
             return response()->json([
@@ -180,10 +180,9 @@ class ModpackController extends Controller
             ], 502);
         } catch (\Throwable $e) {
             Log::error('[mcmodpack] install failed', [
-                'server' => $server->uuid,
-                'modpack_id' => $data['modpack_id'] ?? null,
-                'file_id' => $data['file_id'] ?? null,
+                'server' => $server->uuid ?? null,
                 'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
             ]);
 
             return response()->json([

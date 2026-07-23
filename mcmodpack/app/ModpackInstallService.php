@@ -317,7 +317,7 @@ class ModpackInstallService
                 }
 
                 $fileMeta = $this->curse->getFile($projectId, $modFileId);
-                $filename = basename($fileMeta['file_name'] ?? ('mod-' . $modFileId . '.jar'));
+                $filename = basename(is_array($fileMeta) ? ($fileMeta['file_name'] ?? ('mod-' . $modFileId . '.jar')) : ('mod-' . $modFileId . '.jar'));
 
                 $this->downloadToServer($server, $url, $filename, '/mods');
                 $count++;
