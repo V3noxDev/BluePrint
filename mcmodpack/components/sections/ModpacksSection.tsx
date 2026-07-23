@@ -170,6 +170,14 @@ const ModpacksSection = () => {
     }, [uuid, search, loader, sort, pageSize, gameVersion, pagination.index]);
 
     useEffect(() => {
+        const timer = window.setTimeout(() => {
+            setSearch((current) => (current === searchDraft ? current : searchDraft));
+        }, 350);
+
+        return () => window.clearTimeout(timer);
+    }, [searchDraft]);
+
+    useEffect(() => {
         loadList();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [uuid, search, loader, sort, pageSize, gameVersion, pagination.index]);
@@ -421,6 +429,10 @@ const ModpacksSection = () => {
                                             setSearch(searchDraft);
                                             setPagination((p) => ({ ...p, index: 0 }));
                                         }
+                                    }}
+                                    onBlur={() => {
+                                        setSearch(searchDraft);
+                                        setPagination((p) => ({ ...p, index: 0 }));
                                     }}
                                 />
                                 <button

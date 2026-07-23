@@ -12,10 +12,14 @@ use Pterodactyl\BlueprintFramework\Libraries\ExtensionLibrary\Admin\BlueprintAdm
 
 class ModpackController extends Controller
 {
-    public function __construct(
-        private CurseForgeClient $curse,
-        private BlueprintExtensionLibrary $blueprint,
-    ) {}
+    private CurseForgeClient $curse;
+    private BlueprintExtensionLibrary $blueprint;
+
+    public function __construct(CurseForgeClient $curse, BlueprintExtensionLibrary $blueprint)
+    {
+        $this->curse = $curse;
+        $this->blueprint = $blueprint;
+    }
 
     public function index(Request $request, Server $server): JsonResponse
     {

@@ -2,15 +2,21 @@
 
 namespace Pterodactyl\BlueprintFramework\Extensions\mcmodpack;
 
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Pterodactyl\BlueprintFramework\Libraries\ExtensionLibrary\Admin\BlueprintAdminLibrary as BlueprintExtensionLibrary;
+use Pterodactyl\BlueprintFramework\Libraries\ExtensionLibrary\Admin\BlueprintExtensionLibrary as BlueprintExtensionLibrary;
 
 class CurseForgeClient
 {
     public const BASE = 'https://api.curseforge.com';
     public const GAME_MINECRAFT = 432;
     public const CLASS_MODPACKS = 4471;
+
+    private const CACHE_SEARCH = 300;
+    private const CACHE_FILES = 120;
+    private const CACHE_MOD = 600;
+    private const CACHE_DOWNLOAD = 1800;
 
     /** @see CurseForge ModLoaderType */
     public const LOADERS = [
@@ -29,7 +35,12 @@ class CurseForgeClient
         6 => 'Downloads',
     ];
 
-    public function __construct(private BlueprintExtensionLibrary $blueprint) {}
+    private BlueprintExtensionLibrary $blueprint;
+
+    public function __construct(BlueprintExtensionLibrary $blueprint)
+    {
+        $this->blueprint = $blueprint;
+    }
 
     public function getApiKey(): string
     {
@@ -41,7 +52,7 @@ class CurseForgeClient
         return $this->getApiKey() !== '';
     }
 
-    private function request(string $method, string $path, array $query = []): ?array
+    private function request(string $method, string $path, array $query = array()): ?array
     {
         $key = $this->getApiKey();
         if ($key === '') {
@@ -49,25 +60,31 @@ class CurseForgeClient
         }
 
         try {
-            $response = Http::timeout(30)
-                ->withHeaders([
+            $response = Http::timeout(20)
+                ->connectTimeout(8)
+                ->withHeaders(array(
                     'Accept' => 'application/json',
                     'x-api-key' => $key,
                     'User-Agent' => 'MCModpack/1.0 (Blueprint)',
-                ])
-                ->send($method, self::BASE . $path, ['query' => array_filter($query, fn ($v) => $v !== null && $v !== '')]);
+                ))
+                ->send($method, self::BASE . $path, array(
+                    'query' => array_filter($query, function ($v) {
+                        return $v !== null && $v !== '';
+                    }),
+                ));
 
             if (!$response->successful()) {
-                Log::warning('[mcmodpack] CurseForge HTTP ' . $response->status() . ' ' . $path, [
+                Log::warning('[mcmodpack] CurseForge HTTP ' . $response->status() . ' ' . $path, array(
                     'body' => substr((string) $response->body(), 0, 500),
-                ]);
+                ));
 
-                return ['_error' => true, '_status' => $response->status()];
+                return array('_error' => true, '_status' => $response->status());
             }
 
             return $response->json();
         } catch (\Throwable $e) {
             Log::warning('[mcmodpack] CurseForge erro: ' . $e->getMessage());
+
             return null;
         }
     }
@@ -75,10 +92,13 @@ class CurseForgeClient
     public function searchModpacks(array $params): array
     {
         if (!$this->hasApiKey()) {
-            return ['data' => [], 'pagination' => ['index' => 0, 'pageSize' => 20, 'resultCount' => 0, 'totalCount' => 0]];
+            return array(
+                'data' => array(),
+                'pagination' => array('index' => 0, 'pageSize' => 20, 'resultCount' => 0, 'totalCount' => 0),
+            );
         }
 
-        $query = [
+        $query = array(
             'gameId' => self::GAME_MINECRAFT,
             'classId' => self::CLASS_MODPACKS,
             'searchFilter' => $params['search'] ?? null,
@@ -88,90 +108,136 @@ class CurseForgeClient
             'sortOrder' => $params['sort_order'] ?? 'desc',
             'pageSize' => min(50, max(1, (int) ($params['page_size'] ?? 20))),
             'index' => max(0, (int) ($params['index'] ?? 0)),
-        ];
+        );
 
-        $json = $this->request('GET', '/v1/mods/search', $query);
-        if (!$json) {
-            return ['data' => [], 'pagination' => ['index' => 0, 'pageSize' => 20, 'resultCount' => 0, 'totalCount' => 0]];
-        }
+        $cacheKey = 'mcmodpack:search:' . md5(json_encode($query));
 
-        return [
-            'data' => array_map([$this, 'mapModpack'], $json['data'] ?? []),
-            'pagination' => $json['pagination'] ?? ['index' => 0, 'pageSize' => 20, 'resultCount' => 0, 'totalCount' => 0],
-        ];
+        return Cache::remember($cacheKey, self::CACHE_SEARCH, function () use ($query) {
+            $json = $this->request('GET', '/v1/mods/search', $query);
+            if (!$json || !empty($json['_error'])) {
+                $status = (int) ($json['_status'] ?? 0);
+                $hint = $status === 403
+                    ? 'API Key do CurseForge inválida ou expirada.'
+                    : 'CurseForge API indisponível. Tente novamente.';
+
+                return array(
+                    'data' => array(),
+                    'pagination' => array('index' => 0, 'pageSize' => 20, 'resultCount' => 0, 'totalCount' => 0),
+                    'error' => $hint,
+                );
+            }
+
+            return array(
+                'data' => array_map(array($this, 'mapModpack'), $json['data'] ?? array()),
+                'pagination' => $json['pagination'] ?? array('index' => 0, 'pageSize' => 20, 'resultCount' => 0, 'totalCount' => 0),
+            );
+        });
+    }
+
+    public function getModpackSummary(int $modId): ?array
+    {
+        $cacheKey = 'mcmodpack:mod:' . $modId;
+
+        return Cache::remember($cacheKey, self::CACHE_MOD, function () use ($modId) {
+            $json = $this->request('GET', '/v1/mods/' . $modId);
+            if (!$json || empty($json['data'])) {
+                return null;
+            }
+
+            return $this->mapModpack($json['data']);
+        });
     }
 
     public function getModpack(int $modId): ?array
     {
-        $json = $this->request('GET', '/v1/mods/' . $modId);
-        if (!$json || empty($json['data'])) {
+        $mapped = $this->getModpackSummary($modId);
+        if (!$mapped) {
             return null;
         }
 
-        $mapped = $this->mapModpack($json['data']);
-        $desc = $this->request('GET', '/v1/mods/' . $modId . '/description');
-        $mapped['description_html'] = MarkdownRenderer::fromHtml((string) ($desc['data'] ?? ''), 'curseforge-md');
+        $descKey = 'mcmodpack:desc:' . $modId;
+        $mapped['description_html'] = Cache::remember($descKey, self::CACHE_MOD, function () use ($modId) {
+            $desc = $this->request('GET', '/v1/mods/' . $modId . '/description');
+
+            return MarkdownRenderer::fromHtml((string) ($desc['data'] ?? ''), 'curseforge-md');
+        });
 
         return $mapped;
     }
 
     public function getFiles(int $modId, int $index = 0, int $pageSize = 50): array
     {
-        $json = $this->request('GET', '/v1/mods/' . $modId . '/files', [
-            'index' => $index,
-            'pageSize' => min(50, max(1, $pageSize)),
-        ]);
+        $pageSize = min(50, max(1, $pageSize));
+        $cacheKey = 'mcmodpack:files:' . $modId . ':' . $index . ':' . $pageSize;
 
-        if (!$json) {
-            return ['data' => [], 'pagination' => ['index' => 0, 'pageSize' => 50, 'resultCount' => 0, 'totalCount' => 0]];
-        }
+        return Cache::remember($cacheKey, self::CACHE_FILES, function () use ($modId, $index, $pageSize) {
+            $json = $this->request('GET', '/v1/mods/' . $modId . '/files', array(
+                'index' => $index,
+                'pageSize' => $pageSize,
+            ));
 
-        $files = array_map([$this, 'mapFile'], $json['data'] ?? []);
+            if (!$json) {
+                return array(
+                    'data' => array(),
+                    'pagination' => array('index' => 0, 'pageSize' => 50, 'resultCount' => 0, 'totalCount' => 0),
+                );
+            }
 
-        return [
-            'data' => $files,
-            'pagination' => $json['pagination'] ?? [],
-        ];
+            $files = array_map(array($this, 'mapFile'), $json['data'] ?? array());
+
+            return array(
+                'data' => $files,
+                'pagination' => $json['pagination'] ?? array(),
+            );
+        });
     }
 
     public function getFile(int $modId, int $fileId): ?array
     {
-        $json = $this->request('GET', '/v1/mods/' . $modId . '/files/' . $fileId);
-        if (!$json || empty($json['data'])) {
-            return null;
-        }
+        $cacheKey = 'mcmodpack:file:' . $modId . ':' . $fileId;
 
-        return $this->mapFile($json['data']);
+        return Cache::remember($cacheKey, self::CACHE_FILES, function () use ($modId, $fileId) {
+            $json = $this->request('GET', '/v1/mods/' . $modId . '/files/' . $fileId);
+            if (!$json || empty($json['data'])) {
+                return null;
+            }
+
+            return $this->mapFile($json['data']);
+        });
     }
 
     public function getDownloadUrl(int $modId, int $fileId): ?string
     {
-        $json = $this->request('GET', '/v1/mods/' . $modId . '/files/' . $fileId . '/download-url');
-        $url = $json['data'] ?? null;
+        $cacheKey = 'mcmodpack:dl:' . $modId . ':' . $fileId;
 
-        return is_string($url) && $url !== '' ? $url : null;
+        return Cache::remember($cacheKey, self::CACHE_DOWNLOAD, function () use ($modId, $fileId) {
+            $json = $this->request('GET', '/v1/mods/' . $modId . '/files/' . $fileId . '/download-url');
+            $url = $json['data'] ?? null;
+
+            return is_string($url) && $url !== '' ? $url : null;
+        });
     }
 
     public function mapModpack(array $mod): array
     {
-        $authors = collect($mod['authors'] ?? [])->pluck('name')->filter()->values()->all();
-        $categories = collect($mod['categories'] ?? [])->pluck('name')->filter()->values()->all();
-        $loaders = [];
-        foreach ($mod['latestFilesIndexes'] ?? [] as $idx) {
+        $authors = collect($mod['authors'] ?? array())->pluck('name')->filter()->values()->all();
+        $categories = collect($mod['categories'] ?? array())->pluck('name')->filter()->values()->all();
+        $loaders = array();
+        foreach ($mod['latestFilesIndexes'] ?? array() as $idx) {
             $lt = (int) ($idx['modLoader'] ?? 0);
             if ($lt > 0 && isset(self::LOADERS[$lt])) {
                 $loaders[self::LOADERS[$lt]] = true;
             }
         }
 
-        $gameVersions = [];
-        foreach ($mod['latestFilesIndexes'] ?? [] as $idx) {
+        $gameVersions = array();
+        foreach ($mod['latestFilesIndexes'] ?? array() as $idx) {
             if (!empty($idx['gameVersion'])) {
                 $gameVersions[$idx['gameVersion']] = true;
             }
         }
 
-        return [
+        return array(
             'id' => (int) ($mod['id'] ?? 0),
             'name' => (string) ($mod['name'] ?? 'Modpack'),
             'slug' => (string) ($mod['slug'] ?? ''),
@@ -188,28 +254,28 @@ class CurseForgeClient
             'date_created' => $mod['dateCreated'] ?? null,
             'date_modified' => $mod['dateModified'] ?? null,
             'main_file_id' => (int) ($mod['mainFileId'] ?? 0),
-        ];
+        );
     }
 
     public function mapFile(array $file): array
     {
-        $loaders = [];
-        $gameVersions = [];
-        foreach ($file['sortableGameVersions'] ?? [] as $gv) {
+        $loaders = array();
+        $gameVersions = array();
+        foreach ($file['sortableGameVersions'] ?? array() as $gv) {
             if (!empty($gv['gameVersion'])) {
                 $gameVersions[] = $gv['gameVersion'];
             }
         }
-        foreach ($file['gameVersions'] ?? [] as $v) {
+        foreach ($file['gameVersions'] ?? array() as $v) {
             $lower = strtolower((string) $v);
-            if (in_array($lower, ['forge', 'fabric', 'neoforge', 'quilt'], true)) {
+            if (in_array($lower, array('forge', 'fabric', 'neoforge', 'quilt'), true)) {
                 $loaders[] = ucfirst($lower === 'neoforge' ? 'NeoForge' : $lower);
             } elseif (preg_match('/^\d+\.\d+/', (string) $v)) {
                 $gameVersions[] = (string) $v;
             }
         }
 
-        return [
+        return array(
             'id' => (int) ($file['id'] ?? 0),
             'display_name' => (string) ($file['displayName'] ?? $file['fileName'] ?? 'Versão'),
             'file_name' => (string) ($file['fileName'] ?? ''),
@@ -221,6 +287,6 @@ class CurseForgeClient
             'server_pack_file_id' => isset($file['serverPackFileId']) ? (int) $file['serverPackFileId'] : null,
             'loaders' => array_values(array_unique($loaders)),
             'game_versions' => array_values(array_unique($gameVersions)),
-        ];
+        );
     }
 }
