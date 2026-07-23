@@ -145,17 +145,70 @@ class ModpackController extends Controller
         }
     }
 
+    public function installStatus(Request $request, Server $server): JsonResponse
+    {
+        try {
+            $this->authorize('file.read', $server);
+
+            $progress = ModpackInstallProgress::get($server);
+            $payload = $progress ?? array(
+                'active' => false,
+                'phase' => 'idle',
+                'step' => 0,
+                'progress' => 0,
+                'message' => 'Nenhuma instalação em andamento',
+            );
+            $payload['locked'] = ModpackInstallProgress::isLocked($server);
+
+            return response()->json(array(
+                'success' => true,
+                'data' => $payload,
+            ));
+        } catch (\Throwable $e) {
+            return response()->json(array(
+                'success' => false,
+                'message' => 'Erro ao consultar progresso: ' . $e->getMessage(),
+            ), 500);
+        }
+    }
+
+    public function installCancel(Request $request, Server $server): JsonResponse
+    {
+        $this->authorize('file.update', $server);
+
+        try {
+            /** @var ModpackInstallService $installer */
+            $installer = app(ModpackInstallService::class);
+            $installer->cancelAndWipe($server);
+
+            return response()->json(array(
+                'success' => true,
+                'message' => 'Instalação cancelada e arquivos do servidor apagados.',
+            ));
+        } catch (\Throwable $e) {
+            Log::error('[mcmodpack] cancel failed', array(
+                'server' => $server->uuid ?? null,
+                'error' => $e->getMessage(),
+            ));
+
+            return response()->json(array(
+                'success' => false,
+                'message' => 'Erro ao cancelar: ' . $e->getMessage(),
+            ), 500);
+        }
+    }
+
     public function install(Request $request, Server $server): JsonResponse
     {
         try {
             $this->authorize('file.update', $server);
 
-            $data = $request->validate([
+            $data = $request->validate(array(
                 'modpack_id' => 'required|integer|min:1',
                 'file_id' => 'required|integer|min:1',
                 'wipe' => 'nullable|boolean',
                 'accept_eula' => 'nullable|boolean',
-            ]);
+            ));
 
             /** @var ModpackInstallService $installer */
             $installer = app(ModpackInstallService::class);
@@ -168,27 +221,48 @@ class ModpackController extends Controller
                 (bool) ($data['accept_eula'] ?? false)
             );
 
-            return response()->json([
+            return response()->json(array(
                 'success' => true,
                 'message' => "Modpack {$result['name']} instalado com sucesso!",
                 'data' => $result,
-            ]);
+            ));
+        } catch (ModpackInstallCancelledException $e) {
+            return response()->json(array(
+                'success' => false,
+                'message' => 'Instalação cancelada. Arquivos do servidor foram apagados.',
+            ), 409);
+        } catch (\RuntimeException $e) {
+            if (stripos($e->getMessage(), 'instalação em andamento') !== false) {
+                return response()->json(array(
+                    'success' => false,
+                    'message' => $e->getMessage(),
+                ), 409);
+            }
+
+            ModpackInstallProgress::fail($server, $e->getMessage());
+
+            return response()->json(array(
+                'success' => false,
+                'message' => 'Erro ao instalar o modpack: ' . $e->getMessage(),
+            ), 500);
         } catch (DaemonConnectionException $e) {
-            return response()->json([
+            ModpackInstallProgress::fail($server, 'Falha ao comunicar com o Wings.');
+
+            return response()->json(array(
                 'success' => false,
                 'message' => 'Não foi possível comunicar com o Wings. Verifique se o node está online.',
-            ], 502);
+            ), 502);
         } catch (\Throwable $e) {
-            Log::error('[mcmodpack] install failed', [
+            Log::error('[mcmodpack] install failed', array(
                 'server' => $server->uuid ?? null,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
-            ]);
+            ));
 
-            return response()->json([
+            return response()->json(array(
                 'success' => false,
                 'message' => 'Erro ao instalar o modpack: ' . $e->getMessage(),
-            ], 500);
+            ), 500);
         }
     }
 

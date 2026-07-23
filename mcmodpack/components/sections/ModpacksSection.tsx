@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ServerContext } from '@/state/server';
 import http from '@/api/http';
 import Spinner from '@/components/elements/Spinner';
@@ -59,6 +59,36 @@ interface FiltersMeta {
     provider: string;
 }
 
+interface InstallProgressState {
+    active?: boolean;
+    phase?: string;
+    step?: number;
+    progress?: number;
+    message?: string;
+    modpack_name?: string;
+    bytes_done?: number;
+    bytes_total?: number;
+    eta_seconds?: number | null;
+    error?: string | null;
+}
+
+type InstallView = 'config' | 'progress';
+
+const formatEta = (seconds?: number | null) => {
+    if (seconds == null || seconds <= 0) return 'Calculando tempo...';
+    if (seconds < 60) return `${seconds}s restantes`;
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}m ${secs.toString().padStart(2, '0')}s restantes`;
+};
+
+const formatBytes = (n: number) => {
+    if (n < 1024) return `${n} B`;
+    if (n < 1048576) return `${(n / 1024).toFixed(1)} KB`;
+    if (n < 1073741824) return `${(n / 1048576).toFixed(1)} MB`;
+    return `${(n / 1073741824).toFixed(2)} GB`;
+};
+
 const formatCount = (n: number) =>
     new Intl.NumberFormat('pt-BR', { notation: n >= 10000 ? 'compact' : 'standard' }).format(n);
 
@@ -97,7 +127,7 @@ const formatApiError = (err: unknown): string => {
         return 'Addon MC Modpacks não encontrado. Rode blueprint -install mcmodpack.blueprint';
     }
     if (e.response?.status === 500) {
-        return 'Erro interno no servidor (500). Atualize o addon mcmodpack v1.0.5+ e rode blueprint -build.';
+        return 'Erro interno no servidor (500). Atualize o addon mcmodpack v1.1.1+ e rode blueprint -build.';
     }
     if (e.message) return e.message;
     return 'Erro ao carregar modpacks.';
@@ -133,6 +163,11 @@ const ModpacksSection = () => {
     const [wipe, setWipe] = useState(false);
     const [acceptEula, setAcceptEula] = useState(false);
     const [installing, setInstalling] = useState(false);
+    const [installView, setInstallView] = useState<InstallView>('config');
+    const [installProgress, setInstallProgress] = useState<InstallProgressState | null>(null);
+    const [cancelling, setCancelling] = useState(false);
+    const [awaitingBackground, setAwaitingBackground] = useState(false);
+    const pollRef = useRef<number | null>(null);
     const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
     const showToast = (type: 'success' | 'error', message: string) => {
@@ -249,12 +284,110 @@ const ModpacksSection = () => {
         setSelectedFileId(list?.[0]?.id ?? null);
         setWipe(false);
         setAcceptEula(false);
+        setInstallView('config');
+        setInstallProgress(null);
         setModal({ pack, files: list || [] });
+    };
+
+    const stopPolling = useCallback(() => {
+        if (pollRef.current !== null) {
+            window.clearInterval(pollRef.current);
+            pollRef.current = null;
+        }
+    }, []);
+
+    const pollInstallStatus = useCallback(async () => {
+        try {
+            const { data: res } = await http.get(
+                `/api/client/extensions/mcmodpack/servers/${uuid}/modpacks/install/status`
+            );
+            if (res.success && res.data) {
+                setInstallProgress(res.data);
+            }
+        } catch {
+            // ignore polling errors
+        }
+    }, [uuid]);
+
+    useEffect(() => () => stopPolling(), [stopPolling]);
+
+    useEffect(() => {
+        if (!installProgress) return;
+
+        const phase = installProgress.phase;
+        if (phase === 'completed') {
+            stopPolling();
+            setInstalling(false);
+            setAwaitingBackground(false);
+            showToast('success', installProgress.message || 'Modpack instalado!');
+            window.setTimeout(() => {
+                setModal(null);
+                setInstallView('config');
+                setInstallProgress(null);
+                setView('home');
+                void loadList();
+            }, 900);
+        } else if (phase === 'failed') {
+            stopPolling();
+            setInstalling(false);
+            setAwaitingBackground(false);
+            showToast('error', installProgress.error || installProgress.message || 'Falha na instalação.');
+        } else if (phase === 'cancelled') {
+            stopPolling();
+            setInstalling(false);
+            setAwaitingBackground(false);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [installProgress?.phase]);
+
+    const handleCancelInstall = async () => {
+        if (
+            !window.confirm(
+                'Cancelar a instalação e apagar TODOS os arquivos do servidor? Esta ação não pode ser desfeita.'
+            )
+        ) {
+            return;
+        }
+
+        setCancelling(true);
+        try {
+            await http.post(`/api/client/extensions/mcmodpack/servers/${uuid}/modpacks/install/cancel`);
+            stopPolling();
+            setInstalling(false);
+            setAwaitingBackground(false);
+            setInstallView('config');
+            setInstallProgress(null);
+            setModal(null);
+            showToast('error', 'Instalação cancelada. Arquivos do servidor apagados.');
+        } catch (err: unknown) {
+            const e = err as { response?: { data?: { message?: string } } };
+            showToast('error', e.response?.data?.message || 'Erro ao cancelar instalação.');
+        } finally {
+            setCancelling(false);
+        }
     };
 
     const handleInstall = async () => {
         if (!modal || !selectedFileId) return;
+
         setInstalling(true);
+        setAwaitingBackground(false);
+        setInstallView('progress');
+        setInstallProgress({
+            active: true,
+            phase: 'preparing',
+            step: 1,
+            progress: 2,
+            message: 'Iniciando instalação...',
+            modpack_name: modal.pack.name,
+        });
+
+        stopPolling();
+        pollRef.current = window.setInterval(() => {
+            void pollInstallStatus();
+        }, 1000);
+        void pollInstallStatus();
+
         try {
             const { data: res } = await http.post(
                 `/api/client/extensions/mcmodpack/servers/${uuid}/modpacks/install`,
@@ -266,13 +399,22 @@ const ModpacksSection = () => {
                 },
                 { timeout: 1000 * 60 * 45 }
             );
+
             if (res.success) {
-                showToast('success', res.message || 'Modpack instalado!');
-                setModal(null);
-                setView('home');
-                await loadList();
+                setInstallProgress((p) => ({
+                    ...(p ?? {}),
+                    active: false,
+                    phase: 'completed',
+                    step: 2,
+                    progress: 100,
+                    message: res.message || 'Modpack instalado!',
+                }));
             } else {
+                stopPolling();
+                setInstalling(false);
                 showToast('error', res.message || 'Falha na instalação.');
+                setInstallView('config');
+                setInstallProgress(null);
             }
         } catch (err: unknown) {
             const e = err as {
@@ -281,25 +423,45 @@ const ModpacksSection = () => {
                 response?: { status?: number; data?: { message?: string } };
             };
             const apiMessage = e.response?.data?.message;
-            if (e.code === 'ECONNABORTED' || e.message?.toLowerCase().includes('timeout')) {
+            const status = e.response?.status;
+
+            if (status === 409) {
+                stopPolling();
+                setInstalling(false);
+                showToast('error', apiMessage || 'Instalação cancelada ou já em andamento.');
+                setModal(null);
+                setInstallView('config');
+                setInstallProgress(null);
+            } else if (e.code === 'ECONNABORTED' || e.message?.toLowerCase().includes('timeout')) {
+                setAwaitingBackground(true);
+                setInstalling(true);
                 showToast(
-                    'error',
-                    'A instalação demorou demais. Verifique os arquivos do servidor — pode ter concluído parcialmente.'
+                    'success',
+                    'A instalação continua em segundo plano. Acompanhe o progresso abaixo.'
                 );
-            } else if (apiMessage) {
-                showToast('error', apiMessage);
-            } else if (e.response?.status) {
-                showToast(
-                    'error',
-                    `Erro ao instalar (${e.response.status}). Confira storage/logs/laravel.log no painel.`
-                );
+                void pollInstallStatus();
             } else {
-                showToast('error', e.message || 'Erro ao instalar o modpack.');
+                stopPolling();
+                setInstalling(false);
+                if (apiMessage) {
+                    setInstallProgress((p) => ({
+                        ...(p ?? {}),
+                        active: false,
+                        phase: 'failed',
+                        progress: 0,
+                        message: 'Falha na instalação',
+                        error: apiMessage,
+                    }));
+                } else {
+                    showToast('error', e.message || 'Erro ao instalar o modpack.');
+                    setInstallView('config');
+                    setInstallProgress(null);
+                }
             }
-        } finally {
-            setInstalling(false);
         }
     };
+
+    const installBusy = installing || cancelling || awaitingBackground;
 
     const selectedFile = useMemo(
         () => modal?.files.find((f) => f.id === selectedFileId) || null,
@@ -787,21 +949,136 @@ const ModpacksSection = () => {
                 {modal && (
                     <div
                         className={'mp-modal-backdrop'}
-                        onClick={() => !installing && setModal(null)}
+                        onClick={() => !installBusy && setModal(null)}
                     >
-                        <div className={'mp-modal'} onClick={(e) => e.stopPropagation()}>
+                        <div className={'mp-modal mp-modal--install'} onClick={(e) => e.stopPropagation()}>
                             <div className={'mp-modal__header'}>
-                                <h3>Instalar Modpack</h3>
+                                <h3>
+                                    {installView === 'progress'
+                                        ? installProgress?.phase === 'failed'
+                                            ? 'Falha na instalação'
+                                            : 'Instalando Modpack'
+                                        : 'Instalar Modpack'}
+                                </h3>
                                 <button
                                     type={'button'}
                                     className={'mp-modal__close'}
-                                    disabled={installing}
+                                    disabled={installBusy}
                                     onClick={() => setModal(null)}
                                 >
                                     <BiIcon name={'x-lg'} />
                                 </button>
                             </div>
 
+                            {installView === 'progress' && installProgress ? (
+                                <>
+                                    <div className={'mp-modal__pack'}>
+                                        <img src={modal.pack.logo || ''} alt={modal.pack.name} />
+                                        <div>
+                                            <div className={'mp-modal__name'}>{modal.pack.name}</div>
+                                            <div className={'mp-muted'}>
+                                                {installProgress.message || 'Processando...'}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {awaitingBackground && (
+                                        <div className={'mp-install-background'}>
+                                            Instalação em segundo plano — o painel continua atualizando o
+                                            progresso.
+                                        </div>
+                                    )}
+
+                                    {installProgress.phase === 'failed' && installProgress.error && (
+                                        <div className={'mp-alert mp-alert--error mp-install-error'}>
+                                            {installProgress.error}
+                                        </div>
+                                    )}
+
+                                    {installProgress.phase !== 'failed' && (
+                                        <>
+                                    <div className={'mp-install-steps'}>
+                                        <div
+                                            className={`mp-install-step ${
+                                                (installProgress.step ?? 1) >= 1 ? 'is-active' : ''
+                                            } ${(installProgress.step ?? 0) > 1 || installProgress.phase === 'completed' ? 'is-done' : ''}`}
+                                        >
+                                            <div className={'mp-install-step__bubble'}>1</div>
+                                            <span>Baixar</span>
+                                        </div>
+
+                                        <div className={'mp-install-track'}>
+                                            <div className={'mp-install-track__rail'}>
+                                                <div
+                                                    className={'mp-install-track__fill'}
+                                                    style={{
+                                                        width: `${Math.max(4, Math.min(100, installProgress.progress ?? 0))}%`,
+                                                    }}
+                                                />
+                                            </div>
+                                            <div className={'mp-install-track__meta'}>
+                                                <span>{installProgress.progress ?? 0}%</span>
+                                                <span>{formatEta(installProgress.eta_seconds)}</span>
+                                            </div>
+                                        </div>
+
+                                        <div
+                                            className={`mp-install-step ${
+                                                (installProgress.step ?? 0) >= 2 ? 'is-active' : ''
+                                            } ${installProgress.phase === 'completed' ? 'is-done' : ''}`}
+                                        >
+                                            <div className={'mp-install-step__bubble'}>2</div>
+                                            <span>Descompactar</span>
+                                        </div>
+                                    </div>
+
+                                    {installProgress.bytes_total != null && installProgress.bytes_total > 0 && (
+                                        <div className={'mp-install-bytes'}>
+                                            {formatBytes(installProgress.bytes_done ?? 0)} /{' '}
+                                            {formatBytes(installProgress.bytes_total)} transferidos
+                                        </div>
+                                    )}
+
+                                    <div className={'mp-modal__actions mp-modal__actions--center'}>
+                                        <button
+                                            type={'button'}
+                                            className={'mp-btn mp-btn--danger'}
+                                            disabled={cancelling || installProgress.phase === 'completed'}
+                                            onClick={() => void handleCancelInstall()}
+                                        >
+                                            {cancelling ? 'Cancelando...' : 'Cancelar instalação'}
+                                        </button>
+                                    </div>
+                                    <p className={'mp-install-cancel-hint'}>
+                                        Cancelar apaga todos os arquivos do servidor.
+                                    </p>
+                                        </>
+                                    )}
+
+                                    {installProgress.phase === 'failed' && (
+                                        <div className={'mp-modal__actions mp-modal__actions--center'}>
+                                            <button
+                                                type={'button'}
+                                                className={'mp-btn mp-btn--ghost'}
+                                                onClick={() => {
+                                                    setInstallView('config');
+                                                    setInstallProgress(null);
+                                                }}
+                                            >
+                                                Voltar
+                                            </button>
+                                            <button
+                                                type={'button'}
+                                                className={'mp-btn mp-btn--primary'}
+                                                onClick={() => void handleInstall()}
+                                            >
+                                                Tentar novamente
+                                            </button>
+                                        </div>
+                                    )}
+                                </>
+                            ) : (
+                                <>
                             <div className={'mp-modal__pack'}>
                                 <img src={modal.pack.logo || ''} alt={modal.pack.name} />
                                 <div>
@@ -885,11 +1162,13 @@ const ModpacksSection = () => {
                                     type={'button'}
                                     className={'mp-btn mp-btn--primary'}
                                     disabled={installing || !selectedFileId}
-                                    onClick={handleInstall}
+                                    onClick={() => void handleInstall()}
                                 >
-                                    {installing ? 'Baixando e instalando...' : 'Instalar'}
+                                    Instalar
                                 </button>
                             </div>
+                                </>
+                            )}
                         </div>
                     </div>
                 )}
