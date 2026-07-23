@@ -9,6 +9,7 @@
         'store_url' => 'https://financeiro.blackhosting.com.br',
         'discord_url' => 'https://discord.gg/blackhosting',
         'brand_name' => 'BlackHosting',
+        'image_url' => '',
     ];
 
     $config = $defaults;
@@ -33,6 +34,7 @@
     $storeUrl = $config['store_url'] ?? $defaults['store_url'];
     $discordUrl = $config['discord_url'] ?? $defaults['discord_url'];
     $pageTitle = $config['title'] ?? $defaults['title'];
+    $imageUrl = trim((string) ($config['image_url'] ?? ''));
 @endphp
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -78,6 +80,10 @@
             object-fit: contain;
             filter: drop-shadow(0 8px 24px rgba(249, 115, 22, 0.35));
             animation: pm-float 4s ease-in-out infinite;
+        }
+
+        .pm-cone--inline {
+            display: block;
         }
 
         @keyframes pm-float {
@@ -158,14 +164,23 @@
 </head>
 <body>
     <main class="pm-screen">
-        <img
-            class="pm-cone"
-            src="/assets/svgs/processonegado.svg"
-            alt=""
-            width="88"
-            height="88"
-            aria-hidden="true"
-        />
+        @if($imageUrl !== '')
+            <img
+                class="pm-cone"
+                src="{{ $imageUrl }}"
+                alt=""
+                width="88"
+                height="88"
+                aria-hidden="true"
+            />
+        @else
+            <svg class="pm-cone pm-cone--inline" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <path d="M60 8L22 98h76L60 8z" fill="#f97316" stroke="#ea580c" stroke-width="3" stroke-linejoin="round"/>
+                <path d="M34 78h52" stroke="#fff" stroke-width="7" stroke-linecap="round" opacity="0.95"/>
+                <path d="M38 58h44" stroke="#fff" stroke-width="7" stroke-linecap="round" opacity="0.95"/>
+                <ellipse cx="60" cy="98" rx="34" ry="8" fill="#0f172a" opacity="0.35"/>
+            </svg>
+        @endif
 
         <div class="pm-content">
             <h1 class="pm-title">

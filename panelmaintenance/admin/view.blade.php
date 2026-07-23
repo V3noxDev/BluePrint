@@ -6,7 +6,7 @@
                 Página 503 personalizada em português — ative pelo admin <strong>ou</strong> via SSH com <code>php artisan down</code>.
             </p>
         </div>
-        <span class="pm-admin__version">v1.1.0</span>
+        <span class="pm-admin__version">v1.1.2</span>
     </div>
 
     @if(session('success'))
@@ -57,6 +57,15 @@
 
                 <label class="pm-admin__label" for="message">Mensagem</label>
                 <textarea name="message" id="message" class="pm-admin__textarea" rows="3" required>{{ $settings['message'] }}</textarea>
+
+                <label class="pm-admin__label" for="image_url">Imagem (URL ou caminho)</label>
+                <input type="text" name="image_url" id="image_url" class="pm-admin__input"
+                    value="{{ $settings['image_url'] ?? '' }}"
+                    placeholder="/assets/svgs/processonegado.svg ou https://...">
+                <p class="pm-admin__hint">
+                    Deixe vazio para usar o cone laranja embutido (sempre funciona).
+                    Caminhos locais como <code>/assets/...</code> precisam existir no painel.
+                </p>
 
                 <label class="pm-admin__label" for="retry_minutes">Tentar novamente em (minutos)</label>
                 <input type="number" name="retry_minutes" id="retry_minutes" class="pm-admin__input"

@@ -85,6 +85,7 @@ class panelmaintenanceSettingsFormRequest extends AdminFormRequest
             'store_url' => ['required', 'url', 'max:255'],
             'discord_url' => ['required', 'url', 'max:255'],
             'brand_name' => ['required', 'string', 'max:64'],
+            'image_url' => ['nullable', 'string', 'max:500'],
         ];
     }
 
@@ -101,6 +102,7 @@ class panelmaintenanceSettingsFormRequest extends AdminFormRequest
             'store_url' => 'URL da loja',
             'discord_url' => 'URL do Discord',
             'brand_name' => 'Nome da marca',
+            'image_url' => 'URL da imagem',
         ];
     }
 
@@ -117,6 +119,7 @@ class panelmaintenanceSettingsFormRequest extends AdminFormRequest
             'store_url' => trim((string) $this->input('store_url')),
             'discord_url' => trim((string) $this->input('discord_url')),
             'brand_name' => trim((string) $this->input('brand_name')),
+            'image_url' => trim((string) $this->input('image_url', '')),
         ];
     }
 }

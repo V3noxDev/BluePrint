@@ -8,6 +8,7 @@ Página de manutenção do painel Pterodactyl **igual ao estilo da foto** — co
 - Ativar/desativar pelo **Admin → Extensions → Panel Maintenance**
 - Página 503 em PT-BR (título laranja em **breve!**)
 - Links padrão BlackHosting já configurados
+- Imagem configurável ou cone laranja embutido (funciona mesmo em manutenção)
 - Token de bypass para admins
 
 ## Instalação
@@ -40,6 +41,14 @@ php artisan up
 1. **Admin → Extensions → Panel Maintenance**
 2. Ajuste textos e links se quiser
 3. **Ativar manutenção** / **Desativar manutenção**
+
+## Imagem da página 503
+
+- **Vazio** — cone laranja embutido no HTML (recomendado; sempre aparece)
+- **URL externa** — ex.: `https://cdn.exemplo.com/logo.png`
+- **Caminho local** — ex.: `/assets/svgs/processonegado.svg` (o ficheiro tem de existir em `public/`)
+
+> Durante a manutenção, pedidos a `/assets/*` ficam liberados para imagens locais carregarem.
 
 ## Links padrão
 

@@ -3,7 +3,7 @@ info:
   identifier: "panelmaintenance"
   description: "Modo de manutenção do painel com página 503 personalizada em português — ative/desative pelo admin sem SSH."
   flags: ""
-  version: "1.1.1"
+  version: "1.1.2"
   target: "beta-2026-06"
   author: "BluePrint"
   icon: "data/icon.svg"

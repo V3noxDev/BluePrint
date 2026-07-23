@@ -38,6 +38,7 @@ class MaintenanceService
             'store_url' => (string) $this->setting('store_url', 'https://financeiro.blackhosting.com.br'),
             'discord_url' => (string) $this->setting('discord_url', 'https://discord.gg/blackhosting'),
             'brand_name' => (string) $this->setting('brand_name', 'BlackHosting'),
+            'image_url' => (string) $this->setting('image_url', ''),
         ];
     }
 
@@ -71,6 +72,8 @@ class MaintenanceService
                 'admin/*',
                 'auth/*',
                 'api/application/*',
+                'assets/*',
+                'extensions/*',
             ],
         ]);
 
@@ -102,6 +105,7 @@ class MaintenanceService
             'store_url' => (string) ($settings['store_url'] ?? 'https://financeiro.blackhosting.com.br'),
             'discord_url' => (string) ($settings['discord_url'] ?? 'https://discord.gg/blackhosting'),
             'brand_name' => (string) ($settings['brand_name'] ?? 'BlackHosting'),
+            'image_url' => (string) ($settings['image_url'] ?? ''),
         ];
 
         file_put_contents($this->configPath(), json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
@@ -154,6 +158,7 @@ class MaintenanceService
             'store_url' => 'https://financeiro.blackhosting.com.br',
             'discord_url' => 'https://discord.gg/blackhosting',
             'brand_name' => 'BlackHosting',
+            'image_url' => '',
         ];
     }
 
