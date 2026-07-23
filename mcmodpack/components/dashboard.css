@@ -884,3 +884,20 @@
     font-size: 12px;
     color: var(--mp-muted);
 }
+
+.mp-install-background {
+    margin: 0 0 12px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    color: #bfdbfe;
+    background: rgba(59, 130, 246, 0.12);
+    border: 1px solid rgba(59, 130, 246, 0.35);
+    text-align: center;
+}
+
+.mp-install-error {
+    margin: 0 0 16px;
+    text-align: left;
+    word-break: break-word;
+}

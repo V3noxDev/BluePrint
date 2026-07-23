@@ -147,20 +147,29 @@ class ModpackController extends Controller
 
     public function installStatus(Request $request, Server $server): JsonResponse
     {
-        $this->authorize('file.read', $server);
+        try {
+            $this->authorize('file.read', $server);
 
-        $progress = ModpackInstallProgress::get($server);
-
-        return response()->json(array(
-            'success' => true,
-            'data' => $progress ?? array(
+            $progress = ModpackInstallProgress::get($server);
+            $payload = $progress ?? array(
                 'active' => false,
                 'phase' => 'idle',
                 'step' => 0,
                 'progress' => 0,
                 'message' => 'Nenhuma instalação em andamento',
-            ),
-        ));
+            );
+            $payload['locked'] = ModpackInstallProgress::isLocked($server);
+
+            return response()->json(array(
+                'success' => true,
+                'data' => $payload,
+            ));
+        } catch (\Throwable $e) {
+            return response()->json(array(
+                'success' => false,
+                'message' => 'Erro ao consultar progresso: ' . $e->getMessage(),
+            ), 500);
+        }
     }
 
     public function installCancel(Request $request, Server $server): JsonResponse
@@ -222,6 +231,20 @@ class ModpackController extends Controller
                 'success' => false,
                 'message' => 'Instalação cancelada. Arquivos do servidor foram apagados.',
             ), 409);
+        } catch (\RuntimeException $e) {
+            if (stripos($e->getMessage(), 'instalação em andamento') !== false) {
+                return response()->json(array(
+                    'success' => false,
+                    'message' => $e->getMessage(),
+                ), 409);
+            }
+
+            ModpackInstallProgress::fail($server, $e->getMessage());
+
+            return response()->json(array(
+                'success' => false,
+                'message' => 'Erro ao instalar o modpack: ' . $e->getMessage(),
+            ), 500);
         } catch (DaemonConnectionException $e) {
             ModpackInstallProgress::fail($server, 'Falha ao comunicar com o Wings.');
 

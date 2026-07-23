@@ -19,9 +19,40 @@ class ModpackInstallProgress
         return 'mcmodpack:cancel:' . $server->uuid;
     }
 
+    public static function lockKey(Server $server): string
+    {
+        return 'mcmodpack:lock:' . $server->uuid;
+    }
+
+    public static function acquireLock(Server $server): bool
+    {
+        try {
+            return Cache::add(self::lockKey($server), true, self::TTL);
+        } catch (\Throwable $e) {
+            return true;
+        }
+    }
+
+    public static function releaseLock(Server $server): void
+    {
+        try {
+            Cache::forget(self::lockKey($server));
+        } catch (\Throwable $e) {
+        }
+    }
+
+    public static function isLocked(Server $server): bool
+    {
+        try {
+            return (bool) Cache::get(self::lockKey($server), false);
+        } catch (\Throwable $e) {
+            return false;
+        }
+    }
+
     public static function start(Server $server, string $modpackName): void
     {
-        Cache::forget(self::cancelKey($server));
+        self::safeForget(self::cancelKey($server));
         self::put($server, array(
             'active' => true,
             'phase' => 'preparing',
@@ -51,7 +82,8 @@ class ModpackInstallProgress
 
         $progress = (int) ($merged['progress'] ?? 0);
         if ($progress > 0 && $progress < 100 && !empty($merged['started_at'])) {
-            $elapsed = max(1, time() - strtotime((string) $merged['started_at']));
+            $started = strtotime((string) $merged['started_at']);
+            $elapsed = $started ? max(1, time() - $started) : 1;
             $merged['eta_seconds'] = (int) round(($elapsed / $progress) * (100 - $progress));
         } elseif ($progress >= 100) {
             $merged['eta_seconds'] = 0;
@@ -80,7 +112,9 @@ class ModpackInstallProgress
             'progress' => 100,
             'message' => $message,
             'eta_seconds' => 0,
+            'error' => null,
         ));
+        self::releaseLock($server);
     }
 
     public static function fail(Server $server, string $error): void
@@ -93,6 +127,7 @@ class ModpackInstallProgress
             'error' => $error,
             'eta_seconds' => null,
         ));
+        self::releaseLock($server);
     }
 
     public static function cancelled(Server $server): void
@@ -105,7 +140,8 @@ class ModpackInstallProgress
             'error' => null,
             'eta_seconds' => null,
         ));
-        Cache::forget(self::cancelKey($server));
+        self::safeForget(self::cancelKey($server));
+        self::releaseLock($server);
     }
 
     public static function get(Server $server): ?array
@@ -121,16 +157,17 @@ class ModpackInstallProgress
 
     public static function clear(Server $server): void
     {
-        try {
-            Cache::forget(self::key($server));
-            Cache::forget(self::cancelKey($server));
-        } catch (\Throwable $e) {
-        }
+        self::safeForget(self::key($server));
+        self::safeForget(self::cancelKey($server));
+        self::releaseLock($server);
     }
 
     public static function requestCancel(Server $server): void
     {
-        Cache::put(self::cancelKey($server), true, self::TTL);
+        try {
+            Cache::put(self::cancelKey($server), true, self::TTL);
+        } catch (\Throwable $e) {
+        }
     }
 
     public static function isCancelled(Server $server): bool
@@ -153,6 +190,14 @@ class ModpackInstallProgress
     {
         try {
             Cache::put(self::key($server), $data, self::TTL);
+        } catch (\Throwable $e) {
+        }
+    }
+
+    private static function safeForget(string $key): void
+    {
+        try {
+            Cache::forget($key);
         } catch (\Throwable $e) {
         }
     }
