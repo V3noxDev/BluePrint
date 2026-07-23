@@ -1,0 +1,81 @@
+:root {
+    --loginmaster-accent: #3b82f6;
+}
+
+body.loginmaster-bg-gradient {
+    background:
+        radial-gradient(1200px 600px at 10% -10%, color-mix(in srgb, var(--loginmaster-accent) 35%, transparent), transparent),
+        radial-gradient(900px 500px at 100% 0%, rgba(99, 102, 241, 0.18), transparent),
+        #0b1220 !important;
+}
+
+body.loginmaster-bg-solid {
+    background: #0f172a !important;
+}
+
+body.loginmaster-bg-minimal {
+    background: #111827 !important;
+}
+
+.loginmaster-shell {
+    text-align: center;
+    margin-bottom: 1.25rem;
+    padding: 0 0.5rem;
+}
+
+.loginmaster-shell__badge {
+    display: inline-block;
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #cbd5e1;
+    background: rgba(15, 23, 42, 0.65);
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    border-radius: 999px;
+    padding: 0.35rem 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.loginmaster-shell__brand {
+    margin: 0 0 0.35rem;
+    font-size: 1.65rem;
+    font-weight: 700;
+    color: #f8fafc;
+    line-height: 1.2;
+}
+
+.loginmaster-shell__welcome {
+    margin: 0;
+    font-size: 0.95rem;
+    color: #94a3b8;
+}
+
+.loginmaster-auth form {
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    box-shadow: 0 20px 45px rgba(2, 6, 23, 0.45);
+    backdrop-filter: blur(6px);
+}
+
+.loginmaster-auth label,
+.loginmaster-auth .text-neutral-300 {
+    color: #cbd5e1 !important;
+}
+
+.loginmaster-auth button[type='submit'],
+.loginmaster-auth .btn-primary {
+    background: var(--loginmaster-accent) !important;
+    border-color: color-mix(in srgb, var(--loginmaster-accent) 80%, #000) !important;
+}
+
+.loginmaster-auth button[type='submit']:hover {
+    filter: brightness(1.06);
+}
+
+.loginmaster-hp {
+    position: absolute !important;
+    left: -9999px !important;
+    width: 1px !important;
+    height: 1px !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
