@@ -3,7 +3,7 @@ info:
   identifier: "mcmodpack"
   description: "Instalador de modpacks CurseForge para Forge/NeoForge — busca, detalhes, versões e instalação com server pack."
   flags: ""
-  version: "1.0.6"
+  version: "1.0.7"
   target: "beta-2026-06"
   author: "BluePrint"
   icon: "data/icon.svg"

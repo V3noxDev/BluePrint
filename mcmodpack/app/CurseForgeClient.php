@@ -229,15 +229,20 @@ class CurseForgeClient
         $cacheKey = 'mcmodpack:dl:' . $modId . ':' . $fileId;
 
         return $this->remember($cacheKey, self::CACHE_DOWNLOAD, function () use ($modId, $fileId) {
-            $json = $this->request('GET', '/v1/mods/' . $modId . '/files/' . $fileId . '/download-url');
-            if (!is_array($json)) {
-                return null;
-            }
-
-            $url = $json['data'] ?? null;
-
-            return is_string($url) && $url !== '' ? $url : null;
+            return $this->fetchFreshDownloadUrl($modId, $fileId);
         });
+    }
+
+    public function fetchFreshDownloadUrl(int $modId, int $fileId): ?string
+    {
+        $json = $this->request('GET', '/v1/mods/' . $modId . '/files/' . $fileId . '/download-url');
+        if (!is_array($json)) {
+            return null;
+        }
+
+        $url = $json['data'] ?? null;
+
+        return is_string($url) && $url !== '' ? $url : null;
     }
 
     /**
