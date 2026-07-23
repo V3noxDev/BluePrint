@@ -80,14 +80,24 @@ const timeAgo = (iso?: string | null) => {
 
 const formatApiError = (err: unknown): string => {
     const e = err as {
-        response?: { status?: number; data?: { message?: string; error?: string } };
+        response?: {
+            status?: number;
+            data?: { message?: string; error?: string; errors?: Record<string, string[]> };
+        };
         message?: string;
     };
     const data = e.response?.data;
     if (data?.message) return data.message;
     if (data?.error) return data.error;
+    if (data?.errors) {
+        const first = Object.values(data.errors).flat()[0];
+        if (first) return first;
+    }
     if (e.response?.status === 404) {
         return 'Addon MC Modpacks não encontrado. Rode blueprint -install mcmodpack.blueprint';
+    }
+    if (e.response?.status === 500) {
+        return 'Erro interno no servidor (500). Atualize o addon mcmodpack v1.0.5+ e rode blueprint -build.';
     }
     if (e.message) return e.message;
     return 'Erro ao carregar modpacks.';
@@ -171,7 +181,13 @@ const ModpacksSection = () => {
 
     useEffect(() => {
         const timer = window.setTimeout(() => {
-            setSearch((current) => (current === searchDraft ? current : searchDraft));
+            setSearch((current) => {
+                if (current === searchDraft) {
+                    return current;
+                }
+                setPagination((p) => ({ ...p, index: 0 }));
+                return searchDraft;
+            });
         }, 350);
 
         return () => window.clearTimeout(timer);
