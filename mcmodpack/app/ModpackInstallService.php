@@ -2,22 +2,32 @@
 
 namespace Pterodactyl\BlueprintFramework\Extensions\mcmodpack;
 
+use GuzzleHttp\Client;
+use GuzzleHttp\Exception\GuzzleException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Pterodactyl\Models\Server;
 use Pterodactyl\Repositories\Wings\DaemonFileRepository;
-use Pterodactyl\BlueprintFramework\Libraries\ExtensionLibrary\Admin\BlueprintAdminLibrary as BlueprintExtensionLibrary;
+use Pterodactyl\BlueprintFramework\Libraries\ExtensionLibrary\Admin\BlueprintExtensionLibrary as BlueprintExtensionLibrary;
 
 class ModpackInstallService
 {
-    private const SMALL_FILE_LIMIT = 8 * 1024 * 1024;
+    private const SMALL_FILE_LIMIT = 8388608;
+    private const WRITE_TIMEOUT = 900;
+
+    private CurseForgeClient $curse;
+    private DaemonFileRepository $files;
+    private BlueprintExtensionLibrary $blueprint;
 
     public function __construct(
-        private CurseForgeClient $curse,
-        private DaemonFileRepository $files,
-        private WingsFileUploader $uploader,
-        private BlueprintExtensionLibrary $blueprint,
-    ) {}
+        CurseForgeClient $curse,
+        DaemonFileRepository $files,
+        BlueprintExtensionLibrary $blueprint
+    ) {
+        $this->curse = $curse;
+        $this->files = $files;
+        $this->blueprint = $blueprint;
+    }
 
     /**
      * @return array{modpack_id:int,file_id:int,server_pack_file_id:int,name:string,version:string,mods_downloaded:int}
@@ -27,7 +37,7 @@ class ModpackInstallService
         int $modpackId,
         int $fileId,
         bool $wipe = false,
-        bool $acceptEula = false,
+        bool $acceptEula = false
     ): array {
         if (!$this->curse->hasApiKey()) {
             throw new \RuntimeException('API Key do CurseForge não configurada no admin.');
@@ -36,7 +46,7 @@ class ModpackInstallService
         @set_time_limit(0);
         @ini_set('memory_limit', '512M');
 
-        $modpack = $this->curse->getModpack($modpackId);
+        $modpack = $this->curse->getModpackSummary($modpackId);
         if (!$modpack) {
             throw new \RuntimeException('Modpack não encontrado na CurseForge.');
         }
@@ -71,8 +81,8 @@ class ModpackInstallService
         });
 
         try {
-            $this->files->setServer($server)->deleteFiles('/', [$archiveName]);
-        } catch (\Throwable) {
+            $this->files->setServer($server)->deleteFiles('/', array($archiveName));
+        } catch (\Throwable $e) {
             Log::warning('[mcmodpack] não foi possível remover zip temporário');
         }
 
@@ -84,7 +94,7 @@ class ModpackInstallService
             });
         }
 
-        $installed = [
+        $installed = array(
             'modpack_id' => $modpackId,
             'file_id' => $fileId,
             'server_pack_file_id' => $packFileId,
@@ -98,7 +108,7 @@ class ModpackInstallService
             'provider' => 'curseforge',
             'installed_at' => now()->toIso8601String(),
             'mods_downloaded' => $modsDownloaded,
-        ];
+        );
 
         $this->blueprint->dbSet('mcmodpack', $this->serverKey($server), json_encode($installed));
 
@@ -137,8 +147,8 @@ class ModpackInstallService
 
         try {
             $response = Http::timeout(600)
-                ->withOptions(['allow_redirects' => true])
-                ->withHeaders(['User-Agent' => 'BluePrint-MCModpack/1.0'])
+                ->withOptions(array('allow_redirects' => true))
+                ->withHeaders(array('User-Agent' => 'BluePrint-MCModpack/1.0'))
                 ->sink($temp)
                 ->get($url);
 
@@ -151,11 +161,11 @@ class ModpackInstallService
                 throw new \RuntimeException('Download retornou arquivo vazio.');
             }
 
-            Log::info('[mcmodpack] download via painel', [
+            Log::info('[mcmodpack] download via painel', array(
                 'server' => $server->uuid,
                 'bytes' => $size,
                 'file' => $remotePath,
-            ]);
+            ));
 
             $this->uploadLocalFile($server, $remotePath, $temp, $url, $directory, $filename, $size);
         } finally {
@@ -170,7 +180,7 @@ class ModpackInstallService
         string $sourceUrl,
         string $directory,
         string $filename,
-        int $size,
+        int $size
     ): void {
         try {
             if ($size <= self::SMALL_FILE_LIMIT) {
@@ -179,41 +189,103 @@ class ModpackInstallService
                     throw new \RuntimeException('Falha ao ler arquivo baixado.');
                 }
                 $this->withWingsRetry(function () use ($server, $remotePath, $content) {
-                    $this->uploader->uploadSmall($server, $remotePath, $content, $this->files);
+                    $this->uploadSmall($server, $remotePath, $content);
                 });
 
                 return;
             }
 
             $this->withWingsRetry(function () use ($server, $remotePath, $localPath) {
-                $this->uploader->uploadFromPath($server, $remotePath, $localPath);
+                $this->uploadFromPath($server, $remotePath, $localPath);
             });
         } catch (\Throwable $panelUpload) {
-            Log::warning('[mcmodpack] upload via painel falhou, tentando pull Wings', [
+            Log::warning('[mcmodpack] upload via painel falhou, tentando pull Wings', array(
                 'error' => $panelUpload->getMessage(),
                 'file' => $remotePath,
-            ]);
+            ));
 
             $this->withWingsRetry(function () use ($server, $sourceUrl, $directory, $filename) {
-                $this->files->setServer($server)->pull($sourceUrl, $directory === '' ? '/' : $directory, [
+                $this->files->setServer($server)->pull($sourceUrl, $directory === '' ? '/' : $directory, array(
                     'filename' => $filename,
                     'foreground' => true,
-                ]);
+                ));
             });
         }
+    }
+
+    private function uploadFromPath(Server $server, string $remotePath, string $localPath): void
+    {
+        if (!is_file($localPath)) {
+            throw new \RuntimeException('Arquivo local não encontrado para upload.');
+        }
+
+        $size = filesize($localPath);
+        if ($size === false || $size < 1) {
+            throw new \RuntimeException('Arquivo local está vazio.');
+        }
+
+        $server->loadMissing('node');
+        $node = $server->node;
+        $remotePath = '/' . ltrim(str_replace('\\', '/', $remotePath), '/');
+
+        $handle = fopen($localPath, 'rb');
+        if ($handle === false) {
+            throw new \RuntimeException('Não foi possível abrir o arquivo para upload.');
+        }
+
+        try {
+            $client = new Client(array(
+                'verify' => app()->environment('production'),
+                'base_uri' => $node->getConnectionAddress(),
+                'timeout' => self::WRITE_TIMEOUT,
+                'connect_timeout' => 30,
+                'headers' => array(
+                    'Authorization' => 'Bearer ' . $node->getDecryptedKey(),
+                    'Accept' => 'application/json',
+                ),
+            ));
+
+            $response = $client->post(
+                sprintf('/api/servers/%s/files/write', $server->uuid),
+                array(
+                    'query' => array('file' => $remotePath),
+                    'body' => $handle,
+                )
+            );
+
+            if ($response->getStatusCode() >= 400) {
+                throw new \RuntimeException('Wings recusou o upload (HTTP ' . $response->getStatusCode() . ').');
+            }
+
+            Log::info('[mcmodpack] upload stream concluído', array(
+                'server' => $server->uuid,
+                'path' => $remotePath,
+                'bytes' => $size,
+            ));
+        } catch (GuzzleException $e) {
+            throw new \RuntimeException('Falha ao enviar arquivo ao Wings: ' . $e->getMessage(), 0, $e);
+        } finally {
+            fclose($handle);
+        }
+    }
+
+    private function uploadSmall(Server $server, string $remotePath, string $content): void
+    {
+        $remotePath = ltrim(str_replace('\\', '/', $remotePath), '/');
+        $this->files->setServer($server)->putContent($remotePath, $content);
     }
 
     private function downloadManifestMods(Server $server): int
     {
         $manifest = null;
-        foreach ['/manifest.json', 'manifest.json', '/modpack/manifest.json', 'modpack/manifest.json'] as $path) {
+        foreach (array('/manifest.json', 'manifest.json', '/modpack/manifest.json', 'modpack/manifest.json') as $path) {
             try {
                 $content = $this->files->setServer($server)->getContent(ltrim($path, '/'));
                 $manifest = json_decode($content, true);
                 if (is_array($manifest)) {
                     break;
                 }
-            } catch (\Throwable) {
+            } catch (\Throwable $e) {
             }
         }
 
@@ -223,7 +295,7 @@ class ModpackInstallService
 
         try {
             $this->files->setServer($server)->createDirectory('mods', '/');
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
         }
 
         $count = 0;
@@ -294,13 +366,13 @@ class ModpackInstallService
                 return;
             } catch (\Throwable $e) {
                 $last = $e;
-                Log::warning('[mcmodpack] wings retry', [
+                Log::warning('[mcmodpack] wings retry', array(
                     'attempt' => $i + 1,
                     'error' => $e->getMessage(),
-                ]);
+                ));
 
                 if ($i < $attempts - 1) {
-                    usleep(800_000);
+                    usleep(800000);
                 }
             }
         }
