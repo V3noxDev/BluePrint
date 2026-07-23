@@ -177,6 +177,11 @@ class CurseForgeClient
         return is_string($url) && $url !== '' ? $url : null;
     }
 
+    public function fetchFreshDownloadUrl(int $modId, int $fileId): ?string
+    {
+        return $this->getDownloadUrl($modId, $fileId);
+    }
+
     public function mapPlugin(array $mod): array
     {
         $authors = collect($mod['authors'] ?? [])->pluck('name')->filter()->values()->all();
