@@ -1,0 +1,37 @@
+info:
+  name: "Login Master"
+  identifier: "loginmaster"
+  description: "Login seguro com Cloudflare Turnstile, interface moderna e validação server-side anti-bypass."
+  flags: ""
+  version: "1.0.0"
+  target: "beta-2026-06"
+  author: "BluePrint"
+  icon: "data/icon.svg"
+  website: "https://blackhosting.com.br"
+
+admin:
+  view: "admin/view.blade.php"
+  controller: "admin/controller.php"
+  css: "admin/admin.css"
+  wrapper: ""
+
+dashboard:
+  css: "components/auth.css"
+  wrapper: ""
+  components: "components"
+
+data:
+  directory: "data"
+  public: ""
+  console: ""
+
+requests:
+  views: ""
+  app: "app"
+  routers:
+    application: ""
+    client: ""
+    web: "routes/web.php"
+
+database:
+  migrations: "database/migrations"
