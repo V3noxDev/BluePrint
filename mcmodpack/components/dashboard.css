@@ -765,3 +765,122 @@
         grid-template-columns: 1fr;
     }
 }
+
+.mp-modal--install {
+    max-width: 520px;
+}
+
+.mp-install-steps {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: start;
+    gap: 12px;
+    margin: 20px 0 8px;
+    padding: 16px;
+    border-radius: 12px;
+    background: rgba(15, 23, 42, 0.55);
+    border: 1px solid var(--mp-border);
+}
+
+.mp-install-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    min-width: 72px;
+    color: var(--mp-muted);
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.mp-install-step__bubble {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    font-weight: 700;
+    background: #243044;
+    border: 2px solid #3d4d66;
+    color: var(--mp-muted);
+    transition: all 0.25s ease;
+}
+
+.mp-install-step.is-active .mp-install-step__bubble {
+    background: rgba(59, 130, 246, 0.18);
+    border-color: var(--mp-blue);
+    color: #dbeafe;
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.12);
+}
+
+.mp-install-step.is-done .mp-install-step__bubble {
+    background: rgba(34, 197, 94, 0.18);
+    border-color: #22c55e;
+    color: #bbf7d0;
+}
+
+.mp-install-step.is-active span,
+.mp-install-step.is-done span {
+    color: var(--mp-text);
+}
+
+.mp-install-track {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-top: 10px;
+}
+
+.mp-install-track__rail {
+    height: 8px;
+    border-radius: 999px;
+    background: #243044;
+    overflow: hidden;
+}
+
+.mp-install-track__fill {
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #2563eb, #38bdf8);
+    transition: width 0.45s ease;
+}
+
+.mp-install-track__meta {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 12px;
+    color: var(--mp-muted);
+}
+
+.mp-install-bytes {
+    text-align: center;
+    font-size: 13px;
+    color: var(--mp-muted);
+    margin-bottom: 4px;
+}
+
+.mp-modal__actions--center {
+    justify-content: center;
+}
+
+.mp-btn--danger {
+    background: rgba(225, 29, 72, 0.15);
+    border: 1px solid rgba(225, 29, 72, 0.45);
+    color: #fecdd3;
+}
+
+.mp-btn--danger:hover:not(:disabled) {
+    background: rgba(225, 29, 72, 0.28);
+}
+
+.mp-install-cancel-hint {
+    margin: 0;
+    text-align: center;
+    font-size: 12px;
+    color: var(--mp-muted);
+}
