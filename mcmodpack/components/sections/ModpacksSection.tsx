@@ -263,7 +263,8 @@ const ModpacksSection = () => {
                     file_id: selectedFileId,
                     wipe,
                     accept_eula: acceptEula,
-                }
+                },
+                { timeout: 1000 * 60 * 45 }
             );
             if (res.success) {
                 showToast('success', res.message || 'Modpack instalado!');
@@ -273,8 +274,28 @@ const ModpacksSection = () => {
             } else {
                 showToast('error', res.message || 'Falha na instalação.');
             }
-        } catch (err: any) {
-            showToast('error', err?.response?.data?.message || 'Erro ao instalar o modpack.');
+        } catch (err: unknown) {
+            const e = err as {
+                code?: string;
+                message?: string;
+                response?: { status?: number; data?: { message?: string } };
+            };
+            const apiMessage = e.response?.data?.message;
+            if (e.code === 'ECONNABORTED' || e.message?.toLowerCase().includes('timeout')) {
+                showToast(
+                    'error',
+                    'A instalação demorou demais. Verifique os arquivos do servidor — pode ter concluído parcialmente.'
+                );
+            } else if (apiMessage) {
+                showToast('error', apiMessage);
+            } else if (e.response?.status) {
+                showToast(
+                    'error',
+                    `Erro ao instalar (${e.response.status}). Confira storage/logs/laravel.log no painel.`
+                );
+            } else {
+                showToast('error', e.message || 'Erro ao instalar o modpack.');
+            }
         } finally {
             setInstalling(false);
         }
