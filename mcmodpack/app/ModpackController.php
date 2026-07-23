@@ -239,8 +239,6 @@ class ModpackController extends Controller
                 ), 409);
             }
 
-            ModpackInstallProgress::fail($server, $e->getMessage());
-
             return response()->json(array(
                 'success' => false,
                 'message' => 'Erro ao instalar o modpack: ' . $e->getMessage(),

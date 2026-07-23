@@ -3,6 +3,7 @@
 namespace Pterodactyl\BlueprintFramework\Extensions\mcmodpack;
 
 use GuzzleHttp\Client;
+use GuzzleHttp\Exception\RequestException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Pterodactyl\Models\Server;
@@ -250,23 +251,38 @@ class ModpackInstallService
     {
         ModpackInstallProgress::assertNotCancelled($server);
 
-        $client = $this->wingsClient($server, self::WINGS_TIMEOUT);
-        $response = $client->post(
-            sprintf('/api/servers/%s/files/pull', $server->uuid),
-            array(
-                'json' => array_filter(array(
-                    'url' => trim($url),
-                    'root' => $directory === '' ? '/' : $directory,
-                    'file_name' => $filename,
-                    'foreground' => true,
-                ), function ($value) {
-                    return $value !== null && $value !== '';
-                }),
-            )
-        );
+        try {
+            $response = $this->files->setServer($server)->getHttpClient()->post(
+                sprintf('/api/servers/%s/files/pull', $server->uuid),
+                array(
+                    'json' => array_filter(array(
+                        'url' => trim($url),
+                        'root' => $directory === '' ? '/' : $directory,
+                        'file_name' => $filename,
+                        'foreground' => true,
+                    ), function ($value) {
+                        return $value !== null && $value !== '';
+                    }),
+                    'timeout' => self::WINGS_TIMEOUT,
+                    'connect_timeout' => 30,
+                )
+            );
 
-        if ($response->getStatusCode() >= 400) {
-            throw new \RuntimeException('Wings recusou o pull (HTTP ' . $response->getStatusCode() . ').');
+            if ($response->getStatusCode() >= 400) {
+                throw new \RuntimeException('Wings recusou o pull (HTTP ' . $response->getStatusCode() . ').');
+            }
+        } catch (RequestException $e) {
+            $detail = $e->getMessage();
+            if ($e->hasResponse()) {
+                $body = trim((string) $e->getResponse()->getBody());
+                if ($body !== '') {
+                    $detail = $body;
+                }
+            }
+
+            throw new \RuntimeException('Wings pull falhou: ' . $detail, 0, $e);
+        } catch (\Throwable $e) {
+            throw new \RuntimeException('Wings pull falhou: ' . $e->getMessage(), 0, $e);
         }
 
         Log::info('[mcmodpack] pull concluído', array(
@@ -336,13 +352,13 @@ class ModpackInstallService
                 'bytes_total' => $size,
             ));
 
-            Log::info('[mcmodpack] upload para Wings', array(
+            Log::info('[mcmodpack] entregando arquivo ao Wings', array(
                 'server' => $server->uuid,
                 'bytes' => $size,
                 'file' => $remotePath,
             ));
 
-            $this->uploadLocalFile($server, $remotePath, $temp, $size);
+            $this->deliverLocalFileToWings($server, $remotePath, $temp, $size, $filename, $directory);
             ModpackInstallProgress::phase($server, 'uploading', 1, 82, 'Arquivo enviado ao servidor', array(
                 'bytes_done' => $size,
                 'bytes_total' => $size,
@@ -352,24 +368,162 @@ class ModpackInstallService
         }
     }
 
+    /**
+     * Entrega arquivo local ao Wings: pull via proxy do painel (sem limite upload_limit),
+     * depois upload direto como fallback.
+     */
+    private function deliverLocalFileToWings(
+        Server $server,
+        string $remotePath,
+        string $localPath,
+        int $size,
+        string $filename,
+        string $directory
+    ): void {
+        ModpackInstallProgress::assertNotCancelled($server);
+
+        if ($size > self::SMALL_FILE_LIMIT) {
+            try {
+                $this->deliverViaPanelPullProxy($server, $localPath, $filename, $directory, $size);
+
+                return;
+            } catch (\Throwable $proxyError) {
+                Log::warning('[mcmodpack] pull via painel falhou, tentando upload direto', array(
+                    'error' => $proxyError->getMessage(),
+                ));
+            }
+        }
+
+        $this->uploadLocalFile($server, $remotePath, $localPath, $size);
+    }
+
+    private function deliverViaPanelPullProxy(
+        Server $server,
+        string $localPath,
+        string $filename,
+        string $directory,
+        int $size
+    ): void {
+        $panelUrl = (string) config('app.url');
+        if ($panelUrl === '' || stripos($panelUrl, 'localhost') !== false || stripos($panelUrl, '127.0.0.1') !== false) {
+            throw new \RuntimeException(
+                'APP_URL do painel deve ser acessível pelo node Wings (não use localhost).'
+            );
+        }
+
+        $token = ModpackPullToken::create($server->uuid, $localPath);
+        $pullUrl = ModpackPullToken::publicUrl($token);
+
+        Log::info('[mcmodpack] pull via proxy do painel', array(
+            'url' => $pullUrl,
+            'bytes' => $size,
+        ));
+
+        ModpackInstallProgress::phase(
+            $server,
+            'uploading',
+            1,
+            58,
+            'Transferindo ' . $this->formatBytes($size) . ' via Wings pull...',
+            array('bytes_done' => 0, 'bytes_total' => $size)
+        );
+
+        try {
+            $this->pullToServer($server, $pullUrl, $filename, $directory);
+        } finally {
+            ModpackPullToken::revoke($token);
+        }
+    }
+
     private function uploadLocalFile(Server $server, string $remotePath, string $localPath, int $size): void
     {
         ModpackInstallProgress::assertNotCancelled($server);
+        $path = $this->normalizePath($remotePath);
+        $lastError = null;
 
         if ($size <= self::SMALL_FILE_LIMIT) {
             $content = file_get_contents($localPath);
             if ($content === false) {
                 throw new \RuntimeException('Falha ao ler arquivo baixado.');
             }
-            $this->files->setServer($server)->putContent($this->normalizePath($remotePath), $content);
+            $this->files->setServer($server)->putContent($path, $content);
 
             return;
         }
 
-        if (!$this->uploadLargeViaCurl($server, $remotePath, $localPath, $size)) {
+        try {
+            $this->uploadLargeViaGuzzle($server, $path, $localPath, $size);
+
+            return;
+        } catch (\Throwable $e) {
+            $lastError = $e->getMessage();
+            Log::warning('[mcmodpack] upload Guzzle falhou: ' . $lastError);
+        }
+
+        if ($this->uploadLargeViaCurl($server, $path, $localPath, $size)) {
+            return;
+        }
+
+        if ($lastError && (stripos($lastError, '413') !== false || stripos($lastError, 'upload size') !== false)) {
             throw new \RuntimeException(
-                'Falha ao enviar arquivo ao Wings. Verifique se curl está instalado no servidor PHP e se o node está online.'
+                'Arquivo ' . $this->formatBytes($size) . ' excede o upload_limit do Wings (padrão 100 MB). '
+                . 'Aumente api.upload_limit em /etc/pterodactyl/config.yml e reinicie o Wings, '
+                . 'ou garanta que o node consiga acessar APP_URL do painel para pull via proxy.'
             );
+        }
+
+        throw new \RuntimeException(
+            'Falha ao enviar ' . $this->formatBytes($size) . ' ao Wings'
+            . ($lastError ? ': ' . $lastError : '. Verifique conexão panel→node, curl e se o Wings está online.')
+        );
+    }
+
+    private function uploadLargeViaGuzzle(Server $server, string $path, string $localPath, int $size): void
+    {
+        $handle = @fopen($localPath, 'rb');
+        if ($handle === false) {
+            throw new \RuntimeException('Não foi possível abrir arquivo temporário para upload.');
+        }
+
+        ModpackInstallProgress::phase($server, 'uploading', 1, 62, 'Enviando ' . $this->formatBytes($size) . '...', array(
+            'bytes_done' => 0,
+            'bytes_total' => $size,
+        ));
+
+        try {
+            $client = $this->files->setServer($server)->getHttpClient(array(
+                'Content-Type' => 'application/octet-stream',
+            ));
+
+            $response = $client->post(
+                sprintf('/api/servers/%s/files/write', $server->uuid),
+                array(
+                    'query' => array('file' => $path),
+                    'body' => $handle,
+                    'timeout' => self::WINGS_TIMEOUT,
+                    'connect_timeout' => 30,
+                    'headers' => array(
+                        'Content-Type' => 'application/octet-stream',
+                        'Content-Length' => (string) $size,
+                    ),
+                )
+            );
+
+            if ($response->getStatusCode() >= 400) {
+                throw new \RuntimeException('Wings recusou upload (HTTP ' . $response->getStatusCode() . ').');
+            }
+
+            Log::info('[mcmodpack] upload Guzzle concluído', array(
+                'server' => $server->uuid,
+                'path' => $path,
+                'bytes' => $size,
+            ));
+        } catch (\Throwable $e) {
+            if (is_resource($handle)) {
+                @fclose($handle);
+            }
+
+            throw $e;
         }
     }
 
@@ -399,7 +553,7 @@ class ModpackInstallService
         return null;
     }
 
-    private function uploadLargeViaCurl(Server $server, string $remotePath, string $localPath, int $size): bool
+    private function uploadLargeViaCurl(Server $server, string $path, string $localPath, int $size): bool
     {
         if (!is_file($localPath)) {
             return false;
@@ -421,31 +575,49 @@ class ModpackInstallService
             $target = $base . sprintf(
                 '/api/servers/%s/files/write?file=%s',
                 $server->uuid,
-                rawurlencode($this->normalizePath($remotePath))
+                rawurlencode($path)
             );
 
-            ModpackInstallProgress::phase($server, 'uploading', 1, 58, 'Enviando ' . $this->formatBytes($size) . '...', array(
+            ModpackInstallProgress::phase($server, 'uploading', 1, 68, 'Enviando ' . $this->formatBytes($size) . ' (curl)...', array(
                 'bytes_done' => 0,
                 'bytes_total' => $size,
             ));
 
-            $process = new Process(array(
+            $args = array(
                 $curl,
-                '-sfS',
+                '-sS',
                 '-X', 'POST',
                 '-H', 'Authorization: Bearer ' . $node->getDecryptedKey(),
                 '-H', 'Content-Type: application/octet-stream',
+                '-H', 'Content-Length: ' . $size,
                 '--data-binary', '@' . $localPath,
+                '--connect-timeout', '30',
                 '--max-time', (string) self::WINGS_TIMEOUT,
-                $target,
-            ));
-            $process->setTimeout(self::WINGS_TIMEOUT + 60);
+                '-w', '\nHTTP_CODE:%{http_code}',
+            );
+
+            if (!app()->environment('production')) {
+                $args[] = '-k';
+            }
+
+            $args[] = $target;
+
+            $process = new Process($args);
+            $process->setTimeout(self::WINGS_TIMEOUT + 120);
             $process->run();
 
-            if (!$process->isSuccessful()) {
+            $output = trim($process->getOutput() . "\n" . $process->getErrorOutput());
+            $httpCode = 0;
+            if (preg_match('/HTTP_CODE:(\d+)/', $output, $matches)) {
+                $httpCode = (int) $matches[1];
+            }
+
+            if (!$process->isSuccessful() || ($httpCode >= 400 && $httpCode !== 0)) {
                 Log::warning('[mcmodpack] curl upload falhou', array(
                     'exit' => $process->getExitCode(),
-                    'error' => trim($process->getErrorOutput() ?: $process->getOutput()),
+                    'http' => $httpCode,
+                    'error' => $output,
+                    'target' => $target,
                 ));
 
                 return false;
@@ -453,7 +625,7 @@ class ModpackInstallService
 
             Log::info('[mcmodpack] upload curl concluído', array(
                 'server' => $server->uuid,
-                'path' => $remotePath,
+                'path' => $path,
                 'bytes' => $size,
             ));
 
