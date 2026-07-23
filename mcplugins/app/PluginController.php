@@ -172,16 +172,16 @@ class PluginController extends Controller
                 'message' => "Plugin {$result['name']} instalado em /plugins/{$result['file_name']}!",
                 'data' => $result,
             ]);
-        } catch (DaemonConnectionException) {
-            return response()->json([
+        } catch (DaemonConnectionException $e) {
+            return response()->json(array(
                 'success' => false,
-                'message' => 'Não foi possível conectar ao daemon. Verifique api.disable_remote_download no Wings.',
-            ], 502);
+                'message' => 'Não foi possível comunicar com o Wings ao enviar o plugin. Verifique se o node está online.',
+            ), 502);
         } catch (\Throwable $e) {
-            return response()->json([
+            return response()->json(array(
                 'success' => false,
                 'message' => 'Erro ao instalar: ' . $e->getMessage(),
-            ], 500);
+            ), 500);
         }
     }
 
@@ -215,6 +215,11 @@ class PluginController extends Controller
                 'message' => "Plugin {$result['name']} atualizado!",
                 'data' => $result,
             ]);
+        } catch (DaemonConnectionException $e) {
+            return response()->json(array(
+                'success' => false,
+                'message' => 'Não foi possível comunicar com o Wings ao enviar o plugin. Verifique se o node está online.',
+            ), 502);
         } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
