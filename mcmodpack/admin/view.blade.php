@@ -80,11 +80,10 @@
         </div>
 
         <div class="mp-admin__card mp-admin__card--wide">
-            <div class="mp-admin__card-title">Requisito Wings</div>
+            <div class="mp-admin__card-title">Download</div>
             <p class="mp-admin__hint">
-                O download remoto precisa estar ligado no Wings para puxar os zips/jars:
-                em <code>config.yml</code> do Wings use
-                <code>api.disable_remote_download: false</code> e reinicie o Wings.
+                Os modpacks são baixados pelo painel (PHP) e enviados ao servidor — não depende de
+                <code>api.disable_remote_download</code> no Wings. O node só precisa estar online.
             </p>
             <div class="mp-admin__route">
                 <code>/server/{id}/minecraft/modpacks</code>

@@ -139,7 +139,7 @@ class ModpackController extends Controller
         } catch (DaemonConnectionException $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Não foi possível conectar ao daemon. Verifique se o download remoto está habilitado no Wings (api.disable_remote_download: false).',
+                'message' => 'Não foi possível comunicar com o Wings. Verifique se o node está online.',
             ], 502);
         } catch (\Throwable $e) {
             return response()->json([
